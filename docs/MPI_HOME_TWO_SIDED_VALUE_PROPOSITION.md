@@ -113,3 +113,4 @@ The new implementation replaces arbitrary numbers with an authoritative **Substa
    - Result: Exit Code 0 (Production assets compiled in `dist/` in 1.15s).
 3. **GSAP ScrollTrigger Compatibility:**
    - Verified that all animation target selectors queried in `src/hooks/useHomepageCinematicGSAP.ts` remain present and active in `src/screens/Home.tsx`.
+
