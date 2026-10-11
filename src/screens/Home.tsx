@@ -1251,7 +1251,7 @@ export default function Home({
                 AI Spec Synthesis
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Describe requirements in conversational English. MPI AI constructs
+                Describe requirements in your own language. MPI AI constructs
                 manufacturing-ready bills of materials, GSM tolerances, and constraints.
               </p>
             </div>
