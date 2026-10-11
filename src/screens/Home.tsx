@@ -1128,10 +1128,10 @@ export default function Home({
 
             <div className="text-center pt-4 sm:pt-0 sm:pl-6">
               <div
-                className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-emerald-700 tracking-tight"
+                className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-extrabold text-emerald-700 tracking-tight whitespace-nowrap"
                 style={{ fontFamily: "Plus Jakarta Sans" }}
               >
-                <CountUpNumber start={18} end={32} prefix="18–" suffix="%" />
+                <CountUpNumber start={18} end={32} prefix="upto 18-" suffix="%" />
               </div>
               <div className="text-xs sm:text-sm text-slate-700 font-bold mt-1">
                 Target Cost Reduction

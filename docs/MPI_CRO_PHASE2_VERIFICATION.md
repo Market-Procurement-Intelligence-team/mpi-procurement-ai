@@ -92,7 +92,7 @@ This independent post-implementation audit verified Phase 2 of the MPI CRO initi
 ## 3. Day-0 Dashboard Metric Audit (`StartupCommandCenter.tsx`)
 
 ### 3.1 Investigation of Zero-Order Metrics
-For a brand new startup account with 0 active orders, displaying historical metrics such as *"18-32% Realized Savings"* or *"100% Escrow Protected"* can appear fabricated if not properly attributed.
+For a brand new startup account with 0 active orders, displaying historical metrics such as *"upto 18-32% Realized Savings"* or *"100% Escrow Protected"* can appear fabricated if not properly attributed.
 
 ### 3.2 Label & Attribution Remediation
 The 4 KPI cards and subtext in `StartupCommandCenter.tsx` were reviewed and updated to reflect clear, honest benchmarks:
@@ -100,7 +100,7 @@ The 4 KPI cards and subtext in `StartupCommandCenter.tsx` were reviewed and upda
 | KPI Card | Original Text | Remediated Truthful Labelling | Attribution / Subtext |
 |---|---|---|---|
 | **Active Inquiries** | `"0 Inquiries"` | `"0 ACTIVE INQUIRIES"` | *"Awaiting First Request — Ready to Draft"* |
-| **Savings Metric** | `"18–32% Reverse-Margin Target"` | `"BENCHMARK: REVERSE-MARGIN* — 18–32%"` | *"Direct Factory Margin — Indicative cluster model\*"* |
+| **Savings Metric** | `"upto 18-32% Reverse-Margin Target"` | `"BENCHMARK: REVERSE-MARGIN* — upto 18-32%"` | *"Direct Factory Margin — Indicative cluster model\*"* |
 | **Response SLA** | `"24–48 Hours Quotation SLA"` | `"TARGET RESPONSE SLA* — 24–48 Hours"` | *"Audited MSME Clusters — Peenya & Pune network"* |
 | **Escrow Status** | `"100% Protected"` | `"ESCROW PROTECTION PROTOCOL — Milestone-Gated"` | *"Disbursement Gate — Released upon QC pass"* |
 

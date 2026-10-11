@@ -494,7 +494,7 @@ The platform possesses an extraordinary engineering foundation: robust React 19 
   * Dual Marquee displays generic Industrial Clusters (Peenya, Okhla, Chakan, etc.) and Statutory Standards (DPIIT, ZED Gold, ISO 9001).
   * **Zero real customer logos, startup testimonials, founder photos, or case studies exist.**
 * [`src/screens/Home.tsx`](file:///Users/haccrr/Downloads/MPI_AI_Procurement_CoFounder_MVP_Complete_Research_Redesign/src/screens/Home.tsx#L878-L928):
-  * Metrics displayed: `1,240+ Verified MSME Suppliers`, `75+ Offerings`, `18–32% Direct Cost Reduction`, `₹36,000 Direct Gain`.
+  * Metrics displayed: `1,240+ Verified MSME Suppliers`, `75+ Offerings`, `upto 18-32% Direct Cost Reduction`, `₹36,000 Direct Gain`.
   * All metrics are hardcoded constants with no citation, audit trail, or methodology note.
 * Badges:
   * Text badges like `"★ ZED Gold"` and `"ISO 9001:2015"` are non-interactive strings without public certificate lookup or verification criteria.

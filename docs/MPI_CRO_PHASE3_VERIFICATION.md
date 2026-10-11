@@ -193,7 +193,7 @@ Every material claim across the platform was categorized into an honest trust ta
 
 | Platform Claim | Current Display | Attributed Source | Trust Category | Verification Mechanism |
 |---|---|---|---|---|
-| **Reverse-Margin Target** | `18–32%` | Peenya & Pune batch tooling model | **Estimated Benchmark** | Model calculations across verified tooling catalogs |
+| **Reverse-Margin Target** | `upto 18-32%` | Peenya & Pune batch tooling model | **Estimated Benchmark** | Model calculations across verified tooling catalogs |
 | **Quotation SLA** | `24–48 Hours` | Cluster network SLA target | **Target SLA** | Monitored via dispatch-to-quote timestamp telemetry |
 | **Escrow Status** | `Milestone-Gated` | MPI Escrow Protocol | **Platform Rule** | Funds locked in escrow, released on QC pass |
 | **Supplier Status** | `MPI Verified` | Udyam + GSTIN active registration | **Supplier-Declared** | Registry Udyam validation check |

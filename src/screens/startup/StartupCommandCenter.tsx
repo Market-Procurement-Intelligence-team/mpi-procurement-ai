@@ -263,7 +263,7 @@ export default function StartupCommandCenter({
                   className="text-2xl sm:text-3xl font-extrabold text-[#051F16] tracking-tight"
                   style={{ fontFamily: "Plus Jakarta Sans" }}
                 >
-                  18–32%
+                  upto 18-32%
                 </div>
               </div>
               <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">

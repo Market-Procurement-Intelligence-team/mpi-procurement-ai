@@ -280,7 +280,7 @@ export default function TrustStandardsModal({
           {activeTab === "savings" && (
             <div className="space-y-4">
               <span className="font-bold text-slate-800 block text-xs">
-                Deconstructing Sourcing Savings (18–32% Benchmark)
+                Deconstructing Sourcing Savings (upto 18-32% Benchmark)
               </span>
               <p className="text-[11px] text-slate-600">
                 Traditional industrial procurement involves multi-tier brokers, regional agents, and undisclosed trade markups that inflate final unit costs. MPI replaces opaque quotes with transparent reverse-margin breakdowns.
