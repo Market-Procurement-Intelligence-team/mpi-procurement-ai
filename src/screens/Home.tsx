@@ -34,6 +34,7 @@ import TrustStandardsModal from "../components/trust/TrustStandardsModal"
 import StickyPrimaryCTA from "../components/navigation/StickyPrimaryCTA"
 import { Player } from "@remotion/player"
 import { MpiDemoVideo } from "../video/MpiDemoVideo"
+import MultilingualAiParserDemo from "../components/home/MultilingualAiParserDemo"
 
 export function formatScopeDisplay(category: CatalogCategory, qty: number): string {
   if (category === "Packaging & Printing") {
@@ -1371,44 +1372,8 @@ export default function Home({
               </div>
             </div>
 
-            {/* Visual A */}
-            <div data-cinematic="discovery-visual" className="bg-slate-50 rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between text-xs font-mono text-slate-500 border-b border-slate-200 pb-3">
-                <span>INPUT: Raw Natural Language Prompt</span>
-                <span className="text-emerald-700 font-bold">● AI PARSER READY</span>
-              </div>
-              <div data-cinematic="discovery-input" className="p-4 bg-white rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-800 leading-relaxed font-medium">
-                "We need custom packaging for an upcoming product launch, with a premium finish, a protective insert, and a specific delivery deadline."
-              </div>
-              <div data-cinematic="discovery-output" className="p-4 bg-[#051F16] text-white rounded-xl text-xs space-y-2.5 font-mono border border-[#0A3525]">
-                <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                  <span className="text-[#A3F65C] font-bold tracking-wider">STRUCTURED REQUEST DRAFT</span>
-                  <span className="text-[10px] text-slate-400 font-sans">Draft Preview • Not Dispatched</span>
-                </div>
-                <div className="text-slate-200 text-[11px] space-y-1.5 pt-1">
-                  <div data-cinematic="discovery-item" className="flex items-start gap-2">
-                    <span className="text-[#A3F65C]">•</span>
-                    <span><strong className="text-white font-semibold">Product requirements:</strong> Custom rigid packaging box</span>
-                  </div>
-                  <div data-cinematic="discovery-item" className="flex items-start gap-2">
-                    <span className="text-[#A3F65C]">•</span>
-                    <span><strong className="text-white font-semibold">Quantity and specifications:</strong> 500 units target batch</span>
-                  </div>
-                  <div data-cinematic="discovery-item" className="flex items-start gap-2">
-                    <span className="text-[#A3F65C]">•</span>
-                    <span><strong className="text-white font-semibold">Materials and customization:</strong> Premium finish, protective insert</span>
-                  </div>
-                  <div data-cinematic="discovery-item" className="flex items-start gap-2">
-                    <span className="text-[#A3F65C]">•</span>
-                    <span><strong className="text-white font-semibold">Delivery requirements:</strong> Specified launch deadline</span>
-                  </div>
-                  <div data-cinematic="discovery-item" className="flex items-start gap-2">
-                    <span className="text-[#A3F65C]">•</span>
-                    <span><strong className="text-white font-semibold">Missing details to confirm:</strong> Exact dimensions, print artwork files</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* Visual A: Dynamic 8-Language AI Parser Demo */}
+            <MultilingualAiParserDemo />
           </div>
 
           {/* Chapter B: Verified Marketplace */}
