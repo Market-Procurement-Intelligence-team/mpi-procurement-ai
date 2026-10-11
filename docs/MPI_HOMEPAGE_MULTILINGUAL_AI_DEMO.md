@@ -103,3 +103,4 @@ To prevent layout jumping across languages with varying text lengths and scripts
 1. `src/data/multilingualAiParserData.ts` (New typed 8-language procurement intake dataset).
 2. `src/components/home/MultilingualAiParserDemo.tsx` (New animated React component).
 3. `src/screens/Home.tsx` (Integrated component into Intelligent Discovery section).
+

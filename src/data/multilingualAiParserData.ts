@@ -186,3 +186,4 @@ export const MULTILINGUAL_AI_PARSER_DEMO_DATA: MultilingualDemoItem[] = [
     ],
   },
 ]
+
