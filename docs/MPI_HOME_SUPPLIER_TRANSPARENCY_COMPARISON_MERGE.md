@@ -19,7 +19,7 @@ While both capabilities are fundamental pillars of the MPI marketplace, renderin
 This update merges both capabilities into **one cohesive, compact section**:
 - **Unified Section ID:** `transparent-procurement`
 - **Shared Eyebrow:** `TRANSPARENT PROCUREMENT`
-- **Main Heading:** `Source with confidence. Compare with clarity.`
+- **Main Heading:** `Supplier transparency with smart comparisons.`
 - **Supporting Narrative:**
   > *“Startup buyers can review supplier information and compare quotations across pricing, scope, lead time, taxes, and delivery terms. MSMEs can present their declared capabilities, supporting documents, and clear commercial proposals for relevant procurement opportunities. MPI distinguishes supplier-submitted information from reviewed evidence.”*
 
@@ -99,3 +99,4 @@ Every essential concept from both original sections has been preserved in a tigh
 | **Production Build** | `pnpm run build` | **Passed (1.20s)** | Clean Vite 8 client bundle output in `dist/`. |
 | **Markup Inspection** | Visual & DOM inspection | **Confirmed** | Single rendered section; no duplicate headings or section IDs. |
 | **Navigation & Links** | Global and anchor audit | **Passed** | `#how-it-works` scrolls smoothly to the storytelling container. |
+

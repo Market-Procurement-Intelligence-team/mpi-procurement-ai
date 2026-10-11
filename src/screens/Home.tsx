@@ -1387,9 +1387,9 @@ export default function Home({
                 className="text-3xl sm:text-4xl font-extrabold text-[#051F16] tracking-tight leading-tight"
                 style={{ fontFamily: "Plus Jakarta Sans" }}
               >
-                Source with confidence.{" "}
+                Supplier transparency with{" "}
                 <span className="font-editorial italic font-normal text-[#083A28]">
-                  Compare with clarity.
+                  smart comparisons.
                 </span>
               </h2>
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
