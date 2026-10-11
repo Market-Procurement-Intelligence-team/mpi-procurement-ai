@@ -92,7 +92,66 @@ export function useHomepageCinematicGSAP(
         }
       }
 
-      // ─── B. Supplier Transparency ───────────────────────────────────
+      // ─── B. Unified Transparent Procurement (Transparency & Comparison) ──────
+      const procurementSec = scope.querySelector<HTMLElement>(
+        "[data-cinematic-section='transparent-procurement']"
+      )
+      if (procurementSec) {
+        const header = procurementSec.querySelector("[data-cinematic='procurement-header']")
+        const panelA = procurementSec.querySelector("[data-cinematic='transparency-panel']")
+        const panelB = procurementSec.querySelector("[data-cinematic='comparison-panel']")
+        const stageRows = procurementSec.querySelectorAll("[data-cinematic='transparency-stage']")
+        const quoteCards = procurementSec.querySelectorAll("[data-cinematic='comparison-card']")
+        const disclosures = procurementSec.querySelectorAll("[data-cinematic='procurement-disclosure'], [data-cinematic='transparency-disclosure'], [data-cinematic='comparison-disclosure']")
+
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: procurementSec,
+            start: "top 82%",
+            toggleActions: "play none none reverse",
+          },
+        })
+
+        if (header) {
+          tl.fromTo(header, { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.65, ease })
+        }
+        if (panelA && panelB) {
+          tl.fromTo(
+            [panelA, panelB],
+            { opacity: 0, y: 32, scale: 0.98 },
+            { opacity: 1, y: 0, scale: 1, duration: 0.7, stagger: 0.15, ease },
+            "-=0.4"
+          )
+        } else if (panelA) {
+          tl.fromTo(panelA, { opacity: 0, y: 32 }, { opacity: 1, y: 0, duration: 0.6, ease }, "-=0.3")
+        }
+        if (stageRows.length > 0) {
+          tl.fromTo(
+            stageRows,
+            { opacity: 0, y: 12, scale: 0.98 },
+            { opacity: 1, y: 0, scale: 1, duration: 0.4, stagger: 0.06, ease },
+            "-=0.3"
+          )
+        }
+        if (quoteCards.length > 0) {
+          tl.fromTo(
+            quoteCards,
+            { opacity: 0, y: 14, scale: 0.98 },
+            { opacity: 1, y: 0, scale: 1, duration: 0.45, stagger: 0.08, ease },
+            "-=0.35"
+          )
+        }
+        if (disclosures.length > 0) {
+          tl.fromTo(
+            disclosures,
+            { opacity: 0, y: 8 },
+            { opacity: 1, y: 0, duration: 0.4, stagger: 0.1, ease },
+            "-=0.2"
+          )
+        }
+      }
+
+      // ─── Legacy Standalone Fallback Safeguards ───────────────────────
       const transparencySec = scope.querySelector<HTMLElement>("[data-cinematic-section='transparency']")
       if (transparencySec) {
         const textCol = transparencySec.querySelector("[data-cinematic='transparency-text']")
@@ -137,7 +196,6 @@ export function useHomepageCinematicGSAP(
         }
       }
 
-      // ─── C. Smart Comparison ───────────────────────────────────────
       const comparisonSec = scope.querySelector<HTMLElement>("[data-cinematic-section='comparison']")
       if (comparisonSec) {
         const textCol = comparisonSec.querySelector("[data-cinematic='comparison-text']")

@@ -1376,252 +1376,256 @@ export default function Home({
             <MultilingualAiParserDemo />
           </div>
 
-          {/* Chapter B: Verified Marketplace */}
-          <div data-cinematic-section="transparency" className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Visual B */}
-            <div data-cinematic="transparency-visual" className="order-2 lg:order-1 bg-slate-50 rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between text-xs font-mono text-slate-500 border-b border-slate-200 pb-3">
-                <span>SUPPLIER PROFILE REVIEW PROCESS</span>
-                <span className="text-emerald-800 font-bold">TWO-SIDED VERIFICATION</span>
-              </div>
-              <div className="bg-white rounded-xl p-4 border border-slate-200 space-y-3">
-                <div className="space-y-2.5 text-xs text-slate-700">
-                  <div data-cinematic="transparency-stage" className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-bold text-slate-900">1. Statutory Business Identity</div>
-                      <div className="text-[11px] text-slate-500">MSMEs submit GSTIN & Udyam registrations; buyers verify authenticated corporate identity.</div>
-                    </div>
-                    <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded shrink-0">
-                      Registry Check
-                    </span>
-                  </div>
-
-                  <div data-cinematic="transparency-stage" className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-bold text-slate-900">2. Declared Manufacturing Scope</div>
-                      <div className="text-[11px] text-slate-500">MSMEs specify equipment, batch volumes & tolerances; buyers match exact technical requirements.</div>
-                    </div>
-                    <span className="text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded shrink-0">
-                      Declared Scope
-                    </span>
-                  </div>
-
-                  <div data-cinematic="transparency-stage" className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-bold text-slate-900">3. Quality & Certification Evidence</div>
-                      <div className="text-[11px] text-slate-500">MSMEs upload ISO/ZED certificates & audit reports; buyers evaluate verifiable quality compliance.</div>
-                    </div>
-                    <span className="text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded shrink-0">
-                      Audit Evidence
-                    </span>
-                  </div>
-
-                  <div data-cinematic="transparency-stage" className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-bold text-slate-900">4. Transparent Review Status</div>
-                      <div className="text-[11px] text-slate-500">Clear multi-tier designation: self-declared, in review, or admin-reviewed—visible to both sides.</div>
-                    </div>
-                    <span className="text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded shrink-0">
-                      Tier Status
-                    </span>
-                  </div>
-                </div>
-
-                <div data-cinematic="transparency-disclosure" className="pt-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-center gap-1.5 leading-tight">
-                  <MaterialIcon name="info" size={14} className="text-slate-400 shrink-0" />
-                  <span>A registered profile distinguishes self-declared supplier details from platform-reviewed documentation. No confidential operational data is disclosed.</span>
-                </div>
-              </div>
-            </div>
-
-            <div data-cinematic="transparency-text" className="order-1 lg:order-2 space-y-4">
+          {/* Chapter B: Transparent Procurement (Unified Supplier Transparency & Smart Comparison) */}
+          <div data-cinematic-section="transparent-procurement" id="transparent-procurement" className="space-y-8">
+            {/* Unified Shared Header */}
+            <div data-cinematic="procurement-header" className="max-w-3xl mx-auto text-center space-y-3">
               <span className="font-mono text-xs font-semibold uppercase tracking-widest text-emerald-800">
-                Supplier Transparency
+                TRANSPARENT PROCUREMENT
               </span>
               <h2
                 className="text-3xl sm:text-4xl font-extrabold text-[#051F16] tracking-tight leading-tight"
                 style={{ fontFamily: "Plus Jakarta Sans" }}
               >
-                Know how each supplier profile is{" "}
+                Source with confidence.{" "}
                 <span className="font-editorial italic font-normal text-[#083A28]">
-                  reviewed.
+                  Compare with clarity.
                 </span>
               </h2>
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-                Startup buyers can review supplier information and available verification status before making sourcing decisions. MSMEs can present their business details, declared capabilities, and supporting documents so buyers can evaluate relevant information transparently.
+                Startup buyers can review supplier information and compare quotations across pricing, scope, lead time, taxes, and delivery terms. MSMEs can present their declared capabilities, supporting documents, and clear commercial proposals for relevant procurement opportunities. MPI distinguishes supplier-submitted information from reviewed evidence.
               </p>
-
-              {/* Two-Sided Value Grid (60/40 Balance) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs text-slate-700">
-                <div className="p-3 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-1">
-                  <span className="font-bold text-[#051F16] flex items-center gap-1.5 text-xs">
-                    <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
-                    For Startup Buyers
-                  </span>
-                  <p className="text-[11px] text-slate-500 leading-normal">
-                    Evaluate declared capabilities, verified audit credentials, and review tiers before dispatching custom requirements.
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-1">
-                  <span className="font-bold text-[#051F16] flex items-center gap-1.5 text-xs">
-                    <span className="w-2 h-2 rounded-full bg-[#A3F65C] border border-[#051F16]/40 shrink-0" />
-                    For MSME Suppliers
-                  </span>
-                  <p className="text-[11px] text-slate-500 leading-normal">
-                    Present verified factory capabilities directly to high-intent buyers, distinguishing audited scope from unreviewed claims.
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const user = getActiveUser()
-                    if (user?.role === "msme") {
-                      navigate("msme.home")
-                    } else {
-                      handleProtectedJourney({
-                        targetScreen: "startup.match-results",
-                        actionType: "inspect_suppliers",
-                        actionLabel: "Explore Supplier Verification Standards",
-                        requiredRole: "startup",
-                        portalContext: {
-                          badge: "Supplier Verification",
-                          title: "Supplier Verification Standards",
-                          description: "Review supplier verification tiers, submitted documentation, and review processes.",
-                          icon: "verified",
-                        },
-                      })
-                    }
-                  }}
-                  className="group inline-flex items-center gap-2 text-xs font-bold text-[#051F16] hover:text-[#083A28] cursor-pointer"
-                >
-                  <span>Explore Supplier Verification Standards</span>
-                  <Icons.ArrowRight className="w-3.5 h-3.5 text-[#051F16] group-hover:translate-x-1 transition-transform" />
-                </button>
-              </div>
             </div>
-          </div>
 
-          {/* Chapter C: Smart Comparison */}
-          <div data-cinematic-section="comparison" className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div data-cinematic="comparison-text" className="space-y-4">
-              <span className="font-mono text-xs font-semibold uppercase tracking-widest text-emerald-800">
-                Smart Comparison
-              </span>
-              <h2
-                className="text-3xl sm:text-4xl font-extrabold text-[#051F16] tracking-tight leading-tight"
-                style={{ fontFamily: "Plus Jakarta Sans" }}
+            {/* Two Balanced Panels: Side by Side on Desktop, Stacked on Mobile */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+              {/* Panel A — Supplier Transparency */}
+              <div
+                data-cinematic="transparency-panel"
+                className="bg-slate-50/90 rounded-2xl p-5 sm:p-6 border border-slate-200/90 shadow-2xs flex flex-col justify-between space-y-4"
               >
-                Compare quotations before you commit a{" "}
-                <span className="font-editorial italic font-normal text-[#083A28]">
-                  single rupee.
-                </span>
-              </h2>
-              <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-                Startup buyers can compare submitted quotations across pricing, scope, delivery, and applicable charges. MSMEs can discover relevant RFQ opportunities and present clear commercial proposals for buyers evaluating their next procurement order.
-              </p>
+                <div className="space-y-3.5">
+                  <div className="flex items-center justify-between text-xs font-mono text-slate-500 border-b border-slate-200 pb-2.5">
+                    <span className="font-bold text-slate-800 tracking-wide">PANEL A: SUPPLIER TRANSPARENCY</span>
+                    <span className="text-emerald-800 font-bold text-[10px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 uppercase">
+                      Verification Tiers
+                    </span>
+                  </div>
 
-              {/* Two-Sided Value Grid (60/40 Balance) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs text-slate-700">
-                <div className="p-3 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-1">
-                  <span className="font-bold text-[#051F16] flex items-center gap-1.5 text-xs">
-                    <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
-                    For Startup Buyers
-                  </span>
-                  <p className="text-[11px] text-slate-500 leading-normal">
-                    Review standardized quotations side by side across unit costs, batch tooling, lead times, and total landed charges.
-                  </p>
+                  {/* Two-Sided Role Explanations */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200/90 space-y-1">
+                      <span className="font-bold text-[#051F16] flex items-center gap-1.5 text-[11px]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
+                        For Startup Buyers
+                      </span>
+                      <p className="text-[11px] text-slate-500 leading-normal">
+                        Review available supplier information and verification status before sourcing decisions.
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200/90 space-y-1">
+                      <span className="font-bold text-[#051F16] flex items-center gap-1.5 text-[11px]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#A3F65C] border border-[#051F16]/40 shrink-0" />
+                        For MSME Suppliers
+                      </span>
+                      <p className="text-[11px] text-slate-500 leading-normal">
+                        Present business details, declared capabilities, and supporting documents for buyer evaluation.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 4 Essential Stages */}
+                  <div className="space-y-2 text-xs">
+                    <div data-cinematic="transparency-stage" className="p-2.5 rounded-lg bg-white border border-slate-200/80 flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-bold text-slate-900 text-xs">1. Statutory Business Identity</div>
+                        <div className="text-[11px] text-slate-500">Business identity and submitted GSTIN & Udyam registrations for authentic corporate entity validation.</div>
+                      </div>
+                      <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded shrink-0">
+                        Registry Check
+                      </span>
+                    </div>
+
+                    <div data-cinematic="transparency-stage" className="p-2.5 rounded-lg bg-white border border-slate-200/80 flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-bold text-slate-900 text-xs">2. Declared Manufacturing Scope</div>
+                        <div className="text-[11px] text-slate-500">Declared manufacturing capabilities, equipment rosters, batch capacity, and technical tolerances.</div>
+                      </div>
+                      <span className="text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded shrink-0">
+                        Declared Scope
+                      </span>
+                    </div>
+
+                    <div data-cinematic="transparency-stage" className="p-2.5 rounded-lg bg-white border border-slate-200/80 flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-bold text-slate-900 text-xs">3. Quality & Certification Evidence</div>
+                        <div className="text-[11px] text-slate-500">Quality, ISO, or ZED certification documentation where applicable and actually available.</div>
+                      </div>
+                      <span className="text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded shrink-0">
+                        Audit Evidence
+                      </span>
+                    </div>
+
+                    <div data-cinematic="transparency-stage" className="p-2.5 rounded-lg bg-white border border-slate-200/80 flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-bold text-slate-900 text-xs">4. MPI Review Status</div>
+                        <div className="text-[11px] text-slate-500">Distinguishes self-declared details, submissions under review, and admin-reviewed information.</div>
+                      </div>
+                      <span className="text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded shrink-0">
+                        Tier Status
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-3 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-1">
-                  <span className="font-bold text-[#051F16] flex items-center gap-1.5 text-xs">
-                    <span className="w-2 h-2 rounded-full bg-[#A3F65C] border border-[#051F16]/40 shrink-0" />
-                    For MSME Suppliers
-                  </span>
-                  <p className="text-[11px] text-slate-500 leading-normal">
-                    Discover relevant, high-intent RFQs matching your equipment, and compete for volume orders on clear commercial terms.
-                  </p>
+
+                <div className="space-y-3 pt-1">
+                  <div data-cinematic="transparency-disclosure" className="pt-2 border-t border-slate-200/80 text-[11px] text-slate-500 flex items-center gap-1.5 leading-tight">
+                    <MaterialIcon name="info" size={14} className="text-slate-400 shrink-0" />
+                    <span>A registered profile does not automatically mean an independently verified supplier. Platform distinguishes self-declared supplier details from reviewed evidence.</span>
+                  </div>
+
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const user = getActiveUser()
+                        if (user?.role === "msme") {
+                          navigate("msme.home")
+                        } else {
+                          handleProtectedJourney({
+                            targetScreen: "startup.match-results",
+                            actionType: "inspect_suppliers",
+                            actionLabel: "Explore Supplier Verification Standards",
+                            requiredRole: "startup",
+                            portalContext: {
+                              badge: "Supplier Verification",
+                              title: "Supplier Verification Standards",
+                              description: "Review supplier verification tiers, submitted documentation, and review processes.",
+                              icon: "verified",
+                            },
+                          })
+                        }
+                      }}
+                      className="group inline-flex items-center gap-2 text-xs font-bold text-[#051F16] hover:text-[#083A28] cursor-pointer"
+                    >
+                      <span>Explore Supplier Verification Standards</span>
+                      <Icons.ArrowRight className="w-3.5 h-3.5 text-[#051F16] group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleProtectedJourney({
-                      targetScreen: "startup.comparison",
-                      actionType: "view_bidding",
-                      actionLabel: "Explore Quote Comparison",
-                      requiredRole: "startup",
-                      portalContext: {
-                        badge: "Comparative Bidding",
-                        title: "Quote Comparison Engine",
-                        description: "Sign in to compare supplier-submitted quotations, scope details, and lead times.",
-                        icon: "compare_arrows",
-                      },
-                    })
-                  }
-                  className="group inline-flex items-center gap-2 text-xs font-bold text-[#051F16] hover:text-[#083A28] cursor-pointer"
-                >
-                  <span>Explore Quote Comparison</span>
-                  <Icons.ArrowRight className="w-3.5 h-3.5 text-[#051F16] group-hover:translate-x-1 transition-transform" />
-                </button>
-              </div>
-            </div>
-
-            {/* Visual C */}
-            <div data-cinematic="comparison-visual" className="bg-slate-50 rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-3">
-              <div className="flex items-center justify-between text-xs font-mono text-slate-500 border-b border-slate-200 pb-3">
-                <span>COMPARATIVE BID ANALYSIS</span>
-                <span className="text-emerald-700 font-bold">TWO-SIDED BID CRITERIA</span>
-              </div>
-              <div className="space-y-2.5 text-xs">
-                {/* Quotation A */}
-                <div data-cinematic="comparison-card" className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1.5">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                    <span className="font-bold text-slate-900 text-xs">Quotation A</span>
-                    <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold">Standard Batch Run</span>
+              {/* Panel B — Smart Comparison */}
+              <div
+                data-cinematic="comparison-panel"
+                className="bg-slate-50/90 rounded-2xl p-5 sm:p-6 border border-slate-200/90 shadow-2xs flex flex-col justify-between space-y-4"
+              >
+                <div className="space-y-3.5">
+                  <div className="flex items-center justify-between text-xs font-mono text-slate-500 border-b border-slate-200 pb-2.5">
+                    <span className="font-bold text-slate-800 tracking-wide">PANEL B: SMART COMPARISON</span>
+                    <span className="text-emerald-800 font-bold text-[10px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 uppercase">
+                      Bid Matrix
+                    </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-600 pt-0.5">
-                    <div><span className="text-slate-400 font-medium">Price:</span> Unit fabrication & setup tooling</div>
-                    <div><span className="text-slate-400 font-medium">Scope:</span> Defined material specifications</div>
-                    <div><span className="text-slate-400 font-medium">Lead time:</span> Estimated production turnaround</div>
-                    <div><span className="text-slate-400 font-medium">Taxes and delivery:</span> Itemized GST & dispatch terms</div>
+
+                  {/* Two-Sided Role Explanations */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200/90 space-y-1">
+                      <span className="font-bold text-[#051F16] flex items-center gap-1.5 text-[11px]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
+                        For Startup Buyers
+                      </span>
+                      <p className="text-[11px] text-slate-500 leading-normal">
+                        Compare supplier-submitted quotations on comparable commercial terms before deciding.
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200/90 space-y-1">
+                      <span className="font-bold text-[#051F16] flex items-center gap-1.5 text-[11px]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#A3F65C] border border-[#051F16]/40 shrink-0" />
+                        For MSME Suppliers
+                      </span>
+                      <p className="text-[11px] text-slate-500 leading-normal">
+                        Discover relevant RFQs, submit clear quotations, and compete for procurement opportunities that match declared capabilities.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Generic Quotation Previews (4 Dimensions) */}
+                  <div className="space-y-2 text-xs">
+                    {/* Quotation A */}
+                    <div data-cinematic="comparison-card" className="p-2.5 bg-white rounded-xl border border-slate-200/80 space-y-1">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-1">
+                        <span className="font-bold text-slate-900 text-xs">Quotation A</span>
+                        <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold">Standard Batch Run</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-2.5 gap-y-0.5 text-[11px] text-slate-600">
+                        <div><span className="text-slate-400 font-medium">Price:</span> Unit fabrication & tooling</div>
+                        <div><span className="text-slate-400 font-medium">Scope:</span> Defined specs & material</div>
+                        <div><span className="text-slate-400 font-medium">Lead time:</span> Estimated batch turnaround</div>
+                        <div><span className="text-slate-400 font-medium">Taxes & delivery:</span> Itemized GST & terms</div>
+                      </div>
+                    </div>
+
+                    {/* Quotation B */}
+                    <div data-cinematic="comparison-card" className="p-2.5 bg-white rounded-xl border border-slate-200/80 space-y-1">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-1">
+                        <span className="font-bold text-slate-900 text-xs">Quotation B</span>
+                        <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold">Bulk Volume Option</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-2.5 gap-y-0.5 text-[11px] text-slate-600">
+                        <div><span className="text-slate-400 font-medium">Price:</span> Tiered bulk volume pricing</div>
+                        <div><span className="text-slate-400 font-medium">Scope:</span> Standard manufacturing package</div>
+                        <div><span className="text-slate-400 font-medium">Lead time:</span> Phased batch milestones</div>
+                        <div><span className="text-slate-400 font-medium">Taxes & delivery:</span> Itemized GST & freight</div>
+                      </div>
+                    </div>
+
+                    {/* Quotation C */}
+                    <div data-cinematic="comparison-card" className="p-2.5 bg-white rounded-xl border border-slate-200/80 space-y-1">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-1">
+                        <span className="font-bold text-slate-900 text-xs">Quotation C</span>
+                        <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold">Accelerated Turnaround</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-2.5 gap-y-0.5 text-[11px] text-slate-600">
+                        <div><span className="text-slate-400 font-medium">Price:</span> Dedicated machine allocation</div>
+                        <div><span className="text-slate-400 font-medium">Scope:</span> Custom finishing & testing</div>
+                        <div><span className="text-slate-400 font-medium">Lead time:</span> Expedited priority timeline</div>
+                        <div><span className="text-slate-400 font-medium">Taxes & delivery:</span> Milestone schedule & SLA</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Quotation B */}
-                <div data-cinematic="comparison-card" className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1.5">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                    <span className="font-bold text-slate-900 text-xs">Quotation B</span>
-                    <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold">Bulk Volume Option</span>
+                <div className="space-y-3 pt-1">
+                  <div data-cinematic="comparison-disclosure" className="pt-2 border-t border-slate-200/80 text-[11px] text-slate-500 flex items-center gap-1.5 leading-tight">
+                    <MaterialIcon name="info" size={14} className="text-slate-400 shrink-0" />
+                    <span>Illustrative interface — no live quotation amounts, supplier identities, or commercial records are displayed.</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-600 pt-0.5">
-                    <div><span className="text-slate-400 font-medium">Price:</span> Tiered bulk volume pricing</div>
-                    <div><span className="text-slate-400 font-medium">Scope:</span> Standard manufacturing package</div>
-                    <div><span className="text-slate-400 font-medium">Lead time:</span> Phased batch delivery milestones</div>
-                    <div><span className="text-slate-400 font-medium">Taxes and delivery:</span> Itemized GST & door freight</div>
+
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleProtectedJourney({
+                          targetScreen: "startup.comparison",
+                          actionType: "view_bidding",
+                          actionLabel: "Explore Quote Comparison",
+                          requiredRole: "startup",
+                          portalContext: {
+                            badge: "Comparative Bidding",
+                            title: "Quote Comparison Engine",
+                            description: "Sign in to compare supplier-submitted quotations, scope details, and lead times.",
+                            icon: "compare_arrows",
+                          },
+                        })
+                      }
+                      className="group inline-flex items-center gap-2 text-xs font-bold text-[#051F16] hover:text-[#083A28] cursor-pointer"
+                    >
+                      <span>Explore Quote Comparison</span>
+                      <Icons.ArrowRight className="w-3.5 h-3.5 text-[#051F16] group-hover:translate-x-1 transition-transform" />
+                    </button>
                   </div>
                 </div>
-
-                {/* Quotation C */}
-                <div data-cinematic="comparison-card" className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1.5">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                    <span className="font-bold text-slate-900 text-xs">Quotation C</span>
-                    <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold">Accelerated Turnaround</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-600 pt-0.5">
-                    <div><span className="text-slate-400 font-medium">Price:</span> Dedicated machine-run allocation</div>
-                    <div><span className="text-slate-400 font-medium">Scope:</span> Custom finishing & test scope</div>
-                    <div><span className="text-slate-400 font-medium">Lead time:</span> Expedited priority timeline</div>
-                    <div><span className="text-slate-400 font-medium">Taxes and delivery:</span> Milestone schedule & dispatch SLA</div>
-                  </div>
-                </div>
-              </div>
-
-              <div data-cinematic="comparison-disclosure" className="pt-2 border-t border-slate-200/80 text-[11px] text-slate-500 text-center leading-tight">
-                Illustrative interface — standardizes quotation criteria for buyers while enabling verified MSMEs to bid with transparent scope. No live quotation amounts or identities are displayed.
               </div>
             </div>
           </div>
