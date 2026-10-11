@@ -1382,46 +1382,46 @@ export default function Home({
             <div data-cinematic="transparency-visual" className="order-2 lg:order-1 bg-slate-50 rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-4">
               <div className="flex items-center justify-between text-xs font-mono text-slate-500 border-b border-slate-200 pb-3">
                 <span>SUPPLIER PROFILE REVIEW PROCESS</span>
-                <span className="text-emerald-800 font-bold">VERIFICATION CRITERIA</span>
+                <span className="text-emerald-800 font-bold">TWO-SIDED VERIFICATION</span>
               </div>
               <div className="bg-white rounded-xl p-4 border border-slate-200 space-y-3">
                 <div className="space-y-2.5 text-xs text-slate-700">
                   <div data-cinematic="transparency-stage" className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-bold text-slate-900">Business identity</div>
-                      <div className="text-[11px] text-slate-500">Review status of submitted documents.</div>
+                      <div className="font-bold text-slate-900">1. Statutory Business Identity</div>
+                      <div className="text-[11px] text-slate-500">MSMEs submit GSTIN & Udyam registrations; buyers verify authenticated corporate identity.</div>
                     </div>
-                    <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded">
-                      Document Check
+                    <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded shrink-0">
+                      Registry Check
                     </span>
                   </div>
 
                   <div data-cinematic="transparency-stage" className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-bold text-slate-900">Manufacturing capabilities</div>
-                      <div className="text-[11px] text-slate-500">Declared capabilities and available evidence.</div>
+                      <div className="font-bold text-slate-900">2. Declared Manufacturing Scope</div>
+                      <div className="text-[11px] text-slate-500">MSMEs specify equipment, batch volumes & tolerances; buyers match exact technical requirements.</div>
                     </div>
-                    <span className="text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded shrink-0">
                       Declared Scope
                     </span>
                   </div>
 
                   <div data-cinematic="transparency-stage" className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-bold text-slate-900">Supporting documentation</div>
-                      <div className="text-[11px] text-slate-500">Documents provided for review.</div>
+                      <div className="font-bold text-slate-900">3. Quality & Certification Evidence</div>
+                      <div className="text-[11px] text-slate-500">MSMEs upload ISO/ZED certificates & audit reports; buyers evaluate verifiable quality compliance.</div>
                     </div>
-                    <span className="text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded">
-                      Uploaded Files
+                    <span className="text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded shrink-0">
+                      Audit Evidence
                     </span>
                   </div>
 
                   <div data-cinematic="transparency-stage" className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-bold text-slate-900">MPI review status</div>
-                      <div className="text-[11px] text-slate-500">Self-declared, under review, or admin-reviewed, as applicable.</div>
+                      <div className="font-bold text-slate-900">4. Transparent Review Status</div>
+                      <div className="text-[11px] text-slate-500">Clear multi-tier designation: self-declared, in review, or admin-reviewed—visible to both sides.</div>
                     </div>
-                    <span className="text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded shrink-0">
                       Tier Status
                     </span>
                   </div>
@@ -1429,7 +1429,7 @@ export default function Home({
 
                 <div data-cinematic="transparency-disclosure" className="pt-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-center gap-1.5 leading-tight">
                   <MaterialIcon name="info" size={14} className="text-slate-400 shrink-0" />
-                  <span>A registered profile does not automatically mean an independently verified supplier.</span>
+                  <span>A registered profile distinguishes self-declared supplier details from platform-reviewed documentation. No confidential operational data is disclosed.</span>
                 </div>
               </div>
             </div>
@@ -1448,8 +1448,31 @@ export default function Home({
                 </span>
               </h2>
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-                MPI distinguishes information submitted by suppliers from checks completed through the platform. Review the available verification status and supporting evidence before making procurement decisions.
+                Startup buyers can review supplier information and available verification status before making sourcing decisions. MSMEs can present their business details, declared capabilities, and supporting documents so buyers can evaluate relevant information transparently.
               </p>
+
+              {/* Two-Sided Value Grid (60/40 Balance) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs text-slate-700">
+                <div className="p-3 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-1">
+                  <span className="font-bold text-[#051F16] flex items-center gap-1.5 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
+                    For Startup Buyers
+                  </span>
+                  <p className="text-[11px] text-slate-500 leading-normal">
+                    Evaluate declared capabilities, verified audit credentials, and review tiers before dispatching custom requirements.
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-1">
+                  <span className="font-bold text-[#051F16] flex items-center gap-1.5 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-[#A3F65C] border border-[#051F16]/40 shrink-0" />
+                    For MSME Suppliers
+                  </span>
+                  <p className="text-[11px] text-slate-500 leading-normal">
+                    Present verified factory capabilities directly to high-intent buyers, distinguishing audited scope from unreviewed claims.
+                  </p>
+                </div>
+              </div>
+
               <div className="pt-2">
                 <button
                   type="button"
@@ -1497,8 +1520,31 @@ export default function Home({
                 </span>
               </h2>
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-                Review supplier-submitted quotations side by side. Compare quoted prices, scope, delivery estimates, taxes, and other applicable charges using the information provided in each quotation.
+                Startup buyers can compare submitted quotations across pricing, scope, delivery, and applicable charges. MSMEs can discover relevant RFQ opportunities and present clear commercial proposals for buyers evaluating their next procurement order.
               </p>
+
+              {/* Two-Sided Value Grid (60/40 Balance) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs text-slate-700">
+                <div className="p-3 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-1">
+                  <span className="font-bold text-[#051F16] flex items-center gap-1.5 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
+                    For Startup Buyers
+                  </span>
+                  <p className="text-[11px] text-slate-500 leading-normal">
+                    Review standardized quotations side by side across unit costs, batch tooling, lead times, and total landed charges.
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-1">
+                  <span className="font-bold text-[#051F16] flex items-center gap-1.5 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-[#A3F65C] border border-[#051F16]/40 shrink-0" />
+                    For MSME Suppliers
+                  </span>
+                  <p className="text-[11px] text-slate-500 leading-normal">
+                    Discover relevant, high-intent RFQs matching your equipment, and compete for volume orders on clear commercial terms.
+                  </p>
+                </div>
+              </div>
+
               <div className="pt-2">
                 <button
                   type="button"
@@ -1528,19 +1574,19 @@ export default function Home({
             <div data-cinematic="comparison-visual" className="bg-slate-50 rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-3">
               <div className="flex items-center justify-between text-xs font-mono text-slate-500 border-b border-slate-200 pb-3">
                 <span>COMPARATIVE BID ANALYSIS</span>
-                <span className="text-emerald-700 font-bold">GENERIC PREVIEW</span>
+                <span className="text-emerald-700 font-bold">TWO-SIDED BID CRITERIA</span>
               </div>
               <div className="space-y-2.5 text-xs">
                 {/* Quotation A */}
                 <div data-cinematic="comparison-card" className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1.5">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
                     <span className="font-bold text-slate-900 text-xs">Quotation A</span>
-                    <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Sample Option</span>
+                    <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold">Standard Batch Run</span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-600 pt-0.5">
-                    <div><span className="text-slate-400 font-medium">Price:</span> Unit & tooling pricing</div>
+                    <div><span className="text-slate-400 font-medium">Price:</span> Unit fabrication & setup tooling</div>
                     <div><span className="text-slate-400 font-medium">Scope:</span> Defined material specifications</div>
-                    <div><span className="text-slate-400 font-medium">Lead time:</span> Estimated production days</div>
+                    <div><span className="text-slate-400 font-medium">Lead time:</span> Estimated production turnaround</div>
                     <div><span className="text-slate-400 font-medium">Taxes and delivery:</span> Itemized GST & dispatch terms</div>
                   </div>
                 </div>
@@ -1549,13 +1595,13 @@ export default function Home({
                 <div data-cinematic="comparison-card" className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1.5">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
                     <span className="font-bold text-slate-900 text-xs">Quotation B</span>
-                    <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Sample Option</span>
+                    <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold">Bulk Volume Option</span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-600 pt-0.5">
-                    <div><span className="text-slate-400 font-medium">Price:</span> Tiered volume pricing</div>
+                    <div><span className="text-slate-400 font-medium">Price:</span> Tiered bulk volume pricing</div>
                     <div><span className="text-slate-400 font-medium">Scope:</span> Standard manufacturing package</div>
-                    <div><span className="text-slate-400 font-medium">Lead time:</span> Standard batch turnaround</div>
-                    <div><span className="text-slate-400 font-medium">Taxes and delivery:</span> Included tax, freight extra</div>
+                    <div><span className="text-slate-400 font-medium">Lead time:</span> Phased batch delivery milestones</div>
+                    <div><span className="text-slate-400 font-medium">Taxes and delivery:</span> Itemized GST & door freight</div>
                   </div>
                 </div>
 
@@ -1563,52 +1609,101 @@ export default function Home({
                 <div data-cinematic="comparison-card" className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1.5">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
                     <span className="font-bold text-slate-900 text-xs">Quotation C</span>
-                    <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Sample Option</span>
+                    <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold">Accelerated Turnaround</span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-600 pt-0.5">
-                    <div><span className="text-slate-400 font-medium">Price:</span> Alternative supplier quote</div>
-                    <div><span className="text-slate-400 font-medium">Scope:</span> Custom finishing & testing scope</div>
-                    <div><span className="text-slate-400 font-medium">Lead time:</span> Expedited timeline option</div>
-                    <div><span className="text-slate-400 font-medium">Taxes and delivery:</span> Stated taxes and freight estimate</div>
+                    <div><span className="text-slate-400 font-medium">Price:</span> Dedicated machine-run allocation</div>
+                    <div><span className="text-slate-400 font-medium">Scope:</span> Custom finishing & test scope</div>
+                    <div><span className="text-slate-400 font-medium">Lead time:</span> Expedited priority timeline</div>
+                    <div><span className="text-slate-400 font-medium">Taxes and delivery:</span> Milestone schedule & dispatch SLA</div>
                   </div>
                 </div>
               </div>
 
               <div data-cinematic="comparison-disclosure" className="pt-2 border-t border-slate-200/80 text-[11px] text-slate-500 text-center leading-tight">
-                Illustrative interface — no live quotation amounts, supplier identities, or commercial records are displayed.
+                Illustrative interface — standardizes quotation criteria for buyers while enabling verified MSMEs to bid with transparent scope. No live quotation amounts or identities are displayed.
               </div>
             </div>
           </div>
 
           {/* Chapter D: Savings Intelligence */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Visual D */}
-            <div className="order-2 lg:order-1 bg-slate-50 rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-4">
+            {/* Visual D: Substantiated Commercial Discovery & Two-Sided Value Framework */}
+            <div className="order-2 lg:order-1 bg-slate-50 rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-3.5">
               <div className="flex items-center justify-between text-xs font-mono text-slate-500 border-b border-slate-200 pb-3">
-                <span>REVERSE MARGIN LEDGER</span>
-                <span className="text-emerald-700 font-bold">-₹<CountUpNumber end={36000} /> DIRECT GAIN</span>
+                <span>COMMERCIAL DISCOVERY & VALUE LEDGER</span>
+                <span className="text-emerald-700 font-bold">TWO-SIDED VALUE ARCHITECTURE</span>
               </div>
-              <div className="bg-white rounded-xl p-4 border border-slate-200 space-y-2 text-xs">
-                <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500">Direct Tooling Cost:</span>
-                  <span className="font-semibold text-slate-800">₹6,000</span>
+
+              {/* Substantiated Commercial Decomposition Categories */}
+              <div className="space-y-2 text-xs">
+                {/* 1. Direct Supplier Quotation */}
+                <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 text-[11px]">1. Direct Supplier Quotation Scope</span>
+                    <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded">
+                      Supplier Quoted
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    Itemized unit fabrication and custom tooling dies—reflecting transparent factory margins without unlisted broker markups.
+                  </p>
                 </div>
-                <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500">Unit Production (500 units @ ₹110):</span>
-                  <span className="font-semibold text-slate-800">₹55,000</span>
+
+                {/* 2. Statutory Taxes & Freight */}
+                <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 text-[11px]">2. Statutory Taxes & Transit Terms</span>
+                    <span className="text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded">
+                      Statutory Pass-Through
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    Separately itemized statutory GST (18% ITC eligible for registered buyers) and defined freight transit terms.
+                  </p>
                 </div>
-                <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500">Statutory ZED Subsidy Concession:</span>
-                  <span className="font-bold text-emerald-600">-₹4,500</span>
+
+                {/* 3. Confirmed Commercial Concessions */}
+                <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 text-[11px]">3. Confirmed Supplier Concessions</span>
+                    <span className="text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded">
+                      Supplier-Agreed
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    Volume pricing tiers, repeat batch concessions, and milestone-governed escrow release schedules agreed before PO award.
+                  </p>
                 </div>
-                <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500">GST 18% Input Tax Credit Eligible:</span>
-                  <span className="font-semibold text-slate-800">₹10,170</span>
+
+                {/* 4. Conditional Government Scheme Assistance */}
+                <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 text-[11px]">4. Conditional Scheme Assistance Guidance</span>
+                    <span className="text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded">
+                      Indicative Guidance
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    MSME ZED and Design Clinic reimbursement potential—evaluated post-procurement; subject to nodal ministry sanction; not deducted from supplier invoice.
+                  </p>
                 </div>
-                <div className="flex justify-between pt-1 text-sm">
-                  <span className="font-bold text-[#051F16]">Net Landed Factory Invoice:</span>
-                  <span className="font-extrabold text-emerald-700">₹<CountUpNumber end={66670} /></span>
+              </div>
+
+              {/* Two-Sided Bottom Strip */}
+              <div className="p-2.5 rounded-xl bg-emerald-950 text-slate-200 border border-emerald-900 text-[11px] space-y-1">
+                <div className="font-bold text-[#A3F65C] flex items-center justify-between">
+                  <span>Balanced Marketplace Value:</span>
+                  <span className="text-[10px] text-slate-300 font-normal">Direct Transparency</span>
                 </div>
+                <div className="grid grid-cols-2 gap-2 pt-0.5 text-[10px] text-slate-300">
+                  <div>• <strong>Buyer:</strong> Itemized cost visibility & documented multi-bid savings</div>
+                  <div>• <strong>MSME:</strong> High-intent RFQs, protected margins & pipeline insights</div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200/80 text-[10px] text-slate-500 text-center leading-tight">
+                Illustrative commercial breakdown. Government scheme grants require statutory nodal ministry sanction and are not deducted from supplier invoices. GST input tax credit eligibility depends on buyer tax filing status.
               </div>
             </div>
 
@@ -1620,36 +1715,62 @@ export default function Home({
                 className="text-3xl sm:text-4xl font-extrabold text-[#051F16] tracking-tight leading-tight"
                 style={{ fontFamily: "Plus Jakarta Sans" }}
               >
-                See the value MPI creates on{" "}
+                Transparent commercial economics for buyers and{" "}
                 <span className="font-editorial italic font-normal text-[#083A28]">
-                  every procurement cycle.
+                  suppliers.
                 </span>
               </h2>
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-                By bypassing layer upon layer of sales reps and broker fees, you
-                retain full reverse-margin visibility. Every Rupee saved goes straight
-                back into your product development and growth runway.
+                Startup buyers can evaluate commercial offers and identify potential savings using comparable quotations. MSMEs can discover relevant, high-intent RFQ opportunities, compete for bulk orders, and use available performance insights to understand their participation and quotation outcomes.
               </p>
+
+              {/* Two-Sided Value Grid (60/40 Balance) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs text-slate-700">
+                <div className="p-3 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-1">
+                  <span className="font-bold text-[#051F16] flex items-center gap-1.5 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
+                    For Startup Buyers
+                  </span>
+                  <p className="text-[11px] text-slate-500 leading-normal">
+                    Identify genuine cost efficiencies through itemized breakdowns across tooling, material run-time, and statutory taxes with documented quotation comparisons.
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-1">
+                  <span className="font-bold text-[#051F16] flex items-center gap-1.5 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-[#A3F65C] border border-[#051F16]/40 shrink-0" />
+                    For MSME Suppliers
+                  </span>
+                  <p className="text-[11px] text-slate-500 leading-normal">
+                    Participate in bulk procurement orders matching your factory capacity, submit transparent commercial terms, and track RFQ response metrics in your dashboard.
+                  </p>
+                </div>
+              </div>
+
               <div className="pt-2">
                 <button
                   type="button"
-                  onClick={() =>
-                    handleProtectedJourney({
-                      targetScreen: "startup.analytics",
-                      actionType: "explore_savings",
-                      actionLabel: "Explore Sourcing Savings",
-                      requiredRole: "startup",
-                      portalContext: {
-                        badge: "Savings Intelligence",
-                        title: "Reverse Margin Analytics",
-                        description: "Analyze direct factory cost breakdowns, tax credits, and net landed savings.",
-                        icon: "savings",
-                      },
-                    })
-                  }
+                  onClick={() => {
+                    const user = getActiveUser()
+                    if (user?.role === "msme") {
+                      navigate("msme.analytics")
+                    } else {
+                      handleProtectedJourney({
+                        targetScreen: "startup.analytics",
+                        actionType: "explore_savings",
+                        actionLabel: "Explore Sourcing Savings",
+                        requiredRole: "startup",
+                        portalContext: {
+                          badge: "Savings Intelligence",
+                          title: "Reverse Margin Analytics",
+                          description: "Analyze direct factory cost breakdowns, tax credits, and net landed savings.",
+                          icon: "savings",
+                        },
+                      })
+                    }
+                  }}
                   className="group inline-flex items-center gap-2 text-xs font-bold text-[#051F16] hover:text-[#083A28] cursor-pointer"
                 >
-                  <span>Explore Direct Sourcing Savings</span>
+                  <span>Explore Sourcing Economics</span>
                   <Icons.ArrowRight className="w-3.5 h-3.5 text-[#051F16] group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
