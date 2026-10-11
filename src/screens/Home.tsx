@@ -1326,7 +1326,128 @@ export default function Home({
         </div>
       </section>
 
-      {/* ─── 6. EDITORIAL PRODUCT STORYTELLING (ALTERNATING 2-COL) ─────────── */}
+      {/* ─── 2. PARTNER / ECOSYSTEM VISUALIZATION SECTION ──────────────────── */}
+      <section data-cinematic-section="ecosystem" className="py-20 bg-white border-y border-slate-200/80 scroll-reveal">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+          <div data-cinematic="ecosystem-header" className="space-y-6">
+            <span className="font-mono text-xs font-semibold uppercase tracking-widest text-emerald-800">
+              The Connected Ecosystem
+            </span>
+
+            <h2
+              className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#051F16] tracking-tight leading-tight"
+              style={{ fontFamily: "Plus Jakarta Sans" }}
+            >
+              Connect every step of your{" "}
+              <span className="font-editorial italic font-normal text-[#083A28]">
+                procurement journey.
+              </span>
+            </h2>
+
+            <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              MPI brings AI-assisted requirement intake, RFQ workflows, supplier quotations, commercial comparison, and government scheme discovery into one connected procurement experience.
+            </p>
+          </div>
+
+          {/* Ecosystem Visual Network */}
+          <div className="mt-12 p-8 sm:p-12 bg-slate-50/70 rounded-3xl border border-slate-200 relative overflow-hidden">
+            {/* Dynamic Animated Vector Bridge Connecting Hub to Network */}
+            <svg
+              data-cinematic="ecosystem-lines"
+              className="absolute inset-0 w-full h-full pointer-events-none hidden md:block opacity-35"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <defs>
+                <linearGradient id="bridgeGradient" x1="50%" y1="20%" x2="50%" y2="100%">
+                  <stop offset="0%" stopColor="#A3F65C" stopOpacity="0.9" />
+                  <stop offset="50%" stopColor="#10B981" stopOpacity="0.6" />
+                  <stop offset="100%" stopColor="#051F16" stopOpacity="0.2" />
+                </linearGradient>
+              </defs>
+              <line x1="50%" y1="120" x2="20%" y2="240" stroke="url(#bridgeGradient)" strokeWidth="2" strokeDasharray="6 6" className="animate-draw-line" />
+              <line x1="50%" y1="120" x2="50%" y2="240" stroke="url(#bridgeGradient)" strokeWidth="2" strokeDasharray="6 6" className="animate-draw-line" />
+              <line x1="50%" y1="120" x2="80%" y2="240" stroke="url(#bridgeGradient)" strokeWidth="2" strokeDasharray="6 6" className="animate-draw-line" />
+            </svg>
+
+            {/* Center Node */}
+            <div data-cinematic="ecosystem-hub" className="flex flex-col items-center justify-center relative z-10">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#051F16] text-white flex flex-col items-center justify-center border-4 border-white z-10 animate-pulse-hub">
+                <span className="text-xl sm:text-2xl font-black tracking-tight" style={{ fontFamily: "Plus Jakarta Sans" }}>
+                  MPI
+                </span>
+                <span className="text-[9px] text-[#A3F65C] uppercase tracking-widest font-bold mt-0.5">
+                  Core Engine
+                </span>
+              </div>
+            </div>
+
+            {/* Orbiting Satellite Nodes */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mt-8 max-w-4xl mx-auto relative z-10">
+              <div data-cinematic="ecosystem-node" className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs text-left space-y-1">
+                <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
+                  <MaterialIcon name="rocket_launch" size={16} className="text-emerald-700" />
+                  <span>Startup & Buyer Teams</span>
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Turn purchasing needs into structured procurement requests.
+                </div>
+              </div>
+
+              <div data-cinematic="ecosystem-node" className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs text-left space-y-1">
+                <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
+                  <MaterialIcon name="precision_manufacturing" size={16} className="text-emerald-700" />
+                  <span>MSME Suppliers</span>
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Review eligible inquiries and submit quotations.
+                </div>
+              </div>
+
+              <div data-cinematic="ecosystem-node" className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs text-left space-y-1">
+                <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
+                  <MaterialIcon name="policy" size={16} className="text-emerald-700" />
+                  <span>Government Scheme Discovery</span>
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Explore potentially relevant schemes and eligibility criteria.
+                </div>
+              </div>
+
+              <div data-cinematic="ecosystem-node" className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs text-left space-y-1">
+                <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
+                  <MaterialIcon name="compare_arrows" size={16} className="text-[#051F16]" />
+                  <span>Quotation Comparison</span>
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Review submitted commercial terms side by side.
+                </div>
+              </div>
+
+              <div data-cinematic="ecosystem-node" className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs text-left space-y-1">
+                <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
+                  <MaterialIcon name="fact_check" size={16} className="text-emerald-700" />
+                  <span>Supplier Profile Review</span>
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Understand profile status and available verification evidence.
+                </div>
+              </div>
+
+              <div data-cinematic="ecosystem-node" className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs text-left space-y-1">
+                <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
+                  <MaterialIcon name="alt_route" size={16} className="text-slate-700" />
+                  <span>Procurement Workflow</span>
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Manage RFQs and quotations through the available workflow.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── 3. EDITORIAL PRODUCT STORYTELLING (ALTERNATING 2-COL) ─────────── */}
       <section id="how-it-works" className="py-20 bg-white border-t border-slate-200/80 space-y-24 scroll-reveal">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-24">
           {/* Chapter A: Intelligent Discovery */}
@@ -1850,128 +1971,7 @@ export default function Home({
         }}
       />
 
-      {/* ─── 8. PARTNER / ECOSYSTEM VISUALIZATION SECTION ──────────────────── */}
-      <section data-cinematic-section="ecosystem" className="py-20 bg-white border-y border-slate-200/80 scroll-reveal">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          <div data-cinematic="ecosystem-header" className="space-y-6">
-            <span className="font-mono text-xs font-semibold uppercase tracking-widest text-emerald-800">
-              The Connected Ecosystem
-            </span>
-
-            <h2
-              className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#051F16] tracking-tight leading-tight"
-              style={{ fontFamily: "Plus Jakarta Sans" }}
-            >
-              Connect every step of your{" "}
-              <span className="font-editorial italic font-normal text-[#083A28]">
-                procurement journey.
-              </span>
-            </h2>
-
-            <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
-              MPI brings AI-assisted requirement intake, RFQ workflows, supplier quotations, commercial comparison, and government scheme discovery into one connected procurement experience.
-            </p>
-          </div>
-
-          {/* Ecosystem Visual Network */}
-          <div className="mt-12 p-8 sm:p-12 bg-slate-50/70 rounded-3xl border border-slate-200 relative overflow-hidden">
-            {/* Dynamic Animated Vector Bridge Connecting Hub to Network */}
-            <svg
-              data-cinematic="ecosystem-lines"
-              className="absolute inset-0 w-full h-full pointer-events-none hidden md:block opacity-35"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <defs>
-                <linearGradient id="bridgeGradient" x1="50%" y1="20%" x2="50%" y2="100%">
-                  <stop offset="0%" stopColor="#A3F65C" stopOpacity="0.9" />
-                  <stop offset="50%" stopColor="#10B981" stopOpacity="0.6" />
-                  <stop offset="100%" stopColor="#051F16" stopOpacity="0.2" />
-                </linearGradient>
-              </defs>
-              <line x1="50%" y1="120" x2="20%" y2="240" stroke="url(#bridgeGradient)" strokeWidth="2" strokeDasharray="6 6" className="animate-draw-line" />
-              <line x1="50%" y1="120" x2="50%" y2="240" stroke="url(#bridgeGradient)" strokeWidth="2" strokeDasharray="6 6" className="animate-draw-line" />
-              <line x1="50%" y1="120" x2="80%" y2="240" stroke="url(#bridgeGradient)" strokeWidth="2" strokeDasharray="6 6" className="animate-draw-line" />
-            </svg>
-
-            {/* Center Node */}
-            <div data-cinematic="ecosystem-hub" className="flex flex-col items-center justify-center relative z-10">
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#051F16] text-white flex flex-col items-center justify-center border-4 border-white z-10 animate-pulse-hub">
-                <span className="text-xl sm:text-2xl font-black tracking-tight" style={{ fontFamily: "Plus Jakarta Sans" }}>
-                  MPI
-                </span>
-                <span className="text-[9px] text-[#A3F65C] uppercase tracking-widest font-bold mt-0.5">
-                  Core Engine
-                </span>
-              </div>
-            </div>
-
-            {/* Orbiting Satellite Nodes */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mt-8 max-w-4xl mx-auto relative z-10">
-              <div data-cinematic="ecosystem-node" className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs text-left space-y-1">
-                <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
-                  <MaterialIcon name="rocket_launch" size={16} className="text-emerald-700" />
-                  <span>Startup & Buyer Teams</span>
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  Turn purchasing needs into structured procurement requests.
-                </div>
-              </div>
-
-              <div data-cinematic="ecosystem-node" className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs text-left space-y-1">
-                <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
-                  <MaterialIcon name="precision_manufacturing" size={16} className="text-emerald-700" />
-                  <span>MSME Suppliers</span>
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  Review eligible inquiries and submit quotations.
-                </div>
-              </div>
-
-              <div data-cinematic="ecosystem-node" className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs text-left space-y-1">
-                <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
-                  <MaterialIcon name="policy" size={16} className="text-emerald-700" />
-                  <span>Government Scheme Discovery</span>
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  Explore potentially relevant schemes and eligibility criteria.
-                </div>
-              </div>
-
-              <div data-cinematic="ecosystem-node" className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs text-left space-y-1">
-                <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
-                  <MaterialIcon name="compare_arrows" size={16} className="text-[#051F16]" />
-                  <span>Quotation Comparison</span>
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  Review submitted commercial terms side by side.
-                </div>
-              </div>
-
-              <div data-cinematic="ecosystem-node" className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs text-left space-y-1">
-                <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
-                  <MaterialIcon name="fact_check" size={16} className="text-emerald-700" />
-                  <span>Supplier Profile Review</span>
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  Understand profile status and available verification evidence.
-                </div>
-              </div>
-
-              <div data-cinematic="ecosystem-node" className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs text-left space-y-1">
-                <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
-                  <MaterialIcon name="alt_route" size={16} className="text-slate-700" />
-                  <span>Procurement Workflow</span>
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  Manage RFQs and quotations through the available workflow.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── 9. INTEGRATION & WORKFLOW CENTER ──────────────────────────────── */}
+      {/* ─── 7. INTEGRATION & WORKFLOW CENTER ──────────────────────────────── */}
       <section data-cinematic-section="workflow" className="py-20 bg-[#FAFAFC] scroll-reveal">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div data-cinematic="workflow-header" className="max-w-3xl mx-auto text-center space-y-4 mb-14">

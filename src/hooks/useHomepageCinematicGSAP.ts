@@ -38,7 +38,47 @@ export function useHomepageCinematicGSAP(
     const ctx = gsap.context(() => {
       const ease = "power2.out"
 
-      // ─── A. Intelligent Discovery ───────────────────────────────────
+      // ─── 1. Connected Ecosystem (Section 2) ─────────────────────────
+      const ecosystemSec = scope.querySelector<HTMLElement>("[data-cinematic-section='ecosystem']")
+      if (ecosystemSec) {
+        const header = ecosystemSec.querySelector("[data-cinematic='ecosystem-header']")
+        const hubNode = ecosystemSec.querySelector("[data-cinematic='ecosystem-hub']")
+        const lines = ecosystemSec.querySelector("[data-cinematic='ecosystem-lines']")
+        const nodes = ecosystemSec.querySelectorAll("[data-cinematic='ecosystem-node']")
+
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: ecosystemSec,
+            start: "top 80%",
+            toggleActions: "play none none reverse",
+          },
+        })
+
+        if (header) {
+          tl.fromTo(header, { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.65, ease })
+        }
+        if (hubNode) {
+          tl.fromTo(
+            hubNode,
+            { opacity: 0, scale: 0.88, y: 16 },
+            { opacity: 1, scale: 1, y: 0, duration: 0.6, ease: "back.out(1.2)" },
+            "-=0.35"
+          )
+        }
+        if (lines) {
+          tl.fromTo(lines, { opacity: 0 }, { opacity: 0.35, duration: 0.5, ease: "power1.inOut" }, "-=0.25")
+        }
+        if (nodes.length > 0) {
+          tl.fromTo(
+            nodes,
+            { opacity: 0, y: 24, scale: 0.96 },
+            { opacity: 1, y: 0, scale: 1, duration: 0.55, stagger: 0.08, ease },
+            "-=0.2"
+          )
+        }
+      }
+
+      // ─── 2. Intelligent Discovery (Section 3) ───────────────────────
       const discoverySec = scope.querySelector<HTMLElement>("[data-cinematic-section='discovery']")
       if (discoverySec) {
         const textCol = discoverySec.querySelector("[data-cinematic='discovery-text']")
@@ -92,7 +132,7 @@ export function useHomepageCinematicGSAP(
         }
       }
 
-      // ─── B. Unified Transparent Procurement (Transparency & Comparison) ──────
+      // ─── 3. Unified Transparent Procurement (Section 4) ────────────
       const procurementSec = scope.querySelector<HTMLElement>(
         "[data-cinematic-section='transparent-procurement']"
       )
@@ -240,47 +280,7 @@ export function useHomepageCinematicGSAP(
         }
       }
 
-      // ─── D. Connected Ecosystem ─────────────────────────────────────
-      const ecosystemSec = scope.querySelector<HTMLElement>("[data-cinematic-section='ecosystem']")
-      if (ecosystemSec) {
-        const header = ecosystemSec.querySelector("[data-cinematic='ecosystem-header']")
-        const hubNode = ecosystemSec.querySelector("[data-cinematic='ecosystem-hub']")
-        const lines = ecosystemSec.querySelector("[data-cinematic='ecosystem-lines']")
-        const nodes = ecosystemSec.querySelectorAll("[data-cinematic='ecosystem-node']")
-
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: ecosystemSec,
-            start: "top 80%",
-            toggleActions: "play none none reverse",
-          },
-        })
-
-        if (header) {
-          tl.fromTo(header, { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.65, ease })
-        }
-        if (hubNode) {
-          tl.fromTo(
-            hubNode,
-            { opacity: 0, scale: 0.88, y: 16 },
-            { opacity: 1, scale: 1, y: 0, duration: 0.6, ease: "back.out(1.2)" },
-            "-=0.35"
-          )
-        }
-        if (lines) {
-          tl.fromTo(lines, { opacity: 0 }, { opacity: 0.35, duration: 0.5, ease: "power1.inOut" }, "-=0.25")
-        }
-        if (nodes.length > 0) {
-          tl.fromTo(
-            nodes,
-            { opacity: 0, y: 24, scale: 0.96 },
-            { opacity: 1, y: 0, scale: 1, duration: 0.55, stagger: 0.08, ease },
-            "-=0.2"
-          )
-        }
-      }
-
-      // ─── E. Workflow Consolidation ──────────────────────────────────
+      // ─── 4. Workflow Consolidation (Section 7) ──────────────────────
       const workflowSec = scope.querySelector<HTMLElement>("[data-cinematic-section='workflow']")
       if (workflowSec) {
         const header = workflowSec.querySelector("[data-cinematic='workflow-header']")
@@ -306,6 +306,9 @@ export function useHomepageCinematicGSAP(
           )
         }
       }
+
+      // Refresh ScrollTrigger after all timeline calculations
+      ScrollTrigger.refresh()
     }, scope)
 
     return () => {
