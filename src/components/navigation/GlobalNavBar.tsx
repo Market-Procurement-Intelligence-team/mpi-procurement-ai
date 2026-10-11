@@ -531,7 +531,9 @@ export default function GlobalNavBar({
                   aria-label={isScrolled ? "Start a Procurement Request" : "Sign In to MPI"}
                   className="group inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold rounded-xl bg-[#051F16] hover:bg-[#083A28] active:bg-[#051F16] text-white shadow-[0_2px_10px_rgba(5,31,22,0.18)] hover:shadow-[0_4px_16px_rgba(5,31,22,0.28)] border border-[#0A3525] active:scale-[0.98] transition-all duration-200 cursor-pointer"
                 >
-                  <MaterialIcon name={isScrolled ? "auto_awesome" : "arrow_forward"} size={13} className="text-[#A3F65C]" />
+                  {isScrolled && (
+                    <MaterialIcon name="auto_awesome" size={13} className="text-[#A3F65C]" />
+                  )}
                   <span>{isScrolled ? "Start Procurement" : "Sign In"}</span>
                   <Icons.ArrowRight className="w-3.5 h-3.5 text-[#A3F65C] group-hover:translate-x-0.5 transition-transform" />
                 </button>
