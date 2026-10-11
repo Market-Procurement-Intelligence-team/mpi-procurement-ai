@@ -1232,7 +1232,7 @@ export default function Home({
 
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
             Founders and enterprise procurement heads lose 6 to 8 weeks navigating
-            opaque broker fees, mismatched technical drawings, unverified factory
+            and wastes time, mismatched technical drawings, unverified factory
             claims, and delivery defaults. MPI replaces middlemen with an intelligent,
             verifiable operating system connecting real Indian factories directly
             to high-growth businesses.
