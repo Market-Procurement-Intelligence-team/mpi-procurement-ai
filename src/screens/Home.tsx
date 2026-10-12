@@ -551,8 +551,12 @@ export default function Home({
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200/80 text-xs font-semibold text-slate-800 shadow-2xs">
               <span className="w-2 h-2 rounded-full bg-[#A3F65C] ring-2 ring-emerald-600/30" />
               <span
-                className="text-[11px] font-bold tracking-wider uppercase text-slate-700 font-sans"
-                style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
+                className="text-[11px] uppercase text-slate-700"
+                style={{
+                  fontFamily: '"Sora", sans-serif',
+                  fontWeight: 600,
+                  letterSpacing: "0.04em",
+                }}
               >
                 AI-Powered Procurement Intelligence
               </span>
