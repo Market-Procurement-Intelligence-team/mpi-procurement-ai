@@ -1530,26 +1530,54 @@ export default function MSMEFlow({
                 <Icons.Check className="w-7 h-7" />
               </div>
               <h3 className="text-lg font-bold text-[#051F16]">
-                Quotation Successfully Transmitted!
+                {quotePersistenceStatus === "saved_to_supabase"
+                  ? "Quotation Submitted to Buyer"
+                  : quotePersistenceStatus === "saving"
+                  ? "Submitting Quotation..."
+                  : "Quotation Saved Locally"}
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Your binding itemized quotation of{" "}
-                <strong>₹{totalWithGst.toLocaleString("en-IN")}</strong> payable invoice value{" "}
-                (including {repeatDiscountPercent}% repeat client concession
-                {subsidyDiscount > 0 ? ` and ₹${subsidyDiscount.toLocaleString("en-IN")} eligible ZED subsidy assessment` : ""})
-                has been transmitted directly into {selectedOpp.buyer}'s comparison
-                matrix on behalf of <strong>{supplierEnterpriseName}</strong>.
+                {quotePersistenceStatus === "saved_to_supabase" ? (
+                  <>
+                    Your binding itemized quotation of{" "}
+                    <strong>₹{totalWithGst.toLocaleString("en-IN")}</strong> payable invoice value{" "}
+                    (including {repeatDiscountPercent}% repeat client concession
+                    {subsidyDiscount > 0 ? ` and ₹${subsidyDiscount.toLocaleString("en-IN")} eligible ZED subsidy assessment` : ""})
+                    has been saved to your MPI account and transmitted directly into {selectedOpp.buyer}'s comparison
+                    matrix on behalf of <strong>{supplierEnterpriseName}</strong>.
+                  </>
+                ) : quotePersistenceStatus === "saving" ? (
+                  <>
+                    Transmitting your binding itemized quotation of{" "}
+                    <strong>₹{totalWithGst.toLocaleString("en-IN")}</strong> payable invoice value to the MPI
+                    cloud network on behalf of <strong>{supplierEnterpriseName}</strong>...
+                  </>
+                ) : (
+                  <>
+                    Your binding itemized quotation of{" "}
+                    <strong>₹{totalWithGst.toLocaleString("en-IN")}</strong> payable invoice value{" "}
+                    has been saved in this browser session. Synchronization is pending; remote saving and transmission
+                    have not been confirmed.
+                  </>
+                )}
               </p>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-left space-y-1.5">
                 <div className="font-bold flex items-center gap-1.5">
                   <Icons.ShieldCheck className="w-3.5 h-3.5 text-[#051F16]" />
-                  <span>Quotation Lifecycle Status: Quote Transmitted</span>
+                  <span>
+                    Quotation Lifecycle Status:{" "}
+                    {quotePersistenceStatus === "saved_to_supabase"
+                      ? "Quote Transmitted"
+                      : quotePersistenceStatus === "saving"
+                      ? "Transmitting"
+                      : "Local Session Stored"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 pt-0.5">
                   {quotePersistenceStatus === "saved_to_supabase" ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>Transmitted & Confirmed</span>
+                      <span>Submitted & Confirmed</span>
                     </span>
                   ) : quotePersistenceStatus === "saving" ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">
@@ -1562,12 +1590,16 @@ export default function MSMEFlow({
                       title={quotePersistenceError || "Stored locally in browser session"}
                     >
                       <span className="w-2 h-2 rounded-full bg-amber-500" />
-                      <span>Saved Locally (Session Buffer)</span>
+                      <span>Saved in Local Session Buffer</span>
                     </span>
                   )}
                 </div>
                 <div className="text-[11px] text-slate-500 leading-snug pt-1">
-                  The buyer has been notified. You can track evaluation progress, sample requests, and PO escrow release directly from your supplier dashboard.
+                  {quotePersistenceStatus === "saved_to_supabase"
+                    ? "The buyer has been notified. You can track evaluation progress, sample requests, and milestone releases directly from your supplier dashboard."
+                    : quotePersistenceStatus === "saving"
+                    ? "Please wait while your proposal is encrypted and dispatched to the procurement registry."
+                    : "Your quote draft is retained in this browser session. To ensure transmission to the buyer once online, reconnect to synchronize with the MPI network."}
                 </div>
               </div>
               <MPIButton

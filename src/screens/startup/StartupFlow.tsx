@@ -2875,7 +2875,7 @@ export default function StartupFlow({
                   ? `Your RFQ (${activeRFQ?.title || "Custom Batch Run"}) has been authoritatively persisted and dispatched to verified manufacturing clusters. Suppliers in our audited network evaluate tooling specs and submit binding proposals within 24–48 hours.`
                   : rfqPersistenceStatus === "saving"
                   ? `Transmitting your RFQ (${activeRFQ?.title || "Custom Batch Run"}) to the MPI cloud network...`
-                  : `Your RFQ (${activeRFQ?.title || "Custom Batch Run"}) is saved locally in your session buffer. Cloud synchronization is pending; supplier dispatch will confirm once network persistence succeeds.`}
+                  : `Your RFQ (${activeRFQ?.title || "Custom Batch Run"}) is saved in this browser session. Synchronization is pending; remote saving and supplier dispatch have not been confirmed.`}
               </p>
               <div className="flex items-center justify-center gap-2 pt-1">
                 {rfqPersistenceStatus === "saved_to_supabase" ? (
@@ -2894,7 +2894,7 @@ export default function StartupFlow({
                     title={rfqPersistenceError || "Stored locally in browser session"}
                   >
                     <span className="w-2 h-2 rounded-full bg-amber-500" />
-                    <span>Saved Locally (Session Buffer)</span>
+                    <span>Saved in Local Session Buffer</span>
                   </span>
                 )}
               </div>

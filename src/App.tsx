@@ -1,32 +1,77 @@
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, lazy, Suspense } from "react"
 import { getAdminSession, ADMIN_CONFIG } from "./lib/mockAuth"
 import { ProcurementProvider } from "./context/ProcurementContext"
 import Home from "./screens/Home"
 import Landing from "./screens/Landing"
 import LoginPortal from "./screens/Login"
-import StartupFlow from "./screens/startup/StartupFlow"
-import MSMEFlow from "./screens/msme/MSMEFlow"
-import AdminFlow from "./screens/admin/AdminFlow"
-import {
-  AIInsightsDetailPage,
-  TotalSalesDetailPage,
-  RevenueComparisonDetailPage,
-  SalesTrendDetailPage,
-  AgeRangeDetailPage,
-  AddWidgetStudioPage,
-  CreateReportPage,
-  PulseLiveFeedPage,
-  DataCatalogPage,
-  SharedTeamPage,
-  NotificationsPage,
-  MessagesPage,
-  DocumentsPage,
-  SupportPage,
-  AccountProfilePage,
-} from "./screens/analytics/AnalyticsDetailPages"
-import GovernmentSchemesFlow from "./screens/schemes/GovernmentSchemesFlow"
-import StartupOnboarding from "./screens/onboarding/StartupOnboarding"
-import MSMEOnboarding from "./screens/onboarding/MSMEOnboarding"
+
+// Code-split heavy application flows to optimize initial bundle size
+const StartupFlow = lazy(() => import("./screens/startup/StartupFlow"))
+const MSMEFlow = lazy(() => import("./screens/msme/MSMEFlow"))
+const AdminFlow = lazy(() => import("./screens/admin/AdminFlow"))
+const GovernmentSchemesFlow = lazy(() => import("./screens/schemes/GovernmentSchemesFlow"))
+const StartupOnboarding = lazy(() => import("./screens/onboarding/StartupOnboarding"))
+const MSMEOnboarding = lazy(() => import("./screens/onboarding/MSMEOnboarding"))
+
+// Lazy-loaded analytics subpages
+const AIInsightsDetailPage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.AIInsightsDetailPage }))
+)
+const TotalSalesDetailPage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.TotalSalesDetailPage }))
+)
+const RevenueComparisonDetailPage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.RevenueComparisonDetailPage }))
+)
+const SalesTrendDetailPage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.SalesTrendDetailPage }))
+)
+const AgeRangeDetailPage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.AgeRangeDetailPage }))
+)
+const AddWidgetStudioPage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.AddWidgetStudioPage }))
+)
+const CreateReportPage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.CreateReportPage }))
+)
+const PulseLiveFeedPage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.PulseLiveFeedPage }))
+)
+const DataCatalogPage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.DataCatalogPage }))
+)
+const SharedTeamPage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.SharedTeamPage }))
+)
+const NotificationsPage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.NotificationsPage }))
+)
+const MessagesPage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.MessagesPage }))
+)
+const DocumentsPage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.DocumentsPage }))
+)
+const SupportPage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.SupportPage }))
+)
+const AccountProfilePage = lazy(() =>
+  import("./screens/analytics/AnalyticsDetailPages").then((m) => ({ default: m.AccountProfilePage }))
+)
+
+function FlowLoadingFallback() {
+  return (
+    <div className="min-h-screen bg-[#F7F9FC] flex flex-col items-center justify-center p-6 text-slate-800">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-9 h-9 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs font-semibold text-slate-600 tracking-wider uppercase font-mono">
+          Loading MPI Workspace...
+        </p>
+      </div>
+    </div>
+  )
+}
 
 import GlobalNavBar from "./components/navigation/GlobalNavBar"
 import ErrorBoundary from "./components/ui/ErrorBoundary"
@@ -370,7 +415,9 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ProcurementProvider>
-        {renderActiveScreen()}
+        <Suspense fallback={<FlowLoadingFallback />}>
+          {renderActiveScreen()}
+        </Suspense>
         <CookieConsentExperience />
       </ProcurementProvider>
     </ErrorBoundary>

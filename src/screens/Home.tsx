@@ -32,8 +32,10 @@ import { openCookiePreferencesModal } from "../services/cookieConsentService"
 import { trackTelemetryEvent } from "../services/telemetryService"
 import TrustStandardsModal from "../components/trust/TrustStandardsModal"
 import StickyPrimaryCTA from "../components/navigation/StickyPrimaryCTA"
-import { Player } from "@remotion/player"
-import { MpiDemoVideo } from "../video/MpiDemoVideo"
+import { lazy, Suspense } from "react"
+const HomeRemotionVideo = lazy(
+  () => import("../components/home/HomeRemotionVideo")
+)
 import MultilingualAiParserDemo from "../components/home/MultilingualAiParserDemo"
 
 export function formatScopeDisplay(category: CatalogCategory, qty: number): string {
@@ -76,7 +78,7 @@ export const STATUTORY_STANDARDS = [
   { label: "DPIIT-Recognized Startup Framework", badge: "Scheme Aligned", icon: "verified", tab: "standards" as const },
   { label: "ZED Gold Certified MSME Audit Standards", badge: "Zero Defect", icon: "military_tech", tab: "standards" as const },
   { label: "ISO 9001:2015 Quality Management Standard", badge: "Audited", icon: "fact_check", tab: "standards" as const },
-  { label: "Active GSTIN & Udyam Verified MSMEs", badge: "Ministry Verified", icon: "policy", tab: "verification" as const },
+  { label: "Active GSTIN & Udyam Verified MSMEs", badge: "Statutory Validated", icon: "policy", tab: "verification" as const },
   { label: "Milestone-Governed Contract Terms", badge: "Inspection-Backed", icon: "lock", tab: "milestones" as const },
   { label: "NABL Accredited Testing Standards", badge: "QA Tested", icon: "science", tab: "standards" as const },
   { label: "Reverse-Margin Cost Decomposition", badge: "Direct Factory", icon: "trending_down", tab: "savings" as const },
@@ -500,7 +502,7 @@ export default function Home({
             </span>
             <span className="text-slate-400 hidden sm:inline">•</span>
             <span className="text-slate-300 hidden sm:inline">
-              DPIIT & Ministry of MSME Verified Factory Sourcing Infrastructure
+              DPIIT & Ministry of MSME Framework Aligned • National Sourcing Infrastructure
             </span>
           </div>
           <div className="flex items-center gap-4 text-slate-300">
@@ -734,22 +736,16 @@ export default function Home({
               {previewMode === "video" ? (
                 <div className="relative bg-[#051F16] overflow-hidden">
                   {/* Remotion High-Definition 16:9 Video Canvas */}
-                  <div className="w-full aspect-[16/9] max-h-[640px] flex items-center justify-center bg-[#051F16] relative">
-                    <Player
-                      component={MpiDemoVideo}
-                      durationInFrames={510}
-                      compositionWidth={1920}
-                      compositionHeight={1080}
-                      fps={30}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                      }}
-                      controls
-                      autoPlay
-                      loop
-                    />
-                  </div>
+                  <Suspense
+                    fallback={
+                      <div className="w-full aspect-[16/9] max-h-[640px] flex flex-col items-center justify-center bg-[#051F16] text-white/80 gap-3">
+                        <div className="w-10 h-10 border-2 border-[#A3F65C] border-t-transparent rounded-full animate-spin" />
+                        <span className="text-xs font-mono text-emerald-400">Loading Video Engine...</span>
+                      </div>
+                    }
+                  >
+                    <HomeRemotionVideo />
+                  </Suspense>
 
                   {/* Video Sub-Bar with scene labels and quick CTA */}
                   <div className="px-5 py-4 bg-[#03150F] border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -912,7 +908,7 @@ export default function Home({
                     </span>
                     <span className="text-slate-300">→</span>
                     <span className="text-emerald-800 font-semibold flex items-center gap-1">
-                      <span>Escrow Gate</span>
+                      <span>Milestone Gate</span>
                     </span>
                   </div>
                   <div className="text-[10px] text-emerald-800 font-bold bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">
@@ -1091,13 +1087,13 @@ export default function Home({
                 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#051F16] tracking-tight"
                 style={{ fontFamily: "Plus Jakarta Sans" }}
               >
-                <CountUpNumber end={28} suffix="+" />
+                <CountUpNumber end={8} suffix=" Hubs" />
               </div>
               <div className="text-xs sm:text-sm text-slate-700 font-bold mt-1">
-                Active Manufacturing Hubs
+                Key Manufacturing Corridors
               </div>
               <div className="text-[11px] text-slate-500 mt-0.5">
-                Across 8 Regional Corridors
+                Mapped Across 8 Industrial Clusters
               </div>
             </div>
 
@@ -2381,7 +2377,7 @@ export default function Home({
                   requiredRole: "msme",
                   portalContext: {
                     badge: "MSME Supplier Network",
-                    title: "Join India's Verified MSME Network",
+                    title: "Register as an MSME Supplier on MPI",
                     description: "Register your manufacturing facility, Udyam registration, and machine capacity.",
                     icon: "precision_manufacturing",
                   },
