@@ -46,7 +46,7 @@ In **Netlify Dashboard → Site Settings → Environment variables → Add a var
 | :--- | :---: | :--- |
 | `GEMINI_API_KEY` | **PRIVATE SECRET (Server-only)** | Your Google AI Studio API Key |
 | `VITE_GEMINI_MODEL` | Public (Client + Function) | `gemini-3.1-flash-lite` |
-| `VITE_SUPABASE_URL` | Public (Client) | `https://utjysxkaidvbrmatngyb.supabase.co` |
+| `VITE_SUPABASE_URL` | Public (Client) | `https://wrcllzvgemyacakttjxs.supabase.co` |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Public (Client) | Your Supabase publishable anon key |
 | `NODE_VERSION` | Build Environment | `20` |
 

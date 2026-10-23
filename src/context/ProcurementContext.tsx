@@ -1607,7 +1607,7 @@ export const ProcurementProvider: React.FC<{ children: React.ReactNode }> = ({
   const [backendSyncState, setBackendSyncState] = useState<BackendSyncState>({
     isConnected: false,
     isTableExposed: false,
-    backendUrl: "https://utjysxkaidvbrmatngyb.supabase.co",
+    backendUrl: import.meta.env.VITE_SUPABASE_URL ?? "",
     lastChecked: 0,
     statusMessage: "Checking cloud service connection...",
     pendingMigration: false,
