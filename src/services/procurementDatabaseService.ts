@@ -26,7 +26,20 @@ let cachedSyncState: BackendSyncState | null = null
  * Diagnostic health check verifying both REST connectivity and schema availability
  */
 export async function checkDatabaseHealth(): Promise<BackendSyncState> {
-  const url = import.meta.env.VITE_SUPABASE_URL || "https://utjysxkaidvbrmatngyb.supabase.co"
+  const url = import.meta.env.VITE_SUPABASE_URL
+
+  if (!url) {
+    console.error("[MPI] VITE_SUPABASE_URL is not set. Copy .env.example to .env and fill in the Supabase project settings.")
+    cachedSyncState = {
+      isConnected: false,
+      isTableExposed: false,
+      backendUrl: "",
+      lastChecked: Date.now(),
+      statusMessage: "Database connection is not configured.",
+      pendingMigration: false,
+    }
+    return cachedSyncState
+  }
 
   try {
     // 1. Check REST endpoint reachability

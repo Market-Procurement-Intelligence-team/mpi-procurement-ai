@@ -1,7 +1,14 @@
 import { createClient } from "@supabase/supabase-js"
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://utjysxkaidvbrmatngyb.supabase.co"
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ""
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+
+// No fallback project: without these settings the app must not connect anywhere.
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error(
+    "Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY. Copy .env.example to .env and fill in the Supabase project settings.",
+  )
+}
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
