@@ -3,6 +3,8 @@
  * - only the startup starts it, and only the total price is negotiated;
  * - the supplier accepts, declines or counters; at most 3 offers per quote;
  * - an accepted price reissues the quote as a new version at that price.
+ * - an offer with no reply within 24 hours expires (decided 27 Oct 2026); expired
+ *   offers still count toward the 3, and the quote keeps its current price.
  * Every rule is enforced by the database; these functions just call it.
  */
 
@@ -47,6 +49,21 @@ export async function listOffersForRequest(requestId: string): Promise<Offer[]> 
 /** All offers on one quote, oldest first. */
 export async function listOffersForQuote(quoteId: string): Promise<Offer[]> {
   return unwrap(await db.from("quote_negotiations").select("*").eq("quote_id", quoteId).order("created_at"))
+}
+
+/**
+ * An offer's status as the screens should show it. The database marks late
+ * offers as "expired" every 15 minutes, so an open offer past its time is
+ * shown as expired straight away.
+ */
+export function offerStatus(offer: Offer, now: Date = new Date()): Offer["status"] {
+  return offer.status === "open" && new Date(offer.expires_at) <= now ? "expired" : offer.status
+}
+
+/** Milliseconds left to answer an open offer (0 once it has expired or closed). */
+export function timeLeftToReply(offer: Offer, now: Date = new Date()): number {
+  if (offer.status !== "open") return 0
+  return Math.max(0, new Date(offer.expires_at).getTime() - now.getTime())
 }
 
 /** How many more offers can be made on a quote. */

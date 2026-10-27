@@ -462,6 +462,7 @@ export type Database = {
           revised_quote_id: string | null
           created_by: string | null
           created_at: string
+          expires_at: string
         }
         Insert: {
           id?: string
@@ -478,6 +479,7 @@ export type Database = {
           revised_quote_id?: string | null
           created_by?: string | null
           created_at?: string
+          expires_at?: string
         }
         Update: {
           id?: string
@@ -494,6 +496,7 @@ export type Database = {
           revised_quote_id?: string | null
           created_by?: string | null
           created_at?: string
+          expires_at?: string
         }
         Relationships: [
           {
@@ -1146,7 +1149,7 @@ export type Database = {
       invitation_status: "invited" | "viewed" | "declined" | "quoted"
       match_status: "suggested" | "approved" | "rejected"
       negotiation_side: "buyer" | "vendor"
-      negotiation_status: "open" | "accepted" | "declined" | "countered" | "withdrawn"
+      negotiation_status: "open" | "accepted" | "declined" | "countered" | "withdrawn" | "expired"
       org_type: "startup" | "vendor" | "platform"
       po_status: "issued" | "in_production" | "qc_passed" | "dispatched" | "delivered" | "completed" | "cancelled"
       quote_line_type: "item" | "setup" | "testing" | "logistics" | "other"
