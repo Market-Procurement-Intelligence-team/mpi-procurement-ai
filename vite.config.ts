@@ -1,4 +1,4 @@
-import { defineConfig, type HtmlTagDescriptor, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type HtmlTagDescriptor, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => {
       figmaReactRefreshBoundaryFallback(),
       figmaMakeKitPlugin({ storiesGlob: '/src/**/*.stories.{ts,tsx,js,jsx}' }),
       geminiBackendProxyPlugin(),
+      requestReaderDevPlugin(),
     ],
     resolve: {
       alias: {
@@ -657,3 +658,41 @@ function geminiBackendProxyPlugin(): Plugin {
   }
 }
 
+/**
+ * Dev-server route for the AI request reader (POST /api/request-reader).
+ * Runs the same code as the Netlify function, so `npm run dev` works without
+ * the Netlify CLI. Reads GEMINI_API_KEY and the Supabase settings from .env.
+ */
+function requestReaderDevPlugin(): Plugin {
+  let env: Record<string, string | undefined> = {}
+  return {
+    name: 'mpi-request-reader-dev',
+    configResolved(config) {
+      env = { ...loadEnv(config.mode, process.cwd(), ''), ...process.env }
+    },
+    configureServer(server) {
+      server.middlewares.use('/api/request-reader', (req, res) => {
+        let body = ''
+        req.on('data', (chunk: Buffer) => {
+          body += chunk.toString()
+        })
+        req.on('end', async () => {
+          res.setHeader('Content-Type', 'application/json')
+          try {
+            const { readRequest } = await server.ssrLoadModule('/netlify/functions/request-reader.ts')
+            const result = await readRequest(
+              { method: req.method ?? 'GET', authorization: req.headers.authorization ?? null, body },
+              { env }
+            )
+            res.statusCode = result.status
+            res.end(JSON.stringify(result.body))
+          } catch (error) {
+            console.error('request-reader (dev):', error)
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: 'Something went wrong. Please try again.' }))
+          }
+        })
+      })
+    },
+  }
+}
