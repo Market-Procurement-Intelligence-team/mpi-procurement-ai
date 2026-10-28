@@ -137,6 +137,99 @@ export type Database = {
           },
         ]
       }
+      government_schemes: {
+        Row: {
+          id: string
+          code: string
+          name: string
+          short_name: string
+          ministry: string | null
+          department: string | null
+          description: string | null
+          nature_of_assistance: string | null
+          max_assistance: string | null
+          max_subsidy_pct: number | null
+          who_can_apply: string[]
+          eligibility: string[]
+          how_to_apply: string[]
+          documents_required: string[]
+          key_benefits: string[]
+          for_startups: boolean
+          for_msmes: boolean
+          category_ids: string[]
+          industry_keywords: string[]
+          stage_keywords: string[]
+          procurement_triggers: string[]
+          sector_specific: boolean
+          official_url: string | null
+          contact_office: string | null
+          source: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          name: string
+          short_name: string
+          ministry?: string | null
+          department?: string | null
+          description?: string | null
+          nature_of_assistance?: string | null
+          max_assistance?: string | null
+          max_subsidy_pct?: number | null
+          who_can_apply?: string[]
+          eligibility?: string[]
+          how_to_apply?: string[]
+          documents_required?: string[]
+          key_benefits?: string[]
+          for_startups?: boolean
+          for_msmes?: boolean
+          category_ids?: string[]
+          industry_keywords?: string[]
+          stage_keywords?: string[]
+          procurement_triggers?: string[]
+          sector_specific?: boolean
+          official_url?: string | null
+          contact_office?: string | null
+          source?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          name?: string
+          short_name?: string
+          ministry?: string | null
+          department?: string | null
+          description?: string | null
+          nature_of_assistance?: string | null
+          max_assistance?: string | null
+          max_subsidy_pct?: number | null
+          who_can_apply?: string[]
+          eligibility?: string[]
+          how_to_apply?: string[]
+          documents_required?: string[]
+          key_benefits?: string[]
+          for_startups?: boolean
+          for_msmes?: boolean
+          category_ids?: string[]
+          industry_keywords?: string[]
+          stage_keywords?: string[]
+          procurement_triggers?: string[]
+          sector_specific?: boolean
+          official_url?: string | null
+          contact_office?: string | null
+          source?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           id: string
@@ -1166,6 +1259,16 @@ export type Database = {
           p_note?: string
         }
         Returns: undefined
+      }
+      suggest_schemes: {
+        Args: {
+          p_limit?: number
+        }
+        Returns: {
+          scheme_id: string
+          score: number
+          reasons: string[]
+        }[]
       }
       suggest_matches: {
         Args: {
