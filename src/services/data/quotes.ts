@@ -10,6 +10,7 @@ import { db } from "../../lib/db"
 import type { Tables } from "../../lib/database.types"
 import { check, unwrap } from "./errors"
 import { getDisplayNames } from "./names"
+import { REQUEST_FIELDS, type SharedRequest } from "./requests"
 
 export type Quote = Tables<"quotes">
 export type QuoteLine = Tables<"quote_lines">
@@ -39,7 +40,8 @@ export interface QuoteInput {
 
 export interface InvitationWithRequest {
   invitation: Invitation
-  request: Tables<"requests">
+  /** Without the budget: suppliers never see it. */
+  request: SharedRequest
   lines: Tables<"request_lines">[]
   buyerName: string
   myQuotes: Quote[]
@@ -56,7 +58,7 @@ export async function listMyInvitations(vendorOrgId: string): Promise<Invitation
   const requestIds = invitations.map((i) => i.request_id)
 
   const [requests, lines, quotes] = await Promise.all([
-    db.from("requests").select("*").in("id", requestIds).then(unwrap),
+    db.from("requests").select(REQUEST_FIELDS).in("id", requestIds).then(unwrap),
     db.from("request_lines").select("*").in("request_id", requestIds).order("sort_order").then(unwrap),
     db.from("quotes").select("*").eq("vendor_org_id", vendorOrgId).in("request_id", requestIds)
       .order("version", { ascending: false }).then(unwrap),

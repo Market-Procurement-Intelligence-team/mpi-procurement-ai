@@ -7,6 +7,7 @@
 import { db } from "../../lib/db"
 import type { Enums, Tables } from "../../lib/database.types"
 import { check, unwrap } from "./errors"
+import { REQUEST_FIELDS, withPrivateDetails } from "./requests"
 
 export type VerificationStatus = Enums<"verification_status">
 export type PaymentTerms = "full_advance" | "30_70"
@@ -76,8 +77,11 @@ export async function listMatchesToReview(): Promise<RequestForReview[]> {
   if (!matches.length) return []
 
   const requestIds = [...new Set(matches.map((m) => m.request_id))]
-  const requests = unwrap(
-    await db.from("requests").select("*").in("id", requestIds).in("status", ["open", "comparing"]).order("created_at"),
+  const requests = await withPrivateDetails(
+    unwrap(
+      await db.from("requests").select(REQUEST_FIELDS).in("id", requestIds).in("status", ["open", "comparing"])
+        .order("created_at"),
+    ),
   )
   const orgIds = [...new Set([...requests.map((r) => r.org_id), ...matches.map((m) => m.vendor_org_id)])]
   const categoryIds = [...new Set(requests.flatMap((r) => (r.category_id ? [r.category_id] : [])))]
