@@ -11,6 +11,7 @@ import { getDisplayNames } from "./names"
 
 export type Order = Tables<"purchase_orders">
 export type OrderStatus = Enums<"po_status">
+export type OrderEvent = Tables<"order_events">
 
 /** The order a supplier moves through, in sequence. */
 export const ORDER_STEPS: OrderStatus[] = ["issued", "in_production", "qc_passed", "dispatched", "delivered", "completed"]
@@ -38,6 +39,15 @@ export async function listMyOrders(): Promise<OrderSummary[]> {
     buyerName: names.get(o.buyer_org_id) ?? "MPI Verified Buyer",
     supplierName: names.get(o.vendor_org_id) ?? "MPI Verified Supplier",
   }))
+}
+
+/**
+ * The steps an order has been through, oldest first, each with its date and
+ * time, for the order timeline. Orders placed before 28 Oct 2026 only have
+ * the day they were placed and the step they had reached by then.
+ */
+export async function listOrderHistory(orderId: string): Promise<OrderEvent[]> {
+  return unwrap(await db.from("order_events").select("*").eq("po_id", orderId).order("created_at"))
 }
 
 /** Supplier: move the order to a later step, optionally setting the expected delivery date (YYYY-MM-DD). */
