@@ -178,6 +178,45 @@ export type Database = {
           },
         ]
       }
+      order_events: {
+        Row: {
+          id: string
+          po_id: string
+          status: Database["public"]["Enums"]["po_status"]
+          changed_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          po_id: string
+          status: Database["public"]["Enums"]["po_status"]
+          changed_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          po_id?: string
+          status?: Database["public"]["Enums"]["po_status"]
+          changed_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_events_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_events_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organisations: {
         Row: {
           id: string
