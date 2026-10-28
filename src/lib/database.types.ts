@@ -1180,6 +1180,16 @@ export type Database = {
       }
     }
     Views: {
+      request_private_details: {
+        Row: {
+          request_id: string | null
+          budget_min: number | null
+          budget_max: number | null
+          requirement_text: string | null
+          ai_extracted: Json | null
+        }
+        Relationships: []
+      }
       org_public: {
         Row: {
           id: string | null
