@@ -5,7 +5,7 @@
 --   startup sends a request -> suppliers are matched -> admin approves ->
 --   supplier quotes -> price negotiation (and offer expiry) -> startup
 --   approves -> order and its history -> a remote service request ->
---   government scheme suggestions.
+--   government scheme suggestions -> the suppliers' price guide.
 -- It also checks that each person sees only what they should.
 --
 -- NOTHING IS SAVED. Everything runs inside one block that is cancelled at the
@@ -13,7 +13,7 @@
 -- result appears as an "error" in the SQL Editor: read the message, which
 -- starts with "MPI END-TO-END CHECK".
 --
--- Needs: all migrations up to 20261028140000 run, and the demo workspace
+-- Needs: all migrations up to 20261028150000 run, and the demo workspace
 -- (mpi-demostartup@, mpi-demosupplier1-3@, mpi-demoservice@example.com).
 -- Safe to run as often as you like, e.g. on the morning of a demo.
 -- ============================================================================
@@ -41,6 +41,8 @@ declare
   v_int     integer;
   v_txt     text;
   v_arr     text[];
+  v_guide   record;
+  v_guide_n integer;
 begin
   -- --------------------------------------------------------------------------
   -- Who is who
@@ -211,6 +213,21 @@ begin
 
   v_total := v_total + 1;
   begin
+    select * into v_guide from public.price_guide(v_line);
+    v_guide_n := v_guide.price_count;
+    v_ok := v_guide.source = 'past_quotes' and v_guide.price_count >= 5
+            and v_guide.low <= v_guide.typical and v_guide.typical <= v_guide.high;
+    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Supplier sees a price guide while quoting: ₹' || coalesce(v_guide.low::text, '?')
+               || ' to ₹' || coalesce(v_guide.high::text, '?') || ' per piece, typical ₹' || coalesce(v_guide.typical::text, '?')
+               || ', from ' || coalesce(v_guide.price_count, 0) || ' past prices');
+  exception when others then
+    v_ok := false;
+    v_lines := v_lines || ('✗ Supplier sees a price guide: ' || sqlerrm);
+  end;
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  begin
     insert into public.quotes (invitation_id, request_id, vendor_org_id, status, lead_time_days, payment_terms, valid_until)
     values (v_inv, v_req, o_s1, 'draft', 10, '100% after delivery', current_date + 10)
     returning id into v_quote;
@@ -223,6 +240,51 @@ begin
   exception when others then
     v_ok := false;
     v_lines := v_lines || ('✗ Supplier sends a quote: ' || sqlerrm);
+  end;
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  select price_count into v_int from public.price_guide(v_line);
+  v_ok := v_int = v_guide_n;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'The price guide ignores the quotes on the same request (still ' || coalesce(v_int, 0) || ' past prices after this quote)');
+  if v_ok then v_pass := v_pass + 1; end if;
+  perform set_config('role', v_me, true);
+
+  -- Not invited (supplier 2) and the startup cannot ask for the price guide
+  v_total := v_total + 1;
+  v_int := 0;
+  foreach v_txt in array array[u_s2::text, u_startup::text] loop
+    perform set_config('request.jwt.claim.sub', v_txt, true);
+    perform set_config('request.jwt.claims', json_build_object('sub', v_txt, 'role', 'authenticated')::text, true);
+    perform set_config('role', 'authenticated', true);
+    begin
+      perform public.price_guide(v_line);
+    exception when others then
+      v_int := v_int + 1;
+    end;
+    perform set_config('role', v_me, true);
+  end loop;
+  v_ok := v_int = 2;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Only invited suppliers get the price guide (a supplier not invited and the startup are refused)');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- Too few past prices (rapid prototyping, demo request for supplier 2): the app asks the AI instead
+  perform set_config('request.jwt.claim.sub', u_s2::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_s2, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_total := v_total + 1;
+  begin
+    select g.source, g.price_count into v_txt, v_int
+      from public.request_lines rl
+      join public.catalogue_items i on i.id = rl.item_id and i.name = 'Rapid prototyping'
+      join public.rfq_invitations inv on inv.request_id = rl.request_id and inv.vendor_org_id = o_s2,
+           lateral public.price_guide(rl.id) g
+     limit 1;
+    v_ok := v_txt = 'too_few';
+    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'With too few past prices (' || coalesce(v_int, 0) || ' for rapid prototyping) the guide hands over to the AI estimate');
+  exception when others then
+    v_ok := false;
+    v_lines := v_lines || ('✗ Price guide with too few past prices: ' || sqlerrm);
   end;
   if v_ok then v_pass := v_pass + 1; end if;
   perform set_config('role', v_me, true);

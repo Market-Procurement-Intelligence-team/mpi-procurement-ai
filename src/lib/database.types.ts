@@ -1270,6 +1270,31 @@ export type Database = {
         }
         Returns: undefined
       }
+      price_guide: {
+        Args: {
+          p_request_line_id: string
+        }
+        Returns: {
+          request_line_id: string
+          item_id: string | null
+          item_name: string | null
+          description: string
+          quantity: number
+          unit: string
+          category_name: string | null
+          delivery_city: string | null
+          delivery_state: string | null
+          source: string
+          price_count: number
+          low: number | null
+          typical: number | null
+          high: number | null
+          decided_count: number
+          win_pct_low: number | null
+          win_pct_typical: number | null
+          win_pct_high: number | null
+        }[]
+      }
       suggest_schemes: {
         Args: {
           p_limit?: number
