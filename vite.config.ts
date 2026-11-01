@@ -24,7 +24,6 @@ export default defineConfig(({ mode }) => {
       figmaErrorOverlayReplay(),
       figmaReactRefreshBoundaryFallback(),
       figmaMakeKitPlugin({ storiesGlob: '/src/**/*.stories.{ts,tsx,js,jsx}' }),
-      geminiBackendProxyPlugin(),
       requestReaderDevPlugin(),
       priceEstimateDevPlugin(),
     ],
