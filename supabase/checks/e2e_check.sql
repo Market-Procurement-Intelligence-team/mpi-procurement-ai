@@ -537,6 +537,9 @@ begin
   -- ==========================================================================
   raise exception using
     message = format(E'MPI END-TO-END CHECK: %s of %s checks passed. Nothing was saved.\n\n%s',
-                     v_pass, v_total, array_to_string(v_lines, E'\n'));
+                     v_pass, v_total,
+                     -- failed checks first, so they show even when a tool cuts the message short
+                     array_to_string(array(select l from unnest(v_lines) with ordinality as u(l, n)
+                                            order by (l like '✗%') desc, n), E'\n'));
 end;
 $check$;

@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "format": "oxfmt"
+    "format": "oxfmt",
+    "db:status": "supabase migration list --linked",
+    "db:push": "supabase db push --linked",
+    "db:check": "supabase db query --linked -f supabase/checks/e2e_check.sql",
+    "db:reset-demo": "supabase db query --linked \"select public.reset_demo_workspace()\""
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
@@ -30,6 +34,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.0.0",
     "oxfmt": "^0.2.0",
+    "supabase": "^2.122.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.0",
     "vite": "^8.0.5"
