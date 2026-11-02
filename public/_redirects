@@ -1,6 +1,4 @@
 # Netlify redirects and rewrites
-# 1. API route rewrite to serverless Netlify function
-/api/gemini/*    /.netlify/functions/gemini/:splat    200!
-
-# 2. SPA client-side routing fallback (for /startup, /msme, /admin, etc.)
+# SPA client-side routing fallback (for /startup, /supplier, /admin, etc.)
+# The AI routes (/api/request-reader, /api/price-estimate) are set in each function file.
 /*    /index.html    200

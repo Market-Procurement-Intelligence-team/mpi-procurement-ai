@@ -1,0 +1,145 @@
+/* Box matches the logo artwork (851 × 1094) so nothing shifts while it loads or animates. */
+.mpi-emblem {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 851 / 1094;
+  background: var(--mpi-emblem-bg, #0d1729); /* deep navy-black (was #ffffff) */
+  overflow: visible; /* lifted bars may rise slightly past the artwork edge */
+  isolation: isolate;
+}
+
+/* Swirl only (no words): the box is just the emblem's part of the artwork (MPI app). */
+.mpi-emblem--no-wordmark {
+  aspect-ratio: 851 / 760;
+}
+
+.mpi-emblem__layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/*
+ * Wordmark on the dark background: the text layer is the original navy-on-white pixels.
+ * Inverted (grayscale) and screened onto the background, white drops out and the navy letters
+ * become a soft off-white — same glyphs, same position, only reversed for legibility.
+ */
+.mpi-emblem__layer--text {
+  filter: grayscale(1) invert(1);
+  mix-blend-mode: screen;
+}
+
+/* Only the emblem's original bar shapes show through this layer. */
+.mpi-emblem__colour {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  -webkit-mask: var(--mpi-emblem-mask) center / 100% 100% no-repeat;
+  mask: var(--mpi-emblem-mask) center / 100% 100% no-repeat;
+}
+
+/*
+ * Brand colour wheel, centred on the emblem's inner circle (47.47%, 28.61%).
+ * Angles are aligned with the original artwork: orange across the top, red on the
+ * right/bottom, navy on the left. Rotating it (not the bars) moves the colours;
+ * counter-clockwise rotation gives each bar the order
+ * orange → reddish orange → red → red-navy → navy → highlight → orange.
+ */
+.mpi-emblem__gradient {
+  position: absolute;
+  left: 47.47%;
+  top: 28.61%;
+  width: 141%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) rotate(0deg);
+  background: conic-gradient(
+    #f09a47 0deg,
+    #f09a47 45deg,
+    #e8703a 87deg,
+    #db4230 90deg,
+    #db4230 182deg,
+    #7a2f38 200deg,
+    #15233d 204deg,
+    #15233d 306deg,
+    #5f6b7c 312deg,
+    #f09a47 318deg,
+    #f09a47 360deg
+  );
+  background: conic-gradient(
+    in oklab,
+    #f09a47 0deg,
+    #f09a47 45deg,
+    #e8703a 87deg,
+    #db4230 90deg,
+    #db4230 182deg,
+    #7a2f38 200deg,
+    #15233d 204deg,
+    #15233d 306deg,
+    #5f6b7c 312deg,
+    #f09a47 318deg,
+    #f09a47 360deg
+  );
+  animation: mpi-colour-cycle var(--mpi-cycle-duration, 7.2s) linear infinite;
+  will-change: transform;
+}
+
+/* Hold the CSS layer still while the canvas renderer starts, so there is no colour jump. */
+.mpi-emblem.is-pending .mpi-emblem__gradient,
+.mpi-emblem.is-paused .mpi-emblem__gradient {
+  animation-play-state: paused;
+}
+
+/* Canvas renderer (3D rising bars + colour-following glow) takes over. */
+.mpi-emblem.is-canvas .mpi-emblem__colour {
+  display: none;
+}
+
+.mpi-emblem__canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 851 / 760; /* overridden by the renderer (artwork + padding for lifted bars) */
+  pointer-events: none;
+}
+
+/* Soft layers under the bars (plane shadow, colour glow): half-resolution and blurred.
+   Only these layers are blurred; the bars on top stay crisp. */
+.mpi-emblem__canvas--soft {
+  will-change: filter;
+}
+
+/* Spark glints add light on top of the bars. */
+.mpi-emblem__canvas--spark {
+  mix-blend-mode: screen;
+}
+
+@keyframes mpi-colour-cycle {
+  to {
+    transform: translate(-50%, -50%) rotate(-360deg);
+  }
+}
+
+/* Plain-HTML embeds include the untouched original as .mpi-emblem__static;
+   it is shown only when reduced motion is requested. (The React component
+   renders just the static image in that case.) */
+.mpi-emblem__static {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mpi-emblem__gradient {
+    animation: none;
+  }
+  .mpi-emblem:has(.mpi-emblem__static) > :not(.mpi-emblem__static) {
+    display: none;
+  }
+  .mpi-emblem__static {
+    display: block;
+  }
+}

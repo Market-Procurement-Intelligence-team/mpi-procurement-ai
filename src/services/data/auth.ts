@@ -61,8 +61,31 @@ export async function signOut(): Promise<void> {
   if (error) throw toDataError(error)
 }
 
+/**
+ * Emails a reset link. `redirectTo` is the page that opens from the link
+ * (e.g. `${location.origin}/reset-password`); it must be listed under
+ * Supabase > Authentication > URL Configuration > Redirect URLs.
+ */
 export async function sendPasswordReset(email: string, redirectTo?: string): Promise<void> {
   const { error } = await db.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo })
+  if (error) throw toDataError(error)
+}
+
+/**
+ * Calls `callback` when the person arrives from a reset link: Supabase signs
+ * them in for this purpose only, and the page should then ask for a new
+ * password. Returns a function that stops listening.
+ */
+export function onPasswordRecovery(callback: () => void): () => void {
+  const { data } = db.auth.onAuthStateChange((event) => {
+    if (event === "PASSWORD_RECOVERY") callback()
+  })
+  return () => data.subscription.unsubscribe()
+}
+
+/** Sets a new password for the signed-in person (after a reset link, or from their profile). */
+export async function setNewPassword(password: string): Promise<void> {
+  const { error } = await db.auth.updateUser({ password })
   if (error) throw toDataError(error)
 }
 

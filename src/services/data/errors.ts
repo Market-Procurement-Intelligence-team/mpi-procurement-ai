@@ -41,6 +41,15 @@ export function toDataError(error: unknown): DataError {
   if (/email not confirmed/i.test(message)) return new DataError("Please confirm your email first. Check your inbox.", code)
   if (/user already registered/i.test(message)) return new DataError("An account with this email already exists.", code)
   if (/password should be/i.test(message)) return new DataError(message, code)
+  if (/should be different from the old password/i.test(message)) {
+    return new DataError("Please choose a password you haven't used before.", code)
+  }
+  if (/auth session missing/i.test(message)) {
+    return new DataError("This reset link has expired or was already used. Please ask for a new one.", code)
+  }
+  if (/only request this after|rate limit/i.test(message)) {
+    return new DataError("Please wait a minute before asking for another link.", code)
+  }
   if (/jwt|refresh token|session/i.test(message)) return new DataError("Your session has expired. Please sign in again.", code)
   if (/failed to fetch|network/i.test(message)) return new DataError("Can't reach MPI right now. Check your connection.", code)
 

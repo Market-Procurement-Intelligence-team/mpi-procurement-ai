@@ -23,7 +23,7 @@
   [headers.values]
     Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
     Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Headers = "Content-Type, x-gemini-api-key, Authorization"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
 
 [[headers]]
@@ -31,14 +31,8 @@
   [headers.values]
     Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
     Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Headers = "Content-Type, x-gemini-api-key, Authorization"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-
-[[redirects]]
-  from = "/api/gemini/*"
-  to = "/.netlify/functions/gemini/:splat"
-  status = 200
-  force = true
 
 [[redirects]]
   from = "/*"

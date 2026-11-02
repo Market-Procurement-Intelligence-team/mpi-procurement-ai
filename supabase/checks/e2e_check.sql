@@ -13,7 +13,7 @@
 -- result appears as an "error" in the SQL Editor: read the message, which
 -- starts with "MPI END-TO-END CHECK".
 --
--- Needs: all migrations up to 20261028150000 run, and the demo workspace
+-- Needs: all migrations up to 20261031120000 run, and the demo workspace
 -- (mpi-demostartup@, mpi-demosupplier1-3@, mpi-demoservice@example.com).
 -- Safe to run as often as you like, e.g. on the morning of a demo.
 -- ============================================================================
@@ -75,6 +75,14 @@ begin
   values (v_req, (select id from public.catalogue_items where name = 'Corrugated boxes'), '3-ply corrugated box', 1000, 'pcs')
   returning id into v_line;
   update public.requests set status = 'open' where id = v_req;
+
+  v_total := v_total + 1;
+  select count(*) into v_int from public.catalogue_items i
+    join public.catalogue_categories c on c.id = i.category_id
+   where i.is_active and c.is_active;
+  v_ok := v_int = 100 and (select count(*) from public.catalogue_categories where is_active) = 9;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Startup sees the full catalogue: 9 groups, ' || v_int || ' items (expected 100)');
+  if v_ok then v_pass := v_pass + 1; end if;
 
   v_total := v_total + 1;
   select count(*) into v_int from public.request_matches where request_id = v_req;
@@ -529,6 +537,9 @@ begin
   -- ==========================================================================
   raise exception using
     message = format(E'MPI END-TO-END CHECK: %s of %s checks passed. Nothing was saved.\n\n%s',
-                     v_pass, v_total, array_to_string(v_lines, E'\n'));
+                     v_pass, v_total,
+                     -- failed checks first, so they show even when a tool cuts the message short
+                     array_to_string(array(select l from unnest(v_lines) with ordinality as u(l, n)
+                                            order by (l like '✗%') desc, n), E'\n'));
 end;
 $check$;
