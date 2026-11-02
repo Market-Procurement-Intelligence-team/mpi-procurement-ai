@@ -47,6 +47,9 @@ export function toDataError(error: unknown): DataError {
   if (/auth session missing/i.test(message)) {
     return new DataError("This reset link has expired or was already used. Please ask for a new one.", code)
   }
+  if (/only request this after|rate limit/i.test(message)) {
+    return new DataError("Please wait a minute before asking for another link.", code)
+  }
   if (/jwt|refresh token|session/i.test(message)) return new DataError("Your session has expired. Please sign in again.", code)
   if (/failed to fetch|network/i.test(message)) return new DataError("Can't reach MPI right now. Check your connection.", code)
 

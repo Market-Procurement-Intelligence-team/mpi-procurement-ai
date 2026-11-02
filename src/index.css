@@ -3,9 +3,13 @@
 /* MPI palette as Tailwind colours: bg-navy, text-muted, border-line, bg-orange-tint ... */
 @theme {
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* headings, as in the Stitch design system */
+  --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
 
   --color-navy: #15233d;
   --color-navy-2: #233653;
+  /* the logo's own dark background, for the brand panel */
+  --color-ink: #0f1728;
   --color-orange: #f09a47;
   --color-orange-2: #ec8d49;
   --color-red: #db4230;
@@ -37,6 +41,14 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Headings use Plus Jakarta Sans; everything else stays Inter. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
   :focus-visible {
     outline: 2px solid var(--color-orange);
     outline-offset: 2px;
@@ -46,4 +58,11 @@
 /* Thin brand gradient line for page headers and key cards. */
 @utility accent-line {
   background-image: linear-gradient(90deg, #15233d, #f09a47, #ec8d49, #db4230, #f09a47);
+}
+
+/* Main buttons: orange to deep orange, like the Stitch design. It stops short of
+   brand red so the navy text stays readable across the whole button (4.7:1 or more;
+   white text would be too faint on orange). */
+@utility btn-gradient {
+  background-image: linear-gradient(105deg, #f09a47 0%, #ec8d49 48%, #e5683a 100%);
 }

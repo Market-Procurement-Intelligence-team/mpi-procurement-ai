@@ -4,7 +4,7 @@ type Variant = "primary" | "secondary" | "danger" | "ghost"
 
 const VARIANTS: Record<Variant, string> = {
   // Orange with navy text: white on orange is too faint to read.
-  primary: "bg-orange text-navy hover:bg-orange-2",
+  primary: "btn-gradient text-navy shadow-sm hover:brightness-95",
   secondary: "border-[1.5px] border-navy bg-white text-navy hover:bg-navy-tint",
   danger: "bg-red text-white hover:bg-red-text",
   ghost: "text-navy hover:bg-navy-tint",

@@ -5,7 +5,10 @@
  */
 
 import { createBrowserRouter, Navigate, type RouteObject } from "react-router"
-import LoginPlaceholder from "../screens/auth/LoginPlaceholder"
+import ForgotPasswordPage from "../screens/auth/ForgotPasswordPage"
+import LoginPage from "../screens/auth/LoginPage"
+import ResetPasswordPage from "../screens/auth/ResetPasswordPage"
+import SignupPage from "../screens/auth/SignupPage"
 import NotFound from "../screens/NotFound"
 import Placeholder from "../screens/Placeholder"
 import FullPageMessage from "../ui/FullPageMessage"
@@ -42,8 +45,10 @@ function area(role: Role): RouteObject {
 
 export const router = createBrowserRouter([
   { path: "/", element: <Home /> },
-  { path: "/login", element: <LoginPlaceholder /> },
-  { path: "/signup", element: <Navigate to="/login" replace /> },
+  { path: "/login", element: <LoginPage /> },
+  { path: "/signup", element: <SignupPage /> },
+  { path: "/forgot-password", element: <ForgotPasswordPage /> },
+  { path: "/reset-password", element: <ResetPasswordPage /> },
   area("startup"),
   area("vendor"),
   area("admin"),
