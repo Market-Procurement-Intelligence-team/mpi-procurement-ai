@@ -39,14 +39,6 @@ const TURNAROUND = [
 ]
 const STATE_OPTIONS = INDIAN_STATES.map((s) => ({ value: s, label: s }))
 
-const SECTIONS = [
-  { id: "you", label: "Your details" },
-  { id: "company", label: "Company" },
-  { id: "startup", label: "Startup profile" },
-  { id: "buying", label: "What you buy" },
-  { id: "settings", label: "Settings" },
-]
-
 export default function StartupProfilePage() {
   const me = useMe()
   const { refresh } = useSession()
@@ -144,8 +136,21 @@ export default function StartupProfilePage() {
   }
 
   const percent = percentFilled([
-    v.fullName, v.phone, v.orgName, v.gstin, v.city, v.state, v.stage, v.industry, v.productsSold,
-    v.teamSize, v.fundingStage, v.budget, v.turnaround, v.interests, v.description,
+    v.fullName,
+    v.phone,
+    v.orgName,
+    v.gstin,
+    v.city,
+    v.state,
+    v.stage,
+    v.industry,
+    v.productsSold,
+    v.teamSize,
+    v.fundingStage,
+    v.budget,
+    v.turnaround,
+    v.interests,
+    v.description,
   ])
   const left = Math.round(((100 - percent) / 100) * 15)
 
@@ -163,9 +168,11 @@ export default function StartupProfilePage() {
       alias={{ label: "Suppliers see you as", value: org.display_name }}
       completeness={{
         percent,
-        hint: percent === 100 ? "Your profile is complete. Matches use all of it." : `${left} more ${left === 1 ? "detail helps" : "details help"} MPI match you better.`,
+        hint:
+          percent === 100
+            ? "Your profile is complete. Matches use all of it."
+            : `${left} more ${left === 1 ? "detail helps" : "details help"} MPI match you better.`,
       }}
-      sections={SECTIONS}
       dirty={form.dirty}
       saving={saving}
       saveError={saveError}
@@ -175,123 +182,132 @@ export default function StartupProfilePage() {
         setErrors({})
         setSaveError(null)
       }}
-    >
-      <ProfileSection id="you" icon={UserRound} title="Your details" description="How MPI reaches you about requests and orders.">
-        <div className="grid gap-5 md:grid-cols-3">
-          <TextInput label="Full name" value={v.fullName} onChange={(x) => form.set("fullName", x)} autoComplete="name" maxLength={120} />
-          <TextInput label="Email" value={me.email} onChange={() => {}} readOnly hint="Your login. It can't be changed here." />
-          <TextInput
-            label="Mobile number"
-            type="tel"
-            value={v.phone}
-            onChange={(x) => form.set("phone", x)}
-            error={errors.phone}
-            autoComplete="tel"
-            placeholder="+91 98450 12890"
-            maxLength={20}
-          />
-        </div>
-      </ProfileSection>
-
-      <ProfileSection
-        id="company"
-        icon={Building2}
-        title="Company"
-        description="Your registered business details."
-        badge={<Badge icon={EyeOff}>Hidden from suppliers</Badge>}
-      >
-        <div className="grid gap-5 md:grid-cols-2">
-          <TextInput label="Registered company name" value={v.orgName} onChange={(x) => form.set("orgName", x)} error={errors.orgName} maxLength={160} />
-          <TextInput
-            label="GSTIN"
-            aside="Optional"
-            value={v.gstin}
-            onChange={(x) => form.set("gstin", x.toUpperCase())}
-            error={errors.gstin}
-            maxLength={15}
-            placeholder="29ABCDE1234F1Z5"
-            className="uppercase tracking-wide"
-          />
-          <TextInput label="City" value={v.city} onChange={(x) => form.set("city", x)} autoComplete="address-level2" maxLength={80} />
-          <SelectInput label="State" value={v.state} onChange={(x) => form.set("state", x)} options={STATE_OPTIONS} placeholder="Choose a state" />
-        </div>
-      </ProfileSection>
-
-      <ProfileSection id="startup" icon={Rocket} title="Startup profile" description="Helps MPI pick suppliers that suit a company of your size.">
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          <SelectInput label="Stage" value={v.stage} onChange={(x) => form.set("stage", x)} options={STAGES} />
-          <SelectInput label="Team size" value={v.teamSize} onChange={(x) => form.set("teamSize", x)} options={TEAM} />
-          <SelectInput label="Funding" value={v.fundingStage} onChange={(x) => form.set("fundingStage", x)} options={FUNDING} />
-          <TextInput label="Industry" value={v.industry} onChange={(x) => form.set("industry", x)} placeholder="e.g. D2C food" maxLength={120} />
-        </div>
-        <div className="mt-5">
-          <TextInput
-            label="What you sell"
-            value={v.productsSold}
-            onChange={(x) => form.set("productsSold", x)}
-            placeholder="e.g. Ready-to-eat snacks and spice mixes"
-            hint="Helps suppliers suggest the right materials, e.g. food-safe packaging."
-            maxLength={300}
-          />
-        </div>
-        <div className="mt-5 grid gap-4 rounded-xl bg-navy-tint/60 p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,320px)] md:items-start">
-          <Switch
-            label="Recognised by DPIIT (Startup India)"
-            description="Some government schemes need this."
-            checked={v.hasDpiit}
-            onChange={(x) => form.set("hasDpiit", x)}
-          />
-          {v.hasDpiit && (
-            <TextInput label="DPIIT number" value={v.dpiitNumber} onChange={(x) => form.set("dpiitNumber", x)} placeholder="DIPP12345" maxLength={30} />
-          )}
-        </div>
-      </ProfileSection>
-
-      <ProfileSection
-        id="buying"
-        icon={ShoppingCart}
-        title="What you buy"
-        description="MPI uses this to suggest suppliers and to fill new requests faster."
-        badge={<Badge icon={Gauge} tone="orange">Used for matching</Badge>}
-      >
-        <div className="space-y-7">
-          <ChoiceChips
-            label="Groups you buy from"
-            hint="Tap all that apply."
-            options={(categories ?? []).map((c) => ({ value: c.id, label: c.name }))}
-            selected={v.interests}
-            onChange={(x) => form.set("interests", x)}
-          />
-          <OptionCards label="What matters most" options={TURNAROUND} value={v.turnaround} onChange={(x) => form.set("turnaround", x)} />
-          <div className="grid gap-5 md:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
-            <div>
+      cells={[
+        <>
+          <ProfileSection id="you" icon={UserRound} title="Your details" description="How MPI reaches you about requests and orders.">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <TextInput label="Full name" value={v.fullName} onChange={(x) => form.set("fullName", x)} autoComplete="name" maxLength={120} />
+              <TextInput label="Email" value={me.email} onChange={() => {}} readOnly hint="Your login. It can't be changed here." />
               <TextInput
-                label="Yearly buying budget (₹)"
-                aside="Optional"
-                inputMode="numeric"
-                value={v.budget}
-                onChange={(x) => form.set("budget", x.replace(/[^\d,]/g, ""))}
-                error={errors.budget}
-                placeholder="25,00,000"
+                label="Mobile number"
+                type="tel"
+                value={v.phone}
+                onChange={(x) => form.set("phone", x)}
+                error={errors.phone}
+                autoComplete="tel"
+                placeholder="+91 98450 12890"
+                maxLength={20}
               />
-              <p className="mt-2 flex items-center gap-1.5 text-sm text-muted">
-                <EyeOff size={14} aria-hidden="true" />
-                Only you and MPI see this.
-              </p>
             </div>
-            <TextArea
-              label="Anything else suppliers should know"
-              value={v.description}
-              onChange={(x) => form.set("description", x)}
-              rows={4}
-              placeholder="e.g. We need food-safe packaging for 3 warehouses, about 20,000 boxes a month."
-            />
-          </div>
-          {categories === null && <Alert tone="info">Loading the catalogue groups…</Alert>}
-        </div>
-      </ProfileSection>
-
-      <SettingsSection email={me.email} />
-    </ProfileShell>
+          </ProfileSection>
+        </>,
+        <>
+          <ProfileSection
+            id="company"
+            icon={Building2}
+            title="Company"
+            description="Your registered business details."
+            badge={<Badge icon={EyeOff}>Hidden from suppliers</Badge>}
+          >
+            <div className="grid gap-5 md:grid-cols-2">
+              <TextInput label="Registered company name" value={v.orgName} onChange={(x) => form.set("orgName", x)} error={errors.orgName} maxLength={160} />
+              <TextInput
+                label="GSTIN"
+                aside="Optional"
+                value={v.gstin}
+                onChange={(x) => form.set("gstin", x.toUpperCase())}
+                error={errors.gstin}
+                maxLength={15}
+                placeholder="29ABCDE1234F1Z5"
+                className="uppercase tracking-wide"
+              />
+              <TextInput label="City" value={v.city} onChange={(x) => form.set("city", x)} autoComplete="address-level2" maxLength={80} />
+              <SelectInput label="State" value={v.state} onChange={(x) => form.set("state", x)} options={STATE_OPTIONS} placeholder="Choose a state" />
+            </div>
+          </ProfileSection>
+        </>,
+        <>
+          <ProfileSection id="startup" icon={Rocket} title="Startup profile" description="Helps MPI pick suppliers that suit a company of your size.">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <SelectInput label="Stage" value={v.stage} onChange={(x) => form.set("stage", x)} options={STAGES} />
+              <SelectInput label="Team size" value={v.teamSize} onChange={(x) => form.set("teamSize", x)} options={TEAM} />
+              <SelectInput label="Funding" value={v.fundingStage} onChange={(x) => form.set("fundingStage", x)} options={FUNDING} />
+              <TextInput label="Industry" value={v.industry} onChange={(x) => form.set("industry", x)} placeholder="e.g. D2C food" maxLength={120} />
+            </div>
+            <div className="mt-5">
+              <TextInput
+                label="What you sell"
+                value={v.productsSold}
+                onChange={(x) => form.set("productsSold", x)}
+                placeholder="e.g. Ready-to-eat snacks and spice mixes"
+                hint="Helps suppliers suggest the right materials, e.g. food-safe packaging."
+                maxLength={300}
+              />
+            </div>
+            <div className="mt-5 grid gap-4 rounded-xl bg-navy-tint/60 p-4 sm:grid-cols-2 sm:items-start">
+              <Switch
+                label="Recognised by DPIIT (Startup India)"
+                description="Some government schemes need this."
+                checked={v.hasDpiit}
+                onChange={(x) => form.set("hasDpiit", x)}
+              />
+              {v.hasDpiit && (
+                <TextInput label="DPIIT number" value={v.dpiitNumber} onChange={(x) => form.set("dpiitNumber", x)} placeholder="DIPP12345" maxLength={30} />
+              )}
+            </div>
+          </ProfileSection>
+        </>,
+        <>
+          <ProfileSection
+            id="buying"
+            icon={ShoppingCart}
+            title="What you buy"
+            description="MPI uses this to suggest suppliers and to fill new requests faster."
+            badge={
+              <Badge icon={Gauge} tone="orange">
+                Used for matching
+              </Badge>
+            }
+          >
+            <div className="space-y-7">
+              <ChoiceChips
+                label="Groups you buy from"
+                hint="Tap all that apply."
+                options={(categories ?? []).map((c) => ({ value: c.id, label: c.name }))}
+                selected={v.interests}
+                onChange={(x) => form.set("interests", x)}
+              />
+              <OptionCards label="What matters most" options={TURNAROUND} value={v.turnaround} onChange={(x) => form.set("turnaround", x)} />
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <TextInput
+                    label="Yearly buying budget (₹)"
+                    aside="Optional"
+                    inputMode="numeric"
+                    value={v.budget}
+                    onChange={(x) => form.set("budget", x.replace(/[^\d,]/g, ""))}
+                    error={errors.budget}
+                    placeholder="25,00,000"
+                  />
+                  <p className="mt-2 flex items-center gap-1.5 text-sm text-muted">
+                    <EyeOff size={14} aria-hidden="true" />
+                    Only you and MPI see this.
+                  </p>
+                </div>
+                <TextArea
+                  label="Anything else suppliers should know"
+                  value={v.description}
+                  onChange={(x) => form.set("description", x)}
+                  rows={4}
+                  placeholder="e.g. We need food-safe packaging for 3 warehouses, about 20,000 boxes a month."
+                />
+              </div>
+              {categories === null && <Alert tone="info">Loading the catalogue groups…</Alert>}
+            </div>
+          </ProfileSection>
+        </>,
+      ]}
+      settings={<SettingsSection email={me.email} />}
+    />
   )
 }

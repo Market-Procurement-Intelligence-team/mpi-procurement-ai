@@ -14,7 +14,7 @@ import { ProfileSection, TextInput } from "./parts"
 const THEMES: { value: ThemeChoice; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "Same as device", icon: Monitor },
+  { value: "system", label: "System", icon: Monitor },
 ]
 
 const MIN_PASSWORD = 8
@@ -50,10 +50,10 @@ export default function SettingsSection({ email }: { email: string }) {
   }
 
   return (
-    <ProfileSection id="settings" icon={Settings} title="Settings" description="These save straight away.">
-      <div className="space-y-8">
+    <ProfileSection id="settings" icon={Settings} title="Settings" description="These save straight away, separately from your profile.">
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)]">
         <fieldset>
-          <legend className="text-sm font-semibold text-navy">Appearance</legend>
+          <legend className="text-base font-bold text-navy">Appearance</legend>
           <p className="mt-0.5 text-sm text-muted">The dark look is being designed. Your choice is remembered and will apply once it's ready.</p>
           <div role="radiogroup" aria-label="Appearance" className="mt-3 inline-flex flex-wrap gap-1 rounded-xl border-[1.5px] border-line bg-page p-1">
             {THEMES.map((t) => {
@@ -77,13 +77,13 @@ export default function SettingsSection({ email }: { email: string }) {
           </div>
         </fieldset>
 
-        <form onSubmit={changePassword} noValidate className="border-t border-line pt-6">
+        <form onSubmit={changePassword} noValidate className="border-t border-line pt-6 xl:border-l xl:border-t-0 xl:pl-8 xl:pt-0">
           <div className="flex items-center gap-2">
             <KeyRound size={18} className="text-muted" aria-hidden="true" />
             <h3 className="text-base font-bold text-navy">Change password</h3>
           </div>
           <p className="mt-0.5 text-sm text-muted">For {email}</p>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <TextInput
               label="New password"
               type="password"
@@ -110,7 +110,7 @@ export default function SettingsSection({ email }: { email: string }) {
           {result && <div className="mt-3">{result.ok ? <Alert tone="info">{result.text}</Alert> : <Alert>{result.text}</Alert>}</div>}
         </form>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
+        <div className="flex flex-col items-start gap-4 border-t border-line pt-6 xl:border-l xl:border-t-0 xl:pl-8 xl:pt-0">
           <div>
             <h3 className="text-base font-bold text-navy">Sign out</h3>
             <p className="text-sm text-muted">You'll need your email and password to come back.</p>

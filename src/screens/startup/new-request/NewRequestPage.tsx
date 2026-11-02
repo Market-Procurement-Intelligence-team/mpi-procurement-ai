@@ -404,7 +404,7 @@ export default function NewRequestPage() {
 
       {/* Back / Save / Next, always in reach */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t-[1.5px] border-line bg-white/95 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8">
+        <div className="w-full px-4 py-3 sm:px-6 lg:px-8 xl:px-10">
           <div aria-live="polite">
             {(stepError || saveError) && <p className="mb-2 text-sm font-semibold text-red-text">{saveError ?? stepError}</p>}
             {savedNote && <p className="mb-2 text-sm font-semibold text-navy">{savedNote}</p>}

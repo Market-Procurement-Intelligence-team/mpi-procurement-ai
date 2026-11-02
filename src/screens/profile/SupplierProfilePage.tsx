@@ -5,25 +5,9 @@
  */
 
 import { useEffect, useMemo, useState } from "react"
-import {
-  BadgeCheck,
-  Building2,
-  CircleAlert,
-  Factory,
-  EyeOff,
-  Hourglass,
-  Layers,
-  ShieldCheck,
-  UserRound,
-} from "lucide-react"
+import { BadgeCheck, Building2, CircleAlert, Factory, EyeOff, Hourglass, Layers, ShieldCheck, UserRound } from "lucide-react"
 import { useMe, useSession } from "../../app/session"
-import {
-  listVendorCategories,
-  setVendorCategories,
-  updateMyOrganisation,
-  updateMyProfile,
-  updateVendorDetails,
-} from "../../services/data/auth"
+import { listVendorCategories, setVendorCategories, updateMyOrganisation, updateMyProfile, updateVendorDetails } from "../../services/data/auth"
 import { listCategories, type Category } from "../../services/data/catalogue"
 import { COMMON_CERTIFICATIONS, INDIAN_STATES } from "../startup/new-request/draft"
 import { Badge, ChoiceChips, ProfileSection, SelectInput, Switch, TagsInput, TextArea, TextInput } from "./parts"
@@ -45,27 +29,27 @@ const TURNOVER = [
 ]
 const STATE_OPTIONS = INDIAN_STATES.map((s) => ({ value: s, label: s }))
 
-const SECTIONS = [
-  { id: "status", label: "Verification" },
-  { id: "you", label: "Your details" },
-  { id: "business", label: "Business" },
-  { id: "supply", label: "What you supply" },
-  { id: "capacity", label: "Capacity" },
-  { id: "quality", label: "Quality" },
-  { id: "settings", label: "Settings" },
-]
-
 type Status = ReturnType<typeof useMe>["organisation"]["verification_status"]
 
 const STATUS: Record<Status, { chip: string; tone: "plain" | "orange" | "warn"; title: string; body: string }> = {
-  verified: { chip: "Verified", tone: "orange", title: "You're a verified supplier", body: "MPI checked your registration. You can receive requests from startups." },
+  verified: {
+    chip: "Verified",
+    tone: "orange",
+    title: "You're a verified supplier",
+    body: "MPI checked your registration. You can receive requests from startups.",
+  },
   pending: {
     chip: "Waiting for verification",
     tone: "plain",
     title: "Get verified to start receiving requests",
     body: "Add your Udyam and GST numbers below and save. The MPI team then checks them and you get a notification.",
   },
-  under_review: { chip: "Being checked", tone: "plain", title: "MPI is checking your details", body: "You'll get a notification when it's done. You can still update your profile." },
+  under_review: {
+    chip: "Being checked",
+    tone: "plain",
+    title: "MPI is checking your details",
+    body: "You'll get a notification when it's done. You can still update your profile.",
+  },
   needs_info: { chip: "Needs more details", tone: "warn", title: "MPI needs a little more from you", body: "Please update the details below and save." },
   rejected: { chip: "Not approved", tone: "warn", title: "Your verification wasn't approved", body: "Please contact the MPI team." },
   suspended: { chip: "Paused", tone: "warn", title: "Your account is paused", body: "You won't receive new requests for now. Please contact the MPI team." },
@@ -200,8 +184,23 @@ export default function SupplierProfilePage() {
 
   const status = STATUS[org.verification_status]
   const percent = percentFilled([
-    v.fullName, v.phone, v.orgName, v.udyam, v.gstin, v.pan, v.city, v.state, v.factoryAddress, v.categories,
-    v.enterpriseType, v.turnover, v.monthlyCapacity, v.moq, v.leadTime, v.certifications, v.machinery,
+    v.fullName,
+    v.phone,
+    v.orgName,
+    v.udyam,
+    v.gstin,
+    v.pan,
+    v.city,
+    v.state,
+    v.factoryAddress,
+    v.categories,
+    v.enterpriseType,
+    v.turnover,
+    v.monthlyCapacity,
+    v.moq,
+    v.leadTime,
+    v.certifications,
+    v.machinery,
   ])
   const left = Math.round(((100 - percent) / 100) * 17)
   const StatusIcon = verified ? BadgeCheck : status.tone === "warn" ? CircleAlert : Hourglass
@@ -223,9 +222,11 @@ export default function SupplierProfilePage() {
       alias={{ label: "Startups see you as", value: org.display_name }}
       completeness={{
         percent,
-        hint: percent === 100 ? "Your profile is complete. Matches use all of it." : `${left} more ${left === 1 ? "detail helps" : "details help"} you get matched more often.`,
+        hint:
+          percent === 100
+            ? "Your profile is complete. Matches use all of it."
+            : `${left} more ${left === 1 ? "detail helps" : "details help"} you get matched more often.`,
       }}
-      sections={SECTIONS}
       dirty={form.dirty}
       saving={saving}
       saveError={saveError}
@@ -235,123 +236,194 @@ export default function SupplierProfilePage() {
         setErrors({})
         setSaveError(null)
       }}
-    >
-      <section
-        id="status"
-        className={`scroll-mt-24 flex items-start gap-4 rounded-xl border-[1.5px] p-5 sm:p-6 ${
-          verified ? "border-orange/60 bg-orange-tint/60" : status.tone === "warn" ? "border-red/40 bg-red-tint" : "border-navy/20 bg-white"
-        }`}
-      >
-        <span className={`flex size-11 shrink-0 items-center justify-center rounded-full ${verified ? "bg-navy text-orange" : "bg-navy-tint text-navy"}`}>
-          <StatusIcon size={22} aria-hidden="true" />
-        </span>
-        <div>
-          <h2 className="text-lg font-bold text-navy">{status.title}</h2>
-          <p className="mt-0.5 text-[15px] text-navy/80">{status.body}</p>
-          {org.verification_note && !verified && (
-            <p className="mt-2 rounded-md bg-white/80 p-3 text-[15px] text-navy">
-              <strong className="font-semibold">Note from MPI:</strong> {org.verification_note}
-            </p>
-          )}
-          {verified && org.verified_at && (
-            <p className="mt-1 text-sm text-muted">Verified on {new Date(org.verified_at).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
-          )}
-        </div>
-      </section>
-
-      <ProfileSection id="you" icon={UserRound} title="Your details" description="How MPI reaches you about requests and orders.">
-        <div className="grid gap-5 md:grid-cols-3">
-          <TextInput label="Full name" value={v.fullName} onChange={(x) => form.set("fullName", x)} autoComplete="name" maxLength={120} />
-          <TextInput label="Email" value={me.email} onChange={() => {}} readOnly hint="Your login. It can't be changed here." />
-          <TextInput label="Mobile number" type="tel" value={v.phone} onChange={(x) => form.set("phone", x)} error={errors.phone} autoComplete="tel" placeholder="+91 98450 12890" maxLength={20} />
-        </div>
-      </ProfileSection>
-
-      <ProfileSection
-        id="business"
-        icon={Building2}
-        title="Business and registration"
-        description="MPI uses these to verify you."
-        badge={<Badge icon={EyeOff}>Hidden from startups</Badge>}
-      >
-        <div className="grid gap-5 md:grid-cols-2">
-          <TextInput label="Registered business name" value={v.orgName} onChange={(x) => form.set("orgName", x)} error={errors.orgName} maxLength={160} />
-          <TextInput
-            label="Udyam number"
-            value={v.udyam}
-            onChange={(x) => form.set("udyam", x.toUpperCase())}
-            error={errors.udyam}
-            readOnly={verified}
-            hint={verified ? "Checked by MPI. Ask the MPI team to change it." : "From your Udyam registration certificate."}
-            placeholder="UDYAM-MH-12-1234567"
-            maxLength={19}
-            className="uppercase tracking-wide"
-          />
-          <TextInput
-            label="GSTIN"
-            value={v.gstin}
-            onChange={(x) => form.set("gstin", x.toUpperCase())}
-            error={errors.gstin}
-            readOnly={verified}
-            hint={verified ? "Checked by MPI. Ask the MPI team to change it." : undefined}
-            placeholder="27ABCDE1234F1Z5"
-            maxLength={15}
-            className="uppercase tracking-wide"
-          />
-          <TextInput label="PAN" aside="Optional" value={v.pan} onChange={(x) => form.set("pan", x.toUpperCase())} error={errors.pan} placeholder="ABCDE1234F" maxLength={10} className="uppercase tracking-wide" />
-          <TextInput label="City" value={v.city} onChange={(x) => form.set("city", x)} autoComplete="address-level2" maxLength={80} />
-          <SelectInput label="State" value={v.state} onChange={(x) => form.set("state", x)} options={STATE_OPTIONS} placeholder="Choose a state" />
-        </div>
-        <div className="mt-5">
-          <TextArea label="Factory or work address" value={v.factoryAddress} onChange={(x) => form.set("factoryAddress", x)} rows={2} maxLength={400} />
-        </div>
-      </ProfileSection>
-
-      <ProfileSection
-        id="supply"
-        icon={Layers}
-        title="What you supply"
-        description="You only get requests in the groups you choose."
-        badge={<Badge tone="orange">Used for matching</Badge>}
-      >
-        <ChoiceChips
-          label="Groups you supply"
-          hint="Tap all that apply."
-          options={categories.map((c) => ({ value: c.id, label: c.name }))}
-          selected={v.categories}
-          onChange={(x) => form.set("categories", x)}
-        />
-      </ProfileSection>
-
-      <ProfileSection id="capacity" icon={Factory} title="Capacity" description="Helps MPI send you requests you can actually take on.">
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          <SelectInput label="Enterprise size" value={v.enterpriseType} onChange={(x) => form.set("enterpriseType", x)} options={ENTERPRISE} hint="As on your Udyam certificate." />
-          <SelectInput label="Yearly turnover" value={v.turnover} onChange={(x) => form.set("turnover", x)} options={TURNOVER} />
-          <TextInput label="Monthly capacity" value={v.monthlyCapacity} onChange={(x) => form.set("monthlyCapacity", x)} placeholder="e.g. 50,000 boxes" maxLength={120} />
-          <TextInput label="Capacity in use (%)" inputMode="numeric" value={v.utilisation} onChange={(x) => form.set("utilisation", x.replace(/[^\d]/g, ""))} error={errors.utilisation} placeholder="60" maxLength={3} hint="How busy you are right now." />
-          <TextInput label="Minimum order quantity" inputMode="numeric" value={v.moq} onChange={(x) => form.set("moq", x.replace(/[^\d.]/g, ""))} error={errors.moq} placeholder="500" maxLength={12} />
-          <TextInput label="Usual lead time (days)" inputMode="numeric" value={v.leadTime} onChange={(x) => form.set("leadTime", x.replace(/[^\d]/g, ""))} error={errors.leadTime} placeholder="10" maxLength={4} />
-        </div>
-        <div className="mt-5 max-w-xl">
-          <Switch label="I deliver anywhere in India" description="Helps you match requests from other states too." checked={v.panIndia} onChange={(x) => form.set("panIndia", x)} />
-        </div>
-      </ProfileSection>
-
-      <ProfileSection id="quality" icon={ShieldCheck} title="Quality" description="Startups can ask for certifications. Ones you hold rank you higher.">
-        <div className="space-y-7">
-          <TagsInput
-            label="Certifications you hold"
-            values={v.certifications}
-            onChange={(x) => form.set("certifications", x)}
-            suggestions={COMMON_CERTIFICATIONS}
-            placeholder="Another one, e.g. GMP"
-          />
-          <TagsInput label="Main machines" values={v.machinery} onChange={(x) => form.set("machinery", x)} placeholder="e.g. 5-ply corrugation line" />
-          <TagsInput label="Testing you can do" values={v.testing} onChange={(x) => form.set("testing", x)} placeholder="e.g. Burst strength test" />
-        </div>
-      </ProfileSection>
-
-      <SettingsSection email={me.email} />
-    </ProfileShell>
+      top={
+        <>
+          <section
+            id="status"
+            className={`scroll-mt-24 flex items-start gap-4 rounded-xl border-[1.5px] p-5 sm:p-6 ${
+              verified ? "border-orange/60 bg-orange-tint/60" : status.tone === "warn" ? "border-red/40 bg-red-tint" : "border-navy/20 bg-white"
+            }`}
+          >
+            <span className={`flex size-11 shrink-0 items-center justify-center rounded-full ${verified ? "bg-navy text-orange" : "bg-navy-tint text-navy"}`}>
+              <StatusIcon size={22} aria-hidden="true" />
+            </span>
+            <div>
+              <h2 className="text-lg font-bold text-navy">{status.title}</h2>
+              <p className="mt-0.5 text-[15px] text-navy/80">{status.body}</p>
+              {org.verification_note && !verified && (
+                <p className="mt-2 rounded-md bg-white/80 p-3 text-[15px] text-navy">
+                  <strong className="font-semibold">Note from MPI:</strong> {org.verification_note}
+                </p>
+              )}
+              {verified && org.verified_at && (
+                <p className="mt-1 text-sm text-muted">
+                  Verified on {new Date(org.verified_at).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                </p>
+              )}
+            </div>
+          </section>
+        </>
+      }
+      cells={[
+        <>
+          <ProfileSection id="you" icon={UserRound} title="Your details" description="How MPI reaches you about requests and orders.">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <TextInput label="Full name" value={v.fullName} onChange={(x) => form.set("fullName", x)} autoComplete="name" maxLength={120} />
+              <TextInput label="Email" value={me.email} onChange={() => {}} readOnly hint="Your login. It can't be changed here." />
+              <TextInput
+                label="Mobile number"
+                type="tel"
+                value={v.phone}
+                onChange={(x) => form.set("phone", x)}
+                error={errors.phone}
+                autoComplete="tel"
+                placeholder="+91 98450 12890"
+                maxLength={20}
+              />
+            </div>
+          </ProfileSection>
+        </>,
+        <>
+          <ProfileSection
+            id="supply"
+            icon={Layers}
+            title="What you supply"
+            description="You only get requests in the groups you choose."
+            badge={<Badge tone="orange">Used for matching</Badge>}
+          >
+            <ChoiceChips
+              label="Groups you supply"
+              hint="Tap all that apply."
+              options={categories.map((c) => ({ value: c.id, label: c.name }))}
+              selected={v.categories}
+              onChange={(x) => form.set("categories", x)}
+            />
+          </ProfileSection>
+        </>,
+        <>
+          <ProfileSection
+            id="business"
+            icon={Building2}
+            title="Business and registration"
+            description="MPI uses these to verify you."
+            badge={<Badge icon={EyeOff}>Hidden from startups</Badge>}
+          >
+            <div className="grid gap-5 md:grid-cols-2">
+              <TextInput label="Registered business name" value={v.orgName} onChange={(x) => form.set("orgName", x)} error={errors.orgName} maxLength={160} />
+              <TextInput
+                label="Udyam number"
+                value={v.udyam}
+                onChange={(x) => form.set("udyam", x.toUpperCase())}
+                error={errors.udyam}
+                readOnly={verified}
+                hint={verified ? "Checked by MPI. Ask the MPI team to change it." : "From your Udyam registration certificate."}
+                placeholder="UDYAM-MH-12-1234567"
+                maxLength={19}
+                className="uppercase tracking-wide"
+              />
+              <TextInput
+                label="GSTIN"
+                value={v.gstin}
+                onChange={(x) => form.set("gstin", x.toUpperCase())}
+                error={errors.gstin}
+                readOnly={verified}
+                hint={verified ? "Checked by MPI. Ask the MPI team to change it." : undefined}
+                placeholder="27ABCDE1234F1Z5"
+                maxLength={15}
+                className="uppercase tracking-wide"
+              />
+              <TextInput
+                label="PAN"
+                aside="Optional"
+                value={v.pan}
+                onChange={(x) => form.set("pan", x.toUpperCase())}
+                error={errors.pan}
+                placeholder="ABCDE1234F"
+                maxLength={10}
+                className="uppercase tracking-wide"
+              />
+              <TextInput label="City" value={v.city} onChange={(x) => form.set("city", x)} autoComplete="address-level2" maxLength={80} />
+              <SelectInput label="State" value={v.state} onChange={(x) => form.set("state", x)} options={STATE_OPTIONS} placeholder="Choose a state" />
+            </div>
+            <div className="mt-5">
+              <TextArea label="Factory or work address" value={v.factoryAddress} onChange={(x) => form.set("factoryAddress", x)} rows={2} maxLength={400} />
+            </div>
+          </ProfileSection>
+        </>,
+        <>
+          <ProfileSection id="capacity" icon={Factory} title="Capacity" description="Helps MPI send you requests you can actually take on.">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <SelectInput
+                label="Enterprise size"
+                value={v.enterpriseType}
+                onChange={(x) => form.set("enterpriseType", x)}
+                options={ENTERPRISE}
+                hint="As on your Udyam certificate."
+              />
+              <SelectInput label="Yearly turnover" value={v.turnover} onChange={(x) => form.set("turnover", x)} options={TURNOVER} />
+              <TextInput
+                label="Monthly capacity"
+                value={v.monthlyCapacity}
+                onChange={(x) => form.set("monthlyCapacity", x)}
+                placeholder="e.g. 50,000 boxes"
+                maxLength={120}
+              />
+              <TextInput
+                label="Capacity in use (%)"
+                inputMode="numeric"
+                value={v.utilisation}
+                onChange={(x) => form.set("utilisation", x.replace(/[^\d]/g, ""))}
+                error={errors.utilisation}
+                placeholder="60"
+                maxLength={3}
+                hint="How busy you are right now."
+              />
+              <TextInput
+                label="Minimum order quantity"
+                inputMode="numeric"
+                value={v.moq}
+                onChange={(x) => form.set("moq", x.replace(/[^\d.]/g, ""))}
+                error={errors.moq}
+                placeholder="500"
+                maxLength={12}
+              />
+              <TextInput
+                label="Usual lead time (days)"
+                inputMode="numeric"
+                value={v.leadTime}
+                onChange={(x) => form.set("leadTime", x.replace(/[^\d]/g, ""))}
+                error={errors.leadTime}
+                placeholder="10"
+                maxLength={4}
+              />
+            </div>
+            <div className="mt-5 max-w-xl">
+              <Switch
+                label="I deliver anywhere in India"
+                description="Helps you match requests from other states too."
+                checked={v.panIndia}
+                onChange={(x) => form.set("panIndia", x)}
+              />
+            </div>
+          </ProfileSection>
+        </>,
+        <div className="xl:col-span-2">
+          <ProfileSection id="quality" icon={ShieldCheck} title="Quality" description="Startups can ask for certifications. Ones you hold rank you higher.">
+            <div className="grid gap-8 lg:grid-cols-3">
+              <TagsInput
+                label="Certifications you hold"
+                values={v.certifications}
+                onChange={(x) => form.set("certifications", x)}
+                suggestions={COMMON_CERTIFICATIONS}
+                placeholder="Another one, e.g. GMP"
+              />
+              <TagsInput label="Main machines" values={v.machinery} onChange={(x) => form.set("machinery", x)} placeholder="e.g. 5-ply corrugation line" />
+              <TagsInput label="Testing you can do" values={v.testing} onChange={(x) => form.set("testing", x)} placeholder="e.g. Burst strength test" />
+            </div>
+          </ProfileSection>
+        </div>,
+      ]}
+      settings={<SettingsSection email={me.email} />}
+    />
   )
 }

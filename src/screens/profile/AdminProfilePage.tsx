@@ -9,11 +9,6 @@ import ProfileShell, { HeroChip } from "./ProfileShell"
 import SettingsSection from "./SettingsSection"
 import { textOrNull, useForm } from "./useForm"
 
-const SECTIONS = [
-  { id: "you", label: "Your details" },
-  { id: "settings", label: "Settings" },
-]
-
 export default function AdminProfilePage() {
   const me = useMe()
   const { refresh } = useSession()
@@ -50,7 +45,6 @@ export default function AdminProfilePage() {
       name={v.fullName || me.email}
       subtitle={me.email}
       chips={<HeroChip tone="orange">MPI admin</HeroChip>}
-      sections={SECTIONS}
       dirty={form.dirty}
       saving={saving}
       saveError={saveError}
@@ -60,15 +54,26 @@ export default function AdminProfilePage() {
         setPhoneError(null)
         setSaveError(null)
       }}
-    >
-      <ProfileSection id="you" icon={UserRound} title="Your details">
-        <div className="grid gap-5 md:grid-cols-3">
-          <TextInput label="Full name" value={v.fullName} onChange={(x) => form.set("fullName", x)} autoComplete="name" maxLength={120} />
-          <TextInput label="Email" value={me.email} onChange={() => {}} readOnly hint="Your login. It can't be changed here." />
-          <TextInput label="Mobile number" type="tel" value={v.phone} onChange={(x) => form.set("phone", x)} error={phoneError} autoComplete="tel" maxLength={20} />
-        </div>
-      </ProfileSection>
-      <SettingsSection email={me.email} />
-    </ProfileShell>
+      cells={[
+        <>
+          <ProfileSection id="you" icon={UserRound} title="Your details">
+            <div className="grid gap-5 md:grid-cols-3">
+              <TextInput label="Full name" value={v.fullName} onChange={(x) => form.set("fullName", x)} autoComplete="name" maxLength={120} />
+              <TextInput label="Email" value={me.email} onChange={() => {}} readOnly hint="Your login. It can't be changed here." />
+              <TextInput
+                label="Mobile number"
+                type="tel"
+                value={v.phone}
+                onChange={(x) => form.set("phone", x)}
+                error={phoneError}
+                autoComplete="tel"
+                maxLength={20}
+              />
+            </div>
+          </ProfileSection>
+        </>,
+      ]}
+      settings={<SettingsSection email={me.email} />}
+    />
   )
 }
