@@ -145,6 +145,12 @@ export async function updateVendorDetails(orgId: string, fields: VendorDetailsUp
   check(await db.from("vendor_details").update(fields).eq("org_id", orgId))
 }
 
+/** The catalogue categories a supplier serves. */
+export async function listVendorCategories(orgId: string): Promise<string[]> {
+  const rows = unwrap(await db.from("vendor_categories").select("category_id").eq("vendor_org_id", orgId))
+  return rows.map((r) => r.category_id)
+}
+
 /** Replaces the catalogue categories a supplier serves. */
 export async function setVendorCategories(orgId: string, categoryIds: string[]): Promise<void> {
   const current = unwrap(await db.from("vendor_categories").select("category_id").eq("vendor_org_id", orgId))
