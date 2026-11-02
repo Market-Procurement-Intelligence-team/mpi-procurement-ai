@@ -16,11 +16,13 @@ import type { Role } from "./session"
 
 export interface MenuItem {
   label: string
+  /** Shorter name for the top bar on laptops; the phone menu shows `label`. */
+  short?: string
   to: string
   icon: LucideIcon
 }
 
-/** Each role's sidebar menu. Paths are relative to the role's area. */
+/** Each role's menu in the top bar. Paths are relative to the role's area. */
 export const MENUS: Record<Role, { area: string; title: string; items: MenuItem[] }> = {
   startup: {
     area: "/startup",
@@ -49,12 +51,12 @@ export const MENUS: Record<Role, { area: string; title: string; items: MenuItem[
     title: "Admin",
     items: [
       { label: "Overview", to: "", icon: LayoutDashboard },
-      { label: "AI matches to review", to: "matches", icon: Sparkles },
-      { label: "Supplier verification", to: "verification", icon: ShieldCheck },
+      { label: "AI matches to review", short: "AI matches", to: "matches", icon: Sparkles },
+      { label: "Supplier verification", short: "Verification", to: "verification", icon: ShieldCheck },
       { label: "Payment terms", to: "payment-terms", icon: Wallet },
-      { label: "Price offers and activity", to: "activity", icon: Activity },
-      { label: "Government schemes", to: "schemes", icon: Landmark },
-      { label: "Demo workspace", to: "demo", icon: RefreshCcw },
+      { label: "Price offers and activity", short: "Activity", to: "activity", icon: Activity },
+      { label: "Government schemes", short: "Schemes", to: "schemes", icon: Landmark },
+      { label: "Demo workspace", short: "Demo", to: "demo", icon: RefreshCcw },
     ],
   },
 }
