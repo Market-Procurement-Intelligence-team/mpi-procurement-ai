@@ -34,7 +34,7 @@
 
   body {
     margin: 0;
-    background: var(--color-page);
+    background: #ffffff;
     color: var(--color-navy);
     font-family: var(--font-sans);
     line-height: 1.5;
