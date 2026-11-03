@@ -310,6 +310,39 @@ export type Database = {
           },
         ]
       }
+      order_messages: {
+        Row: {
+          id: string
+          po_id: string
+          org_id: string
+          author_id: string | null
+          from_mpi: boolean
+          topic: string
+          body: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          po_id: string
+          org_id: string
+          author_id?: string | null
+          from_mpi?: boolean
+          topic?: string
+          body: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          po_id?: string
+          org_id?: string
+          author_id?: string | null
+          from_mpi?: boolean
+          topic?: string
+          body?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       organisations: {
         Row: {
           id: string
@@ -1803,6 +1836,14 @@ export type Database = {
           p_valid_to?: string
           p_note?: string
         }
+        Returns: string
+      }
+      send_order_message: {
+        Args: { p_po_id: string; p_topic: string; p_body: string }
+        Returns: string
+      }
+      reply_order_message: {
+        Args: { p_po_id: string; p_org_id: string; p_body: string }
         Returns: string
       }
       update_order_status: {

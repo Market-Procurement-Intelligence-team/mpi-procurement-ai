@@ -59,3 +59,26 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus, ex
 export async function markOrderCompleted(orderId: string): Promise<void> {
   await updateOrderStatus(orderId, "completed")
 }
+
+// ---------------------------------------------------------------- messages
+
+export type OrderMessage = Tables<"order_messages">
+export type MessageTopic = "for_other_side" | "delivery" | "quality" | "payment" | "other"
+
+/**
+ * Your side's conversation with MPI about an order, oldest first. The other
+ * side never sees it; MPI passes on anything meant for them.
+ */
+export async function listOrderMessages(orderId: string): Promise<OrderMessage[]> {
+  return unwrap(await db.from("order_messages").select("*").eq("po_id", orderId).order("created_at"))
+}
+
+/** Buyer or supplier: send a message to MPI about an order. */
+export async function sendOrderMessage(orderId: string, topic: MessageTopic, body: string): Promise<void> {
+  check(await db.rpc("send_order_message", { p_po_id: orderId, p_topic: topic, p_body: body }))
+}
+
+/** MPI admin: reply in one side's conversation on an order. */
+export async function replyOrderMessage(orderId: string, orgId: string, body: string): Promise<void> {
+  check(await db.rpc("reply_order_message", { p_po_id: orderId, p_org_id: orgId, p_body: body }))
+}

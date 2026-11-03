@@ -10,6 +10,9 @@
  *   delivery). The startup pays what is due now; the supplier sees MPI's
  *   commission and its payout. Payments are SIMULATED and say so.
  * - Items: the lines of the approved quote.
+ * - Messages: this side's conversation with MPI (Contact supplier/buyer and
+ *   Need help open it). The other side never sees it.
+ * Header actions also download the PO and invoices (print or save as PDF).
  *
  * Each side sees the other only as "MPI Verified Buyer/Supplier #…".
  */
@@ -24,28 +27,46 @@ import {
   CheckCircle2,
   CircleDollarSign,
   ClipboardCheck,
+  Download,
   Factory,
   FileText,
   Inbox,
   Info,
+  LifeBuoy,
+  MessageSquare,
   Package,
   PackageCheck,
   ShieldCheck,
+  Send,
   Truck,
   Wallet,
 } from "lucide-react"
 import { getOrderMoney, INVOICE_LABELS, payOrder, SIMULATED_NOTE, type InvoiceSummary, type OrderMoney } from "../../services/data/money"
-import { listMyOrders, listOrderHistory, ORDER_STEPS, updateOrderStatus, type OrderEvent, type OrderStatus, type OrderSummary } from "../../services/data/orders"
+import {
+  listMyOrders,
+  listOrderHistory,
+  listOrderMessages,
+  ORDER_STEPS,
+  sendOrderMessage,
+  updateOrderStatus,
+  type MessageTopic,
+  type OrderEvent,
+  type OrderMessage,
+  type OrderStatus,
+  type OrderSummary,
+} from "../../services/data/orders"
 import { listQuoteLines, type QuoteLine } from "../../services/data/quotes"
 import Button from "../../ui/Button"
 import EmptyState from "../../ui/EmptyState"
 import { Alert, BOX, boxBorder } from "../../ui/form"
 import PageHeader from "../../ui/PageHeader"
-import { Chip, day, daysLeft, daysUntil, errorText, GRADIENT_PANEL, rupees, SummaryCards, TabBar, useToast } from "../supplier/parts"
+import VoiceTextArea from "../../ui/VoiceTextArea"
+import { Chip, day, daysLeft, daysUntil, errorText, GRADIENT_PANEL, rupees, SummaryCards, useToast } from "../supplier/parts"
+import { printInvoice, printPurchaseOrder } from "./printDoc"
 
 type Side = "startup" | "vendor"
 type ListTab = "active" | "done"
-type DetailTab = "progress" | "payments" | "items"
+type DetailTab = "progress" | "payments" | "items" | "messages"
 
 const STEP_LABEL: Record<OrderStatus, string> = {
   issued: "Order placed",
@@ -121,34 +142,37 @@ function OrderList({
   money: Map<string, OrderMoney>
   onSelect: (id: string) => void
 }) {
-  if (!orders.length) return <p className="px-5 py-10 text-center text-white/65">Nothing here right now.</p>
+  if (!orders.length) return <p className="px-5 py-10 text-center text-muted">Nothing here right now.</p>
   return (
-    <ul>
+    <ul className="space-y-2 p-3">
       {orders.map((o) => {
         const selected = o.id === selectedId
         const due = side === "startup" ? dueNow(money.get(o.id), o.status) : 0
         const needsYou =
           side === "startup" ? due > 0 || o.status === "delivered" : !isDone(o) && o.status !== "delivered"
         return (
-          <li key={o.id} className="border-b border-white/10 last:border-b-0">
+          <li key={o.id}>
             <button
               type="button"
               onClick={() => onSelect(o.id)}
               aria-current={selected || undefined}
-              className={`flex w-full items-start gap-3 border-l-[3px] px-4 py-3 text-left transition-colors ${
-                selected ? "border-orange bg-orange/20" : "border-transparent hover:bg-orange/10"
+              className={`flex w-full items-start gap-3 rounded-lg border-[1.5px] py-3 pr-3.5 text-left transition-colors ${
+                selected
+                  ? "border-l-[5px] border-orange pl-3 bg-orange-tint/45 shadow-[0_2px_8px_rgba(240,154,71,0.25)]"
+                  : "border-line bg-white pl-[calc(0.75rem+3.5px)] hover:border-orange/60"
               }`}
             >
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[15px] font-semibold text-white" title={o.requestTitle}>
+                <span className="block text-[15px] font-semibold leading-snug text-navy" title={o.requestTitle}>
                   {o.requestTitle || o.po_number}
                 </span>
-                <span className="mt-0.5 block truncate text-[13px] text-white/65">
-                  {o.po_number} · {(side === "startup" ? o.supplierName : o.buyerName).replace("MPI Verified ", "")}
+                <span className="mt-1 block text-[12.5px] text-muted">{o.po_number}</span>
+                <span className="block text-[12.5px] text-muted">
+                  {(side === "startup" ? o.supplierName : o.buyerName).replace("MPI Verified ", "")}
                 </span>
               </span>
               <span className="flex shrink-0 flex-col items-end gap-1.5 pt-0.5">
-                <span className="text-[12px] font-semibold text-white/80">{STEP_LABEL[o.status]}</span>
+                <span className={`text-[12px] font-semibold ${selected ? "text-navy" : "text-muted"}`}>{STEP_LABEL[o.status]}</span>
                 {needsYou && !isDone(o) && (
                   <span className="rounded-full bg-orange px-2 py-0.5 text-[11.5px] font-bold text-navy">
                     {side === "startup" ? (due > 0 ? "Pay now" : "Confirm") : "Update"}
@@ -314,7 +338,7 @@ const INVOICE_TONE: Record<InvoiceSummary["status"], { label: string; tone: "nav
 
 const DUE_TEXT = { on_order: "Before work starts", on_delivery: "On delivery", on_settlement: "When MPI settles" } as const
 
-function InvoiceCard({ invoice, side }: { invoice: InvoiceSummary; side: Side }) {
+function InvoiceCard({ invoice, side, order }: { invoice: InvoiceSummary; side: Side; order: OrderSummary }) {
   const st = INVOICE_TONE[invoice.status]
   const label =
     side === "vendor" && invoice.kind === "supplier_to_buyer"
@@ -335,6 +359,13 @@ function InvoiceCard({ invoice, side }: { invoice: InvoiceSummary; side: Side })
         </div>
         <Chip tone={st.tone}>{st.label}</Chip>
       </div>
+      <button
+        type="button"
+        onClick={() => printInvoice(order, invoice, label)}
+        className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-semibold text-navy underline-offset-2 hover:underline"
+      >
+        <Download size={14} aria-hidden="true" /> Download invoice
+      </button>
       <dl className="mt-3 space-y-1 text-[14px]">
         <div className="flex justify-between"><dt className="text-muted">Amount before GST</dt><dd className="font-semibold text-navy">{rupees(invoice.taxable)}</dd></div>
         <div className="flex justify-between"><dt className="text-muted">GST</dt><dd className="font-semibold text-navy">{rupees(invoice.gst)}</dd></div>
@@ -435,9 +466,135 @@ function Payments({ order, money, side, onDone }: { order: OrderSummary; money: 
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         {invoices.map((i) => (
-          <InvoiceCard key={i.id} invoice={i} side={side} />
+          <InvoiceCard key={i.id} invoice={i} side={side} order={order} />
         ))}
       </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- messages
+
+function topicLabels(side: Side): Record<MessageTopic, string> {
+  return {
+    for_other_side: side === "startup" ? "For the supplier" : "For the buyer",
+    delivery: "Delivery",
+    quality: "Quality",
+    payment: "Payment",
+    other: "Something else",
+  }
+}
+
+function Messages({
+  order,
+  side,
+  messages,
+  initialTopic,
+  onSent,
+}: {
+  order: OrderSummary
+  side: Side
+  messages: OrderMessage[] | null
+  initialTopic: MessageTopic
+  onSent: () => Promise<void>
+}) {
+  const labels = topicLabels(side)
+  const [topic, setTopic] = useState<MessageTopic>(initialTopic)
+  const [body, setBody] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const other = side === "startup" ? "supplier" : "buyer"
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="order-2 lg:order-1">
+        <h3 className="mb-3 text-[15px] font-bold text-navy">Your messages with MPI</h3>
+        {messages === null ? (
+          <p className="text-muted">Loading…</p>
+        ) : messages.length === 0 ? (
+          <p className="rounded-lg bg-page/70 px-4 py-6 text-center text-[14px] text-muted">
+            No messages yet. Ask MPI anything about this order.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {messages.map((m) => (
+              <li key={m.id} className={`flex ${m.from_mpi ? "justify-start" : "justify-end"}`}>
+                <div
+                  className={`max-w-[85%] rounded-xl px-4 py-3 text-[14.5px] ${
+                    m.from_mpi ? "bg-navy text-white" : "border-[1.5px] border-orange/50 bg-orange-tint/50 text-navy"
+                  }`}
+                >
+                  <p className={`mb-1 text-[12px] font-semibold ${m.from_mpi ? "text-white/70" : "text-muted"}`}>
+                    {m.from_mpi ? "MPI team" : "You"}
+                    {!m.from_mpi && ` · ${labels[m.topic as MessageTopic] ?? labels.other}`} · {day(m.created_at)}{" "}
+                    {new Date(m.created_at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}
+                  </p>
+                  <p className="whitespace-pre-wrap">{m.body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <form
+        className="order-1 h-fit rounded-xl border-[1.5px] border-line bg-white p-4 lg:order-2"
+        onSubmit={async (e) => {
+          e.preventDefault()
+          if (!body.trim()) return setError("Please write a message.")
+          setBusy(true)
+          setError(null)
+          try {
+            await sendOrderMessage(order.id, topic, body)
+            setBody("")
+            await onSent()
+          } catch (err) {
+            setError(errorText(err))
+          } finally {
+            setBusy(false)
+          }
+        }}
+      >
+        <p className="flex items-start gap-2 text-[13px] text-muted">
+          <ShieldCheck size={16} className="mt-0.5 shrink-0 text-orange" aria-hidden="true" />
+          Messages go to the MPI team, who reply here. Names stay private: MPI passes on anything meant for the {other}.
+        </p>
+        <fieldset className="mt-3">
+          <legend className="mb-1.5 text-sm font-semibold text-navy">What is it about?</legend>
+          <div className="flex flex-wrap gap-1.5">
+            {(Object.keys(labels) as MessageTopic[]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                aria-pressed={topic === t}
+                onClick={() => setTopic(t)}
+                className={`rounded-full px-3 py-1 text-[13px] font-semibold transition-colors ${
+                  topic === t ? "bg-navy text-white" : "bg-page text-navy hover:bg-orange-tint"
+                }`}
+              >
+                {labels[t]}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <div className="mt-3">
+          <VoiceTextArea
+            label="Message"
+            value={body}
+            onChange={setBody}
+            rows={4}
+            placeholder={topic === "for_other_side" ? `What should MPI tell the ${other}?` : "How can MPI help?"}
+          />
+        </div>
+        {error && (
+          <div className="mt-2">
+            <Alert>{error}</Alert>
+          </div>
+        )}
+        <Button type="submit" className="mt-3 w-full" busy={busy}>
+          <Send size={16} aria-hidden="true" /> Send to MPI
+        </Button>
+      </form>
     </div>
   )
 }
@@ -459,8 +616,25 @@ function OrderPanel({
 }) {
   const [params, setParams] = useSearchParams()
   const tab = (params.get("tab") as DetailTab | null) ?? "progress"
+  const setTab = (t: DetailTab) => {
+    const p = new URLSearchParams(params)
+    p.set("tab", t)
+    setParams(p, { replace: true })
+  }
   const [events, setEvents] = useState<OrderEvent[]>([])
   const [lines, setLines] = useState<QuoteLine[] | null>(null)
+  const [messages, setMessages] = useState<OrderMessage[] | null>(null)
+  const [topic, setTopic] = useState<MessageTopic>("other")
+  const loadMessages = useCallback(async () => {
+    setMessages(await listOrderMessages(order.id).catch(() => []))
+  }, [order.id])
+  useEffect(() => {
+    void loadMessages()
+  }, [loadMessages])
+  const openMessages = (t: MessageTopic) => {
+    setTopic(t)
+    setTab("messages")
+  }
 
   useEffect(() => {
     let alive = true
@@ -486,15 +660,48 @@ function OrderPanel({
         <button type="button" onClick={onBack} className="mb-2 inline-flex items-center gap-1.5 text-[14px] font-semibold text-navy lg:hidden">
           <ArrowLeft size={16} aria-hidden="true" /> All orders
         </button>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[12.5px] font-semibold text-muted">{order.po_number}</p>
+          <div className="flex flex-wrap gap-2" aria-label="Order actions">
+            <button
+              type="button"
+              onClick={() => openMessages("for_other_side")}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-navy px-3 text-[13.5px] font-semibold text-white hover:bg-navy-2"
+            >
+              <MessageSquare size={15} aria-hidden="true" /> Contact {side === "startup" ? "supplier" : "buyer"}
+            </button>
+            <button
+              type="button"
+              onClick={() => openMessages("other")}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-md border-[1.5px] border-navy bg-white px-3 text-[13.5px] font-semibold text-navy hover:bg-navy-tint"
+            >
+              <LifeBuoy size={15} aria-hidden="true" /> Need help
+            </button>
+            <button
+              type="button"
+              disabled={!lines}
+              onClick={() => lines && printPurchaseOrder(order, lines, total)}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-md border-[1.5px] border-navy bg-white px-3 text-[13.5px] font-semibold text-navy hover:bg-navy-tint disabled:opacity-50"
+            >
+              <Download size={15} aria-hidden="true" /> Download PO
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("payments")}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-md border-[1.5px] border-navy bg-white px-3 text-[13.5px] font-semibold text-navy hover:bg-navy-tint"
+            >
+              <FileText size={15} aria-hidden="true" /> Invoices
+            </button>
+          </div>
+        </div>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[12.5px] font-semibold text-muted">{order.po_number}</p>
             <h2 className="font-display text-[22px] font-bold leading-tight text-navy">{order.requestTitle}</h2>
             <p className="mt-1 flex items-center gap-1.5 text-[14px] text-navy">
               {other} <ShieldCheck size={15} className="text-orange" aria-label="Verified by MPI" />
             </p>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <Chip tone={STATUS_TONE[order.status]}>{STEP_LABEL[order.status]}</Chip>
             {total !== undefined && (
               <p className="mt-1 font-display text-[22px] font-bold text-navy">{rupees(total)}</p>
@@ -512,21 +719,38 @@ function OrderPanel({
             <li className="rounded-full bg-orange px-3 py-1 font-bold text-navy">Due now {rupees(dueNow(money, order.status))}</li>
           )}
         </ul>
-        <div className="mt-3">
-          <TabBar<DetailTab>
-            label="Order sections"
-            value={tab}
-            onChange={(t) => {
-              const p = new URLSearchParams(params)
-              p.set("tab", t)
-              setParams(p, { replace: true })
-            }}
-            tabs={[
+        <div className="h-4" />
+      </div>
+
+      <div className="border-y border-line bg-white px-5 py-3 sm:px-6">
+        <div role="tablist" aria-label="Order sections" className="grid grid-cols-2 gap-1 rounded-2xl bg-page p-1 sm:inline-flex sm:rounded-full">
+          {(
+            [
               { id: "progress", label: "Progress" },
               { id: "payments", label: "Payments" },
               { id: "items", label: "Items", count: lines?.length },
-            ]}
-          />
+              { id: "messages", label: "Messages", count: messages?.length || undefined },
+            ] as { id: DetailTab; label: string; count?: number }[]
+          ).map((t) => {
+            const active = tab === t.id
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setTab(t.id)}
+                className={`inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-[14px] font-semibold transition-colors ${
+                  active ? "bg-navy text-white shadow-sm" : "text-muted hover:text-navy"
+                }`}
+              >
+                {t.label}
+                {t.count !== undefined && (
+                  <span className={`rounded-full px-1.5 text-[11.5px] font-bold ${active ? "bg-orange text-navy" : "bg-white text-navy"}`}>{t.count}</span>
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -536,6 +760,9 @@ function OrderPanel({
             <Stepper status={order.status} events={events} />
             {side === "vendor" ? <SupplierUpdate order={order} onDone={onDone} /> : <StartupConfirm order={order} onDone={onDone} />}
           </div>
+        )}
+        {tab === "messages" && (
+          <Messages key={topic} order={order} side={side} messages={messages} initialTopic={topic} onSent={loadMessages} />
         )}
         {tab === "payments" && <Payments order={order} money={money} side={side} onDone={onDone} />}
         {tab === "items" && (
@@ -707,8 +934,8 @@ export default function OrdersPage({ side }: { side: Side }) {
             items={side === "startup" ? startupCards() : vendorCards()}
           />
           <div className="grid gap-5 lg:grid-cols-[23rem_minmax(0,1fr)]">
-            <aside className={`h-fit overflow-hidden rounded-xl bg-navy shadow-[0_2px_8px_rgba(21,35,61,0.18)] lg:sticky lg:top-24 ${selected ? "hidden lg:block" : ""}`}>
-              <div role="tablist" aria-label="Orders" className="flex gap-1 border-b border-white/10 px-2">
+            <aside className={`h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white shadow-[0_1px_3px_rgba(21,35,61,0.08)] lg:sticky lg:top-24 ${selected ? "hidden lg:block" : ""}`}>
+              <div role="tablist" aria-label="Orders" className="flex gap-1 border-b border-line px-2">
                 {(["active", "done"] as ListTab[]).map((t) => (
                   <button
                     key={t}
@@ -717,11 +944,11 @@ export default function OrdersPage({ side }: { side: Side }) {
                     aria-selected={listTab === t}
                     onClick={() => update({ list: t, o: null, tab: null })}
                     className={`flex min-h-12 items-center gap-2 border-b-[3px] px-3 text-[15px] font-semibold ${
-                      listTab === t ? "border-orange text-white" : "border-transparent text-white/60 hover:text-white"
+                      listTab === t ? "border-orange text-navy" : "border-transparent text-muted hover:text-navy"
                     }`}
                   >
                     {t === "active" ? "Active" : "Done"}
-                    <span className={`rounded-full px-2 py-px text-[12px] font-bold ${listTab === t ? "bg-orange text-navy" : "bg-white/15 text-white"}`}>
+                    <span className={`rounded-full px-2 py-px text-[12px] font-bold ${listTab === t ? "bg-orange text-navy" : "bg-navy-tint text-navy"}`}>
                       {sorted[t].length}
                     </span>
                   </button>
