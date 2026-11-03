@@ -19,6 +19,7 @@ import MyRequestsPage from "../screens/startup/MyRequestsPage"
 import QuotePage from "../screens/supplier/QuotePage"
 import SupplierRequestsPage from "../screens/supplier/RequestsPage"
 import NewRequestPage from "../screens/startup/new-request/NewRequestPage"
+import RequestDetailPage from "../screens/startup/request/RequestDetailPage"
 import FullPageMessage from "../ui/FullPageMessage"
 import AppShell from "./AppShell"
 import { MENUS } from "./menus"
@@ -37,6 +38,7 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
   startup: [
     { path: "requests", element: <MyRequestsPage /> },
     { path: "requests/new", element: <NewRequestPage /> },
+    { path: "requests/:requestId", element: <RequestDetailPage /> },
     { path: "profile", element: <StartupProfilePage /> },
   ],
   vendor: [

@@ -74,7 +74,7 @@ export default function MyRequestsPage() {
         <ul className="overflow-hidden rounded-lg border-[1.5px] border-line bg-white shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
           {requests.map((r) => {
             const status = STATUS[r.status]
-            const to = r.status === "draft" ? `${NEW}?draft=${r.id}` : undefined
+            const to = r.status === "draft" ? `${NEW}?draft=${r.id}` : `/startup/requests/${r.id}`
             const body = (
               <>
                 <span className="min-w-0 flex-1">
@@ -89,7 +89,7 @@ export default function MyRequestsPage() {
                 <Chip tone={status.tone}>{status.label}</Chip>
                 {to && (
                   <span className="hidden items-center gap-1 text-sm font-semibold text-navy sm:flex">
-                    Continue
+                    {r.status === "draft" ? "Continue" : "Open"}
                     <ChevronRight size={16} aria-hidden="true" />
                   </span>
                 )}
