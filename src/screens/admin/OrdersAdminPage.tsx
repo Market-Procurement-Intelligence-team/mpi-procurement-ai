@@ -46,7 +46,7 @@ import EmptyState from "../../ui/EmptyState"
 import { Alert, BOX, boxBorder } from "../../ui/form"
 import PageHeader from "../../ui/PageHeader"
 import { InvoiceCard, isDone, STATUS_TONE, STEP_LABEL, Stepper } from "../orders/OrdersPage"
-import { Chip, day, daysLeft, errorText, GRADIENT_PANEL, rupees, SummaryCards, useToast } from "../supplier/parts"
+import { Chip, day, daysLeft, daysUntil, errorText, GRADIENT_PANEL, rupees, SummaryCards, useToast } from "../supplier/parts"
 
 type ListTab = "reply" | "active" | "done"
 type DetailTab = "messages" | "progress" | "money"
@@ -111,15 +111,24 @@ function OrderList({
                 <span className="block text-[12.5px] text-muted">
                   {o.buyerRealName} → {o.supplierRealName}
                 </span>
-              </span>
-              <span className="flex shrink-0 flex-col items-end gap-1.5 pt-0.5">
-                <span className={`text-[12px] font-semibold ${selected ? "text-navy" : "text-muted"}`}>{STEP_LABEL[o.status]}</span>
-                {replies > 0 && (
-                  <span className="rounded-full bg-orange px-2 py-0.5 text-[11.5px] font-bold text-navy">
-                    {replies === 2 ? "2 to reply" : "Reply"}
+                {(replies > 0 || payout > 0) && (
+                  <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[12.5px] font-semibold">
+                    {replies > 0 && (
+                      <span className="inline-flex items-center gap-1.5 text-red-text">
+                        <span className="h-2 w-2 rounded-full bg-red" aria-hidden="true" />
+                        {replies === 2 ? "2 sides waiting" : "Waiting for reply"}
+                      </span>
+                    )}
+                    {payout > 0 && (
+                      <span className="inline-flex items-center gap-1 text-navy">
+                        <Wallet size={13} aria-hidden="true" /> {rupees(payout)} to pay out
+                      </span>
+                    )}
                   </span>
                 )}
-                {payout > 0 && <span className="rounded-full bg-navy-tint px-2 py-0.5 text-[11.5px] font-bold text-navy">Pay out</span>}
+              </span>
+              <span className="shrink-0 rounded-full border border-line bg-white px-2 py-0.5 text-[11.5px] font-semibold text-muted">
+                {STEP_LABEL[o.status]}
               </span>
             </button>
           </li>
@@ -143,10 +152,11 @@ function Conversation({
   side: "buyer" | "supplier"
   messages: OrderMessage[]
   waitingReply: boolean
-  onReply: (body: string) => Promise<void>
+  onReply: (body: string, alsoOther: boolean) => Promise<void>
   onPassOn: (m: OrderMessage) => Promise<void>
 }) {
   const [body, setBody] = useState("")
+  const [alsoOther, setAlsoOther] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const real = side === "buyer" ? order.buyerRealName : order.supplierRealName
@@ -164,9 +174,9 @@ function Conversation({
         {waitingReply && <Chip tone="orange">Waiting for MPI</Chip>}
       </header>
 
-      <div className="flex-1 space-y-3 px-4 py-4">
+      <div className="max-h-80 flex-1 space-y-3 overflow-y-auto px-4 py-3">
         {messages.length === 0 ? (
-          <p className="py-6 text-center text-[14px] text-muted">No messages from the {side} yet.</p>
+          <p className="text-[13.5px] text-muted">No messages from the {side} yet.</p>
         ) : (
           messages.map((m) => (
             <div key={m.id} className={`flex ${m.from_mpi ? "justify-end" : "justify-start"}`}>
@@ -210,8 +220,9 @@ function Conversation({
           setBusy(true)
           setError(null)
           try {
-            await onReply(body)
+            await onReply(body, alsoOther)
             setBody("")
+            setAlsoOther(false)
           } catch (err) {
             setError(errorText(err))
           } finally {
@@ -224,7 +235,7 @@ function Conversation({
         </label>
         <textarea
           id={`reply-${side}`}
-          rows={3}
+          rows={2}
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder={`Reply to the ${side}. They see it as from MPI.`}
@@ -235,9 +246,20 @@ function Conversation({
             <Alert>{error}</Alert>
           </div>
         )}
-        <Button type="submit" className="mt-2 w-full" busy={busy}>
-          <Send size={16} aria-hidden="true" /> Send reply
-        </Button>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <label className="inline-flex cursor-pointer items-center gap-2 text-[13.5px] font-semibold text-navy">
+            <input
+              type="checkbox"
+              checked={alsoOther}
+              onChange={(e) => setAlsoOther(e.target.checked)}
+              className="h-4 w-4 accent-[#F09A47]"
+            />
+            <Forward size={14} aria-hidden="true" /> Also pass on to the {other}
+          </label>
+          <Button type="submit" className="min-h-10 px-4" busy={busy}>
+            <Send size={16} aria-hidden="true" /> {alsoOther ? "Send to both" : "Send reply"}
+          </Button>
+        </div>
       </form>
     </section>
   )
@@ -416,10 +438,12 @@ function OrderPanel({
   const supplierMsgs = mine.filter((m) => m.org_id === order.vendor_org_id)
   const toReply = [order.buyer_org_id, order.vendor_org_id].filter((o) => unanswered.has(`${order.id}:${o}`)).length
   const eta = order.expected_delivery
+  const arrived = order.status === "delivered" || isDone(order)
 
-  const reply = (orgId: string, who: string) => async (body: string) => {
+  const reply = (orgId: string, who: string, otherOrg: string, otherWho: string) => async (body: string, alsoOther: boolean) => {
     await replyOrderMessage(order.id, orgId, body)
-    await onDone(`Reply sent to the ${who}`)
+    if (alsoOther) await replyOrderMessage(order.id, otherOrg, body)
+    await onDone(alsoOther ? `Sent to the ${who} and the ${otherWho}` : `Reply sent to the ${who}`)
   }
   const passOn = (toOrg: string, from: string, to: string) => async (m: OrderMessage) => {
     await replyOrderMessage(order.id, toOrg, `Message from the ${from}, passed on by MPI:\n${m.body}`)
@@ -427,41 +451,45 @@ function OrderPanel({
   }
 
   return (
-    <section className="overflow-hidden rounded-xl shadow-[0_1px_3px_rgba(21,35,61,0.08)]" style={GRADIENT_PANEL} aria-label={order.po_number}>
-      <div className="bg-gradient-to-br from-navy-tint via-navy-tint/60 to-orange-tint/50 px-5 pb-4 pt-4 sm:px-6">
+    <section className="@container overflow-hidden rounded-xl shadow-[0_1px_3px_rgba(21,35,61,0.08)]" style={GRADIENT_PANEL} aria-label={order.po_number}>
+      <div className="bg-gradient-to-br from-navy-tint via-navy-tint/60 to-orange-tint/50 px-5 py-4 sm:px-6">
         <button type="button" onClick={onBack} className="mb-2 inline-flex items-center gap-1.5 text-[14px] font-semibold text-navy lg:hidden">
           <ArrowLeft size={16} aria-hidden="true" /> All orders
         </button>
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="grid gap-3 @3xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_auto] @3xl:items-center @3xl:gap-5">
           <div className="min-w-0">
-            <p className="text-[12.5px] font-semibold text-muted">{order.po_number}</p>
-            <h2 className="font-display text-[22px] font-bold leading-tight text-navy">{order.requestTitle}</h2>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[14px] text-navy">
-              <Building2 size={15} className="text-muted" aria-hidden="true" />
-              <strong>{order.buyerRealName}</strong> buys from <strong>{order.supplierRealName}</strong>
-              <ShieldCheck size={15} className="text-orange" aria-label="Both verified by MPI" />
+            <p className="text-[12.5px] font-semibold text-muted">
+              {order.po_number} · placed {day(order.approved_at, true)}
             </p>
+            <h2 className="font-display text-[20px] font-bold leading-tight text-navy">{order.requestTitle}</h2>
           </div>
-          <div className="sm:text-right">
-            <Chip tone={STATUS_TONE[order.status]}>{STEP_LABEL[order.status]}</Chip>
-            {money?.amounts.buyer && <p className="mt-1 font-display text-[22px] font-bold text-navy">{rupees(money.amounts.buyer.checkout_total)}</p>}
-            <p className="text-[12px] text-muted">buyer pays, incl. GST and MPI fee</p>
+          <div className="flex min-w-0 items-center gap-2 rounded-lg bg-white px-3 py-2 text-[13.5px] text-navy ring-1 ring-line">
+            <Building2 size={15} className="shrink-0 text-muted" aria-hidden="true" />
+            <span className="min-w-0">
+              <span className="block truncate font-semibold" title={order.buyerRealName}>{order.buyerRealName}</span>
+              <span className="block truncate text-muted" title={order.supplierRealName}>
+                buys from <strong className="text-navy">{order.supplierRealName}</strong>
+              </span>
+            </span>
+            <ShieldCheck size={15} className="ml-auto shrink-0 text-orange" aria-label="Both verified by MPI" />
+          </div>
+          <div className="flex items-end justify-between gap-4 @3xl:block @3xl:text-right">
+            <div>
+              {money?.amounts.buyer && <p className="font-display text-[22px] font-bold leading-tight text-navy">{rupees(money.amounts.buyer.checkout_total)}</p>}
+              <p className="text-[12px] text-muted">buyer pays, all in</p>
+            </div>
+            <div className="@3xl:mt-1">
+              <Chip tone={STATUS_TONE[order.status]}>{STEP_LABEL[order.status]}</Chip>
+              <p className={`mt-0.5 text-[12.5px] font-semibold ${eta && !arrived && (daysUntil(eta) ?? 1) < 0 ? "text-red-text" : "text-navy"}`}>
+                {arrived ? "" : eta ? `Delivery ${day(eta)} · ${daysLeft(eta)}` : "Delivery date not set"}
+              </p>
+            </div>
           </div>
         </div>
-        <ul className="mt-3 flex flex-wrap gap-2 text-[13.5px]">
-          <li className="rounded-full bg-white px-3 py-1 text-navy ring-1 ring-line">
-            <span className="text-muted">Placed:</span> <strong>{day(order.approved_at, true)}</strong>
-          </li>
-          <li className="rounded-full bg-white px-3 py-1 text-navy ring-1 ring-line">
-            <span className="text-muted">Expected delivery:</span>{" "}
-            <strong>{eta ? `${day(eta, true)}${!isDone(order) ? ` (${daysLeft(eta)})` : ""}` : "Not set yet"}</strong>
-          </li>
-          {toReply > 0 && <li className="rounded-full bg-orange px-3 py-1 font-bold text-navy">{toReply === 2 ? "Both sides waiting" : "1 side waiting"} for a reply</li>}
-        </ul>
       </div>
 
-      <div className="border-y border-line bg-white px-5 py-3 sm:px-6">
-        <div role="tablist" aria-label="Order sections" className="grid grid-cols-3 gap-1 rounded-2xl bg-page p-1 sm:inline-flex sm:rounded-full">
+      <div className="border-y border-line bg-white px-5 py-2.5 sm:px-6">
+        <div role="tablist" aria-label="Order sections" className="grid w-full grid-cols-3 gap-1 rounded-lg bg-page p-1 ring-1 ring-inset ring-line">
           {(
             [
               { id: "messages", label: "Messages", count: toReply || undefined },
@@ -477,8 +505,8 @@ function OrderPanel({
                 role="tab"
                 aria-selected={active}
                 onClick={() => setTab(t.id)}
-                className={`inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-[14px] font-semibold transition-colors ${
-                  active ? "bg-navy text-white shadow-sm" : "text-muted hover:text-navy"
+                className={`inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 text-[14px] font-semibold transition-colors ${
+                  active ? "bg-white text-navy shadow-[0_1px_3px_rgba(21,35,61,0.18)] ring-1 ring-line" : "text-muted hover:text-navy"
                 }`}
               >
                 {t.label}
@@ -496,13 +524,13 @@ function OrderPanel({
               <ShieldCheck size={16} className="mt-0.5 shrink-0 text-orange" aria-hidden="true" />
               Each side only sees its own conversation with MPI. Use "Pass on" to forward a message meant for the other side; it arrives as from MPI.
             </p>
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid items-start gap-4 @2xl:grid-cols-2">
               <Conversation
                 order={order}
                 side="buyer"
                 messages={buyerMsgs}
                 waitingReply={unanswered.has(`${order.id}:${order.buyer_org_id}`)}
-                onReply={reply(order.buyer_org_id, "buyer")}
+                onReply={reply(order.buyer_org_id, "buyer", order.vendor_org_id, "supplier")}
                 onPassOn={passOn(order.vendor_org_id, "buyer", "supplier")}
               />
               <Conversation
@@ -510,7 +538,7 @@ function OrderPanel({
                 side="supplier"
                 messages={supplierMsgs}
                 waitingReply={unanswered.has(`${order.id}:${order.vendor_org_id}`)}
-                onReply={reply(order.vendor_org_id, "supplier")}
+                onReply={reply(order.vendor_org_id, "supplier", order.buyer_org_id, "buyer")}
                 onPassOn={passOn(order.buyer_org_id, "supplier", "buyer")}
               />
             </div>
