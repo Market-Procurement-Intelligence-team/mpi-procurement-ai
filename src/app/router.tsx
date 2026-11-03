@@ -11,6 +11,8 @@ import ResetPasswordPage from "../screens/auth/ResetPasswordPage"
 import SignupPage from "../screens/auth/SignupPage"
 import NotFound from "../screens/NotFound"
 import OrdersPage from "../screens/orders/OrdersPage"
+import NotificationsPage from "../screens/notifications/NotificationsPage"
+import StartupOverview from "../screens/overview/StartupOverview"
 import Placeholder from "../screens/Placeholder"
 import MatchesPage from "../screens/admin/MatchesPage"
 import OrdersAdminPage from "../screens/admin/OrdersAdminPage"
@@ -38,22 +40,26 @@ function Home() {
 /** Screens built so far, by area and path. Other menu pages show a placeholder. */
 const SCREENS: Partial<Record<Role, RouteObject[]>> = {
   startup: [
+    { index: true, element: <StartupOverview /> },
     { path: "requests", element: <MyRequestsPage /> },
     { path: "requests/new", element: <NewRequestPage /> },
     { path: "requests/:requestId", element: <RequestDetailPage /> },
     { path: "orders", element: <OrdersPage side="startup" /> },
+    { path: "notifications", element: <NotificationsPage role="startup" /> },
     { path: "profile", element: <StartupProfilePage /> },
   ],
   vendor: [
     { path: "requests", element: <SupplierRequestsPage /> },
     { path: "requests/:invitationId", element: <QuotePage /> },
     { path: "orders", element: <OrdersPage side="vendor" /> },
+    { path: "notifications", element: <NotificationsPage role="vendor" /> },
     { path: "profile", element: <SupplierProfilePage /> },
   ],
   // Not in the admin menu; opened from the account menu.
   admin: [
     { path: "matches", element: <MatchesPage /> },
     { path: "orders", element: <OrdersAdminPage /> },
+    { path: "notifications", element: <NotificationsPage role="admin" /> },
     { path: "profile", element: <AdminProfilePage /> },
   ],
 }
@@ -62,7 +68,7 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
 function area(role: Role): RouteObject {
   const menu = MENUS[role]
   const built = SCREENS[role] ?? []
-  const builtPaths = new Set(built.map((r) => r.path))
+  const builtPaths = new Set(built.map((r) => (r.index ? "" : r.path)))
   return {
     path: menu.area,
     element: <RequireRole role={role} />,

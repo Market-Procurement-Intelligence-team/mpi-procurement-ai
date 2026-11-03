@@ -96,3 +96,44 @@ export function draftToRequestInput(draft: RequestDraft, originalText: string, a
     })),
   }
 }
+
+// ---------------------------------------------------------------- dashboard summary
+
+const SUMMARY_URL = "/api/dashboard-summary"
+
+/** Drops a sentence the AI wrote twice ("X. X." or "X X"). */
+export function dropRepeats(text: string): string {
+  const words = text.trim().split(/\s+/)
+  if (words.length >= 6 && words.length % 2 === 0) {
+    const half = words.length / 2
+    if (words.slice(0, half).join(" ") === words.slice(half).join(" ")) return words.slice(0, half).join(" ")
+  }
+  const seen = new Set<string>()
+  const kept: string[] = []
+  for (const part of text.match(/[^.!?\u0964]+[.!?\u0964]*/g) ?? [text]) {
+    const key = part.toLowerCase().replace(/[^a-z0-9\u0900-\u097f]+/g, " ").trim()
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    kept.push(part.trim())
+  }
+  return kept.join(" ")
+}
+
+/**
+ * The one-line "AI summary" for an Overview dashboard, written by the AI from
+ * facts the screen has already worked out (counts, amounts, MPI aliases).
+ * Throws if the AI isn't available; the screen then shows a plain line instead.
+ */
+export async function getDashboardSummary(facts: string[], language: "en" | "hi" = "en"): Promise<string> {
+  const { data } = await db.auth.getSession()
+  const token = data.session?.access_token
+  if (!token) throw new DataError("Please log in first.")
+  const response = await fetch(SUMMARY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ facts, language }),
+  }).catch(() => null)
+  const body = (await response?.json().catch(() => null)) as { summary?: string; error?: string } | null
+  if (!response?.ok || !body?.summary) throw new DataError(body?.error ?? "The AI summary isn't available right now.")
+  return dropRepeats(body.summary)
+}
