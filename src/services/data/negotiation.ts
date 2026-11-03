@@ -70,3 +70,8 @@ export function timeLeftToReply(offer: Offer, now: Date = new Date()): number {
 export function offersLeft(offers: Offer[]): number {
   return Math.max(0, MAX_OFFERS_PER_QUOTE - offers.length)
 }
+
+/** Supplier: all offers on the signed-in supplier's quotes, oldest first. */
+export async function listMyOffers(vendorOrgId: string): Promise<Offer[]> {
+  return unwrap(await db.from("quote_negotiations").select("*").eq("vendor_org_id", vendorOrgId).order("created_at"))
+}

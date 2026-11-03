@@ -2,8 +2,10 @@
  * Quotes. Suppliers see the requests they were invited to and send itemised
  * quotes; startups compare the quotes on their requests and approve one.
  *
- * Totals, GST and payment terms are filled in by the database. A new version
- * of a quote replaces the previous one ("superseded").
+ * Totals, GST and payment terms are filled in by the database, including the
+ * supplier's MPI volume rate (locked when the quote is sent). A new version
+ * of a quote replaces the previous one ("superseded"). For what a quote
+ * costs the startup (MPI fee, savings), see money.ts.
  */
 
 import { db } from "../../lib/db"
@@ -28,6 +30,8 @@ export interface QuoteLineInput {
   quantity: number
   unitPrice: number
   taxRate?: number
+  /** Ad budget, government fees and the like: paid by the startup directly, never discounted or charged a fee. */
+  passThrough?: boolean
 }
 
 export interface QuoteInput {
@@ -136,7 +140,8 @@ export async function replaceQuoteLines(quoteId: string, lines: QuoteLineInput[]
         description: line.description.trim(),
         quantity: line.quantity,
         unit_price: line.unitPrice,
-        tax_rate: line.taxRate ?? 18,
+        tax_rate: line.passThrough ? 0 : (line.taxRate ?? 18),
+        pass_through: line.passThrough ?? false,
         sort_order: i,
       })),
     ),
@@ -193,7 +198,16 @@ export async function listQuotesForRequest(requestId: string, includeOld = false
   }))
 }
 
-/** Approves one quote. Creates the purchase order and closes the request. Returns the order id. */
+/**
+ * Approves one quote. Creates the purchase order, its 3 invoices and closes
+ * the request. Returns the order id. Prefer approveQuoteAtPrice (money.ts),
+ * which also refuses a price that changed since the startup saw it.
+ */
 export async function approveQuote(quoteId: string): Promise<string> {
   return unwrap(await db.rpc("approve_quote", { p_quote_id: quoteId }))
+}
+
+/** The lines of one of the signed-in supplier's quotes (or any quote the person can see). */
+export async function listQuoteLines(quoteId: string): Promise<QuoteLine[]> {
+  return unwrap(await db.from("quote_lines").select("*").eq("quote_id", quoteId).order("sort_order"))
 }

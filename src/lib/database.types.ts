@@ -1,5 +1,5 @@
 // Database types for the MPI Supabase project (schema: public).
-// Generated from supabase/migrations up to 20261023120000. To regenerate from
+// Generated from supabase/migrations up to 20261023120000, then extended by hand up to 20261102120000. To regenerate from
 // the live project: npx supabase gen types typescript --project-id <id> > src/lib/database.types.ts
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
@@ -310,6 +310,39 @@ export type Database = {
           },
         ]
       }
+      order_messages: {
+        Row: {
+          id: string
+          po_id: string
+          org_id: string
+          author_id: string | null
+          from_mpi: boolean
+          topic: string
+          body: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          po_id: string
+          org_id: string
+          author_id?: string | null
+          from_mpi?: boolean
+          topic?: string
+          body: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          po_id?: string
+          org_id?: string
+          author_id?: string | null
+          from_mpi?: boolean
+          topic?: string
+          body?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       organisations: {
         Row: {
           id: string
@@ -370,18 +403,21 @@ export type Database = {
           payment_terms: string
           updated_by: string | null
           updated_at: string
+          offer_score_weights: Json
         }
         Insert: {
           id?: boolean
           payment_terms?: string
           updated_by?: string | null
           updated_at?: string
+          offer_score_weights?: Json
         }
         Update: {
           id?: boolean
           payment_terms?: string
           updated_by?: string | null
           updated_at?: string
+          offer_score_weights?: Json
         }
         Relationships: [
           {
@@ -534,6 +570,7 @@ export type Database = {
           line_amount: number | null
           line_tax: number | null
           sort_order: number
+          pass_through: boolean
         }
         Insert: {
           id?: string
@@ -547,6 +584,7 @@ export type Database = {
           line_amount?: never
           line_tax?: never
           sort_order?: number
+          pass_through?: boolean
         }
         Update: {
           id?: string
@@ -560,6 +598,7 @@ export type Database = {
           line_amount?: never
           line_tax?: never
           sort_order?: number
+          pass_through?: boolean
         }
         Relationships: [
           {
@@ -697,6 +736,14 @@ export type Database = {
           created_by: string | null
           created_at: string
           updated_at: string
+          volume_discount_pct: number
+          volume_discount_amount: number
+          volume_rate_card_id: string | null
+          volume_clients: number | null
+          supplier_tax_mode: string
+          pass_through_amount: number
+          rcm_tax_amount: number
+          price_terms_locked: boolean
         }
         Insert: {
           id?: string
@@ -719,6 +766,14 @@ export type Database = {
           created_by?: string | null
           created_at?: string
           updated_at?: string
+          volume_discount_pct?: number
+          volume_discount_amount?: number
+          volume_rate_card_id?: string | null
+          volume_clients?: number | null
+          supplier_tax_mode?: string
+          pass_through_amount?: number
+          rcm_tax_amount?: number
+          price_terms_locked?: boolean
         }
         Update: {
           id?: string
@@ -741,6 +796,14 @@ export type Database = {
           created_by?: string | null
           created_at?: string
           updated_at?: string
+          volume_discount_pct?: number
+          volume_discount_amount?: number
+          volume_rate_card_id?: string | null
+          volume_clients?: number | null
+          supplier_tax_mode?: string
+          pass_through_amount?: number
+          rcm_tax_amount?: number
+          price_terms_locked?: boolean
         }
         Relationships: [
           {
@@ -1178,6 +1241,384 @@ export type Database = {
           },
         ]
       }
+      credit_notes: {
+        Row: {
+          id: string
+          number: string
+          invoice_id: string
+          po_id: string
+          kind: string
+          taxable_amount: number
+          tax_amount: number
+          total: number
+          quote_line_id: string | null
+          units: number | null
+          reason: string | null
+          idempotency_key: string
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          number?: string
+          invoice_id?: string
+          po_id?: string
+          kind?: string
+          taxable_amount?: number
+          tax_amount?: number
+          total?: number
+          quote_line_id?: string | null
+          units?: number | null
+          reason?: string | null
+          idempotency_key?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          number?: string
+          invoice_id?: string
+          po_id?: string
+          kind?: string
+          taxable_amount?: number
+          tax_amount?: number
+          total?: number
+          quote_line_id?: string | null
+          units?: number | null
+          reason?: string | null
+          idempotency_key?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      fee_rules: {
+        Row: {
+          id: string
+          category_id: string | null
+          version: number
+          buyer_fee_type: string
+          buyer_fee_value: number
+          buyer_fee_min: number | null
+          buyer_fee_max: number | null
+          supplier_commission_enabled: boolean
+          supplier_commission_pct: number
+          mpi_tax_pct: number
+          supplier_tax_mode: string
+          payment_route: string
+          professional_gate: boolean
+          needs_review: boolean
+          note: string | null
+          effective_from: string
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          category_id?: string | null
+          version?: number
+          buyer_fee_type?: string
+          buyer_fee_value?: number
+          buyer_fee_min?: number | null
+          buyer_fee_max?: number | null
+          supplier_commission_enabled?: boolean
+          supplier_commission_pct?: number
+          mpi_tax_pct?: number
+          supplier_tax_mode?: string
+          payment_route?: string
+          professional_gate?: boolean
+          needs_review?: boolean
+          note?: string | null
+          effective_from?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          category_id?: string | null
+          version?: number
+          buyer_fee_type?: string
+          buyer_fee_value?: number
+          buyer_fee_min?: number | null
+          buyer_fee_max?: number | null
+          supplier_commission_enabled?: boolean
+          supplier_commission_pct?: number
+          mpi_tax_pct?: number
+          supplier_tax_mode?: string
+          payment_route?: string
+          professional_gate?: boolean
+          needs_review?: boolean
+          note?: string | null
+          effective_from?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      invoice_installments: {
+        Row: {
+          id: string
+          invoice_id: string
+          seq: number
+          label: string
+          pct: number | null
+          amount: number
+          due_event: string
+          status: string
+          paid_at: string | null
+        }
+        Insert: {
+          id?: string
+          invoice_id?: string
+          seq?: number
+          label?: string
+          pct?: number | null
+          amount?: number
+          due_event?: string
+          status?: string
+          paid_at?: string | null
+        }
+        Update: {
+          id?: string
+          invoice_id?: string
+          seq?: number
+          label?: string
+          pct?: number | null
+          amount?: number
+          due_event?: string
+          status?: string
+          paid_at?: string | null
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          id: string
+          number: string
+          po_id: string
+          kind: string
+          issuer_org_id: string
+          recipient_org_id: string
+          currency: string
+          taxable_amount: number
+          tax_amount: number
+          rcm_tax_amount: number
+          total: number
+          tax_mode: string
+          lines: Json
+          status: string
+          amount_paid: number
+          amount_credited: number
+          issued_at: string
+        }
+        Insert: {
+          id?: string
+          number?: string
+          po_id?: string
+          kind?: string
+          issuer_org_id?: string
+          recipient_org_id?: string
+          currency?: string
+          taxable_amount?: number
+          tax_amount?: number
+          rcm_tax_amount?: number
+          total?: number
+          tax_mode?: string
+          lines?: Json
+          status?: string
+          amount_paid?: number
+          amount_credited?: number
+          issued_at?: string
+        }
+        Update: {
+          id?: string
+          number?: string
+          po_id?: string
+          kind?: string
+          issuer_org_id?: string
+          recipient_org_id?: string
+          currency?: string
+          taxable_amount?: number
+          tax_amount?: number
+          rcm_tax_amount?: number
+          total?: number
+          tax_mode?: string
+          lines?: Json
+          status?: string
+          amount_paid?: number
+          amount_credited?: number
+          issued_at?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          id: string
+          po_id: string
+          payer_org_id: string
+          payee: string
+          payee_org_id: string
+          amount: number
+          method: string
+          is_simulated: boolean
+          idempotency_key: string
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          po_id?: string
+          payer_org_id?: string
+          payee?: string
+          payee_org_id?: string
+          amount?: number
+          method?: string
+          is_simulated?: boolean
+          idempotency_key?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          po_id?: string
+          payer_org_id?: string
+          payee?: string
+          payee_org_id?: string
+          amount?: number
+          method?: string
+          is_simulated?: boolean
+          idempotency_key?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      refunds: {
+        Row: {
+          id: string
+          po_id: string
+          buyer_org_id: string
+          amount: number
+          is_simulated: boolean
+          idempotency_key: string
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          po_id?: string
+          buyer_org_id?: string
+          amount?: number
+          is_simulated?: boolean
+          idempotency_key?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          po_id?: string
+          buyer_org_id?: string
+          amount?: number
+          is_simulated?: boolean
+          idempotency_key?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      settlements: {
+        Row: {
+          id: string
+          po_id: string
+          vendor_org_id: string
+          gross_amount: number
+          commission_deducted: number
+          net_amount: number
+          kind: string
+          is_simulated: boolean
+          idempotency_key: string
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          po_id?: string
+          vendor_org_id?: string
+          gross_amount?: number
+          commission_deducted?: number
+          net_amount?: number
+          kind?: string
+          is_simulated?: boolean
+          idempotency_key?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          po_id?: string
+          vendor_org_id?: string
+          gross_amount?: number
+          commission_deducted?: number
+          net_amount?: number
+          kind?: string
+          is_simulated?: boolean
+          idempotency_key?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      supplier_rate_cards: {
+        Row: {
+          id: string
+          vendor_org_id: string
+          category_id: string
+          version: number
+          metric: string
+          tiers: Json
+          valid_from: string
+          valid_to: string | null
+          is_active: boolean
+          beneficiary: string
+          rate_lock: string
+          note: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          vendor_org_id?: string
+          category_id?: string
+          version?: number
+          metric?: string
+          tiers?: Json
+          valid_from?: string
+          valid_to?: string | null
+          is_active?: boolean
+          beneficiary?: string
+          rate_lock?: string
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          vendor_org_id?: string
+          category_id?: string
+          version?: number
+          metric?: string
+          tiers?: Json
+          valid_from?: string
+          valid_to?: string | null
+          is_active?: boolean
+          beneficiary?: string
+          rate_lock?: string
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       request_private_details: {
@@ -1223,6 +1664,7 @@ export type Database = {
       approve_quote: {
         Args: {
           p_quote_id: string
+          p_expected_checkout?: number
         }
         Returns: string
       }
@@ -1310,6 +1752,99 @@ export type Database = {
           p_request_id: string
         }
         Returns: number
+      }
+      price_breakdown: {
+        Args: { p_quote_id: string }
+        Returns: Json
+      }
+      order_money: {
+        Args: { p_po_id: string }
+        Returns: Json
+      }
+      pay_order: {
+        Args: { p_po_id: string; p_idempotency_key: string }
+        Returns: Json
+      }
+      settle_supplier: {
+        Args: { p_po_id: string; p_idempotency_key: string }
+        Returns: Json
+      }
+      record_return: {
+        Args: { p_po_id: string; p_quote_line_id: string; p_units: number; p_reason: string; p_idempotency_key: string }
+        Returns: Json
+      }
+      pay_refund: {
+        Args: { p_po_id: string; p_idempotency_key: string }
+        Returns: Json
+      }
+      compare_offers: {
+        Args: { p_request_id: string }
+        Returns: {
+          quote_id: string
+          supplier_alias: string
+          total_cost: number
+          checkout_total: number
+          volume_benefit: number
+          lead_time_days: number | null
+          price_points: number
+          quality_points: number
+          delivery_points: number
+          location_points: number
+          score: number
+          rank: number
+          reasons: string[]
+        }[]
+      }
+      volume_status: {
+        Args: { p_vendor_org_id?: string }
+        Returns: {
+          category_id: string
+          category_name: string
+          rate_card_id: string
+          clients_last_month: number
+          current_pct: number
+          next_tier_clients: number | null
+          next_tier_pct: number | null
+          clients_this_month: number
+          tiers: Json
+        }[]
+      }
+      set_fee_rule: {
+        Args: {
+          p_category_id: string | null
+          p_buyer_fee_type: string
+          p_buyer_fee_value: number
+          p_commission_enabled: boolean
+          p_commission_pct: number
+          p_supplier_tax_mode?: string
+          p_payment_route?: string
+          p_mpi_tax_pct?: number
+          p_buyer_fee_min?: number
+          p_buyer_fee_max?: number
+          p_professional_gate?: boolean
+          p_note?: string
+        }
+        Returns: string
+      }
+      save_rate_card: {
+        Args: {
+          p_vendor_org_id: string
+          p_category_id: string
+          p_tiers: Json
+          p_metric?: string
+          p_valid_from?: string
+          p_valid_to?: string
+          p_note?: string
+        }
+        Returns: string
+      }
+      send_order_message: {
+        Args: { p_po_id: string; p_topic: string; p_body: string }
+        Returns: string
+      }
+      reply_order_message: {
+        Args: { p_po_id: string; p_org_id: string; p_body: string }
+        Returns: string
       }
       update_order_status: {
         Args: {

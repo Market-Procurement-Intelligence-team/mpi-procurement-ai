@@ -5,7 +5,8 @@
 --   startup sends a request -> suppliers are matched -> admin approves ->
 --   supplier quotes -> price negotiation (and offer expiry) -> startup
 --   approves -> order and its history -> a remote service request ->
---   government scheme suggestions -> the suppliers' price guide.
+--   government scheme suggestions -> the suppliers' price guide -> money:
+--   the spec's worked examples, invoices, payments, payouts and returns.
 -- It also checks that each person sees only what they should.
 --
 -- NOTHING IS SAVED. Everything runs inside one block that is cancelled at the
@@ -13,7 +14,7 @@
 -- result appears as an "error" in the SQL Editor: read the message, which
 -- starts with "MPI END-TO-END CHECK".
 --
--- Needs: all migrations up to 20261031120000 run, and the demo workspace
+-- Needs: all migrations up to 20261102120000 run, and the demo workspace
 -- (mpi-demostartup@, mpi-demosupplier1-3@, mpi-demoservice@example.com).
 -- Safe to run as often as you like, e.g. on the morning of a demo.
 -- ============================================================================
@@ -43,6 +44,9 @@ declare
   v_arr     text[];
   v_guide   record;
   v_guide_n integer;
+  v_json    jsonb;
+  v_po2     uuid;
+  v_ql      uuid;
 begin
   -- --------------------------------------------------------------------------
   -- Who is who
@@ -242,9 +246,10 @@ begin
     insert into public.quote_lines (quote_id, request_line_id, description, quantity, unit_price)
     values (v_quote, v_line, '3-ply corrugated box', 1000, 20);
     update public.quotes set status = 'submitted' where id = v_quote;
-    select total, payment_terms into v_num, v_txt from public.quotes where id = v_quote;
-    v_ok := v_num = 23600 and v_txt in ('30% before work starts, 70% on delivery', '100% advance before work starts');
-    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Supplier sends a quote: total ₹' || v_num || ' incl. GST; payment terms set by MPI ("' || v_txt || '"), not by the supplier');
+    select total, payment_terms, volume_discount_pct into v_num, v_txt, v_int from public.quotes where id = v_quote;
+    v_ok := v_num = round(20000 * (1 - v_int / 100.0) * 1.18, 2)
+            and v_txt in ('30% before work starts, 70% on delivery', '100% advance before work starts');
+    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Supplier sends a quote: total ₹' || v_num || ' incl. GST after the supplier''s MPI volume rate of ' || v_int || '%; payment terms set by MPI ("' || v_txt || '"), not by the supplier');
   exception when others then
     v_ok := false;
     v_lines := v_lines || ('✗ Supplier sends a quote: ' || sqlerrm);
@@ -318,10 +323,10 @@ begin
 
   v_total := v_total + 1;
   begin
-    v_offer := public.propose_price(v_quote, 21000, 'Can you do ₹21,000?');
+    v_offer := public.propose_price(v_quote, 19000, 'Can you do ₹19,000?');
     select expires_at - created_at into v_txt from public.quote_negotiations where id = v_offer;
     v_ok := v_txt = '1 day' or v_txt = '24:00:00';
-    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Startup asks for ₹21,000; the offer expires 24 hours later');
+    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Startup asks for ₹19,000; the offer expires 24 hours later');
   exception when others then
     v_ok := false;
     v_lines := v_lines || ('✗ Startup asks for a lower price: ' || sqlerrm);
@@ -330,7 +335,7 @@ begin
 
   v_total := v_total + 1;
   begin
-    perform public.propose_price(v_quote, 20500);
+    perform public.propose_price(v_quote, 18500);
     v_ok := false;
     v_lines := v_lines || '✗ Startup could make a second offer while one is still open'::text;
   exception when others then
@@ -345,9 +350,9 @@ begin
   perform set_config('role', 'authenticated', true);
   v_total := v_total + 1;
   begin
-    v_counter := public.respond_to_price(v_offer, 'counter', 22000, 'Best is ₹22,000');
+    v_counter := public.respond_to_price(v_offer, 'counter', 20000, 'Best is ₹20,000');
     v_ok := v_counter is not null;
-    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Supplier counters with ₹22,000');
+    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Supplier counters with ₹20,000');
   exception when others then
     v_ok := false;
     v_lines := v_lines || ('✗ Supplier counters: ' || sqlerrm);
@@ -363,7 +368,7 @@ begin
     v_quote2 := public.respond_to_price(v_counter, 'accept', null, 'Agreed');
     select total into v_num from public.quotes where id = v_quote2;
     select status::text into v_txt from public.quotes where id = v_quote;
-    v_ok := v_num = 22000 and v_txt = 'superseded';
+    v_ok := v_num = 20000 and v_txt = 'superseded';
     v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Startup accepts: a new quote version at ₹' || v_num || ' replaces the old one (' || v_txt || ')');
   exception when others then
     v_ok := false;
@@ -424,7 +429,7 @@ begin
     v_po := public.approve_quote(v_quote2);
     select po_number, total_amount into v_po_number, v_num from public.purchase_orders where id = v_po;
     select status::text into v_txt from public.requests where id = v_req;
-    v_ok := v_po_number ~ '^MPI-PO-[0-9]{4}-[0-9]{5}$' and v_num = 22000 and v_txt = 'ordered';
+    v_ok := v_po_number ~ '^MPI-PO-[0-9]{4}-[0-9]{5}$' and v_num = 20000 and v_txt = 'ordered';
     v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Startup approves the quote: order ' || v_po_number || ' for ₹' || v_num || ', request marked ordered');
   exception when others then
     v_ok := false;
@@ -478,6 +483,264 @@ begin
   v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'A supplier not involved sees nothing of this request, its quotes or its order');
   if v_ok then v_pass := v_pass + 1; end if;
   perform set_config('role', v_me, true);
+
+  -- ==========================================================================
+  -- 5b. Money: the spec's worked examples, invoices, payments, payouts, returns
+  -- ==========================================================================
+  -- The calculation against the client's spec (31 Oct 2026), section by section
+  for v_txt, v_json, v_arr in
+    select * from (values
+      ('Packaging example (B2): buyer pays ₹12,602.40, supplier gets ₹11,859, MPI earns ₹630',
+       '{"lines":[{"amount":10000,"tax_rate":18,"kind":"eligible"},{"amount":1000,"tax_rate":18,"kind":"extra"},{"amount":500,"tax_rate":18,"kind":"extra"}],"volume_pct":10,"buyer_fee":{"type":"percent","value":2},"commission":{"enabled":true,"pct":5},"mpi_tax_pct":18}'::jsonb,
+       array['buyer.checkout_total=12602.40', 'supplier.payout=11859.00', 'mpi.revenue=630.00', 'mpi.invoices_total=743.40', 'savings.net=820.00']),
+      ('Marketing example (C4): checkout ₹21,664.80, agency gets ₹20,178, MPI earns ₹1,260, ad budget not charged',
+       '{"lines":[{"amount":20000,"tax_rate":18,"kind":"eligible"},{"amount":50000,"tax_rate":0,"kind":"pass_through"}],"volume_pct":10,"buyer_fee":{"type":"percent","value":2},"commission":{"enabled":true,"pct":5},"mpi_tax_pct":18}'::jsonb,
+       array['buyer.checkout_total=21664.80', 'supplier.payout=20178.00', 'mpi.revenue=1260.00', 'buyer.cash_paid=71664.80', 'savings.net=1640.00']),
+      ('Legal example (C5): no commission, fee ₹13,500, reverse-charge GST ₹2,430 kept apart, cash ₹16,090',
+       '{"lines":[{"amount":15000,"tax_rate":18,"kind":"eligible"},{"amount":2000,"tax_rate":0,"kind":"pass_through"}],"volume_pct":10,"tax_mode":"reverse","buyer_fee":{"type":"fixed","value":500},"commission":{"enabled":false},"mpi_tax_pct":18}'::jsonb,
+       array['supplier.invoice_total=13500.00', 'supplier.commission=0', 'buyer.rcm_tax=2430.00', 'buyer.cash_paid=16090.00', 'buyer.total_cost=18520.00']),
+      ('CA example (C6): no commission, total ₹6,164, MPI earns ₹300; with 30 extra entries ₹6,518',
+       '{"lines":[{"amount":5000,"tax_rate":18,"kind":"eligible"},{"amount":300,"tax_rate":18,"kind":"extra"},{"amount":500,"tax_rate":0,"kind":"pass_through"}],"volume_pct":10,"buyer_fee":{"type":"fixed","value":300},"commission":{"enabled":false},"mpi_tax_pct":18}'::jsonb,
+       array['buyer.cash_paid=6518.00', 'mpi.revenue=300.00', 'supplier.commission=0']),
+      ('Prototyping example (C7): client ₹63,177.20, payout ₹60,947, MPI ₹1,890; 30/40/30 split ₹18,762 / ₹25,016 / ₹18,762',
+       '{"lines":[{"amount":30000,"tax_rate":18,"kind":"eligible"},{"amount":20000,"tax_rate":18,"kind":"extra"},{"amount":5000,"tax_rate":18,"kind":"extra"},{"amount":1000,"tax_rate":18,"kind":"extra"}],"volume_pct":10,"buyer_fee":{"type":"percent","value":2},"commission":{"enabled":true,"pct":5},"mpi_tax_pct":18,"schedule":[30,40,30]}'::jsonb,
+       array['buyer.checkout_total=63177.20', 'supplier.payout=60947.00', 'mpi.revenue=1890.00', 'sched=18762.00/25016.00/18762.00']),
+      ('Discounts stack: 10% then 5% = 14.5%, never applied twice',
+       '{"lines":[{"amount":10000,"tax_rate":18,"kind":"eligible"}],"volume_pct":10,"negotiated_pct":5}'::jsonb,
+       array['supplier.taxable=8550.00', 'savings.pct=14.50'])
+    ) t (label, input, expect)
+  loop
+    v_total := v_total + 1;
+    v_ok := true;
+    declare
+      v_calc jsonb := app.money_calc(v_json);
+      v_e text;
+    begin
+      foreach v_e in array v_arr loop
+        if split_part(v_e, '=', 1) = 'sched' then
+          v_ok := v_ok and (select string_agg(x->>'amount', '/' order by (x->>'seq')::integer)
+                              from jsonb_array_elements(v_calc->'supplier'->'schedule') x) = split_part(v_e, '=', 2);
+        else
+          v_ok := v_ok and (v_calc #>> string_to_array(split_part(v_e, '=', 1), '.'))::numeric = split_part(v_e, '=', 2)::numeric;
+        end if;
+      end loop;
+      v_ok := v_ok and (v_calc->>'cash_reconciles')::boolean;
+    end;
+    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || v_txt);
+    if v_ok then v_pass := v_pass + 1; end if;
+  end loop;
+
+  -- The order just placed got its 3 invoices and a frozen price record
+  v_total := v_total + 1;
+  select count(*) into v_int from public.invoices where po_id = v_po;
+  select (outputs->>'cash_reconciles')::boolean into v_ok from public.order_price_snapshots where po_id = v_po;
+  v_ok := coalesce(v_ok, false) and v_int = 3;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'The order has ' || v_int || ' invoices (supplier, MPI fee, MPI commission) and a frozen price record that adds up');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_total := v_total + 1;
+  select array_agg(kind order by kind) into v_arr from public.invoices where po_id = v_po;
+  v_ok := v_arr = array['mpi_fee_to_buyer', 'supplier_to_buyer'];
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Startup sees its 2 invoices, not MPI''s commission to the supplier');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  begin
+    v_json := public.pay_order(v_po, 'e2e-' || v_po || '-advance');
+    v_num := (v_json->>'paid')::numeric;
+    v_json := public.pay_order(v_po, 'e2e-' || v_po || '-advance');   -- same click twice
+    select count(*) into v_int from public.payments where po_id = v_po;
+    v_ok := v_num > 0 and (v_json->>'already_recorded')::boolean and v_int = 1;
+    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Startup pays the advance and MPI fee (simulated, ₹' || v_num || '); paying twice by mistake records it once');
+  exception when others then
+    v_ok := false;
+    v_lines := v_lines || ('✗ Startup pays the advance: ' || sqlerrm);
+  end;
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  begin
+    perform public.pay_order(v_po, 'e2e-' || v_po || '-balance');
+    v_ok := false;
+    v_lines := v_lines || '✗ The balance could be paid before delivery'::text;
+  exception when others then
+    v_ok := sqlerrm like '%delivered%';
+    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'The balance is only due on delivery (' || sqlerrm || ')');
+  end;
+  if v_ok then v_pass := v_pass + 1; end if;
+  perform set_config('role', v_me, true);
+
+  perform set_config('request.jwt.claim.sub', u_s1::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_s1, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_total := v_total + 1;
+  select array_agg(kind order by kind) into v_arr from public.invoices where po_id = v_po;
+  v_json := public.order_money(v_po);
+  v_ok := v_arr = array['mpi_commission_to_supplier', 'supplier_to_buyer'] and v_json->'amounts'->'buyer' is null
+          and v_json->'amounts'->'mpi' is null;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Supplier sees its invoice and MPI''s commission, never the buyer''s MPI fee');
+  if v_ok then v_pass := v_pass + 1; end if;
+  perform set_config('role', v_me, true);
+
+  perform set_config('request.jwt.claim.sub', u_admin::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_admin, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_total := v_total + 1;
+  begin
+    v_json := public.settle_supplier(v_po, 'e2e-' || v_po || '-payout');
+    v_json := v_json || jsonb_build_object('balances', public.order_money(v_po)->'balances');
+    v_ok := (v_json->>'net_paid')::numeric > 0 and (v_json->>'commission_deducted')::numeric > 0
+            and (v_json->'balances'->>'mpi_cash')::numeric
+                = -((v_json->'balances'->>'mpi_revenue')::numeric + (v_json->'balances'->>'gst_payable')::numeric);
+    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Admin pays the supplier ₹' || (v_json->>'net_paid')
+                           || ' after ₹' || (v_json->>'commission_deducted') || ' commission; MPI keeps exactly its fees and their GST');
+  exception when others then
+    v_ok := false;
+    v_lines := v_lines || ('✗ Admin pays the supplier out: ' || sqlerrm);
+  end;
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  begin
+    perform public.set_fee_rule((select id from public.catalogue_categories where slug = 'compliance-and-legal-support'),
+                                'fixed', 500, true, 5);
+    v_ok := false;
+    v_lines := v_lines || '✗ Commission could be switched on for legal work'::text;
+  exception when others then
+    v_ok := sqlerrm like '%Commission must stay off%';
+    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Commission cannot be switched on for legal or CA work (professional rules)');
+  end;
+  if v_ok then v_pass := v_pass + 1; end if;
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select coalesce(sum(amount), 0) into v_num from public.ledger_entries;
+  select count(*) into v_int from (select po_id from public.ledger_entries group by po_id having sum(amount) <> 0) x;
+  v_ok := v_num = 0 and v_int = 0;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'MPI''s books balance on every order');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- Spec B2.1 on the demo's shipping cartons order: delivered, paid in full,
+  -- paid out, then 100 cartons come back.
+  select po.id, ql.id into v_po2, v_ql
+    from public.purchase_orders po
+    join public.requests r on r.id = po.request_id
+    join public.quote_lines ql on ql.quote_id = po.quote_id and ql.line_type = 'item'
+   where r.title = 'Shipping cartons, 1,000 pcs' and po.buyer_org_id = o_startup
+   limit 1;
+  v_total := v_total + 1;
+  if v_po2 is null then
+    v_ok := false;
+    v_lines := v_lines || '✗ Returns: the demo shipping cartons order is missing (run reset_demo_workspace first)'::text;
+  else
+    begin
+      perform set_config('request.jwt.claim.sub', u_s1::text, true);
+      perform set_config('request.jwt.claims', json_build_object('sub', u_s1, 'role', 'authenticated')::text, true);
+      perform set_config('role', 'authenticated', true);
+      perform public.update_order_status(v_po2, 'delivered');
+      perform set_config('role', v_me, true);
+
+      perform set_config('request.jwt.claim.sub', u_startup::text, true);
+      perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+      perform set_config('role', 'authenticated', true);
+      perform public.pay_order(v_po2, 'e2e-' || v_po2 || '-balance');
+      perform set_config('role', v_me, true);
+
+      perform set_config('request.jwt.claim.sub', u_admin::text, true);
+      perform set_config('request.jwt.claims', json_build_object('sub', u_admin, 'role', 'authenticated')::text, true);
+      perform set_config('role', 'authenticated', true);
+      perform public.settle_supplier(v_po2, 'e2e-' || v_po2 || '-payout-2');
+      select coalesce(sum(net_amount), 0) into v_num from public.settlements where po_id = v_po2;
+      perform set_config('role', v_me, true);
+
+      perform set_config('request.jwt.claim.sub', u_s1::text, true);
+      perform set_config('request.jwt.claims', json_build_object('sub', u_s1, 'role', 'authenticated')::text, true);
+      perform set_config('role', 'authenticated', true);
+      v_json := public.record_return(v_po2, v_ql, 100, 'Crushed in transit', 'e2e-' || v_po2 || '-return');
+      perform set_config('role', v_me, true);
+
+      v_ok := v_num = 11859
+              and (v_json->>'supplier_credit')::numeric = 1062
+              and (v_json->>'buyer_fee_reversal')::numeric = 21.24
+              and (v_json->>'commission_reversal')::numeric = 53.10
+              and (v_json->>'refund_due')::numeric = 1083.24;
+      v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end
+        || 'Return of 100 cartons (spec B2.1): supplier paid ₹' || v_num || ' in total; credit ₹' || (v_json->>'supplier_credit')
+        || ', MPI fee back ₹' || (v_json->>'buyer_fee_reversal') || ', commission back ₹' || (v_json->>'commission_reversal')
+        || ', refund due ₹' || (v_json->>'refund_due') || ', supplier owes MPI ₹' || (v_json->>'supplier_owes_mpi'));
+    exception when others then
+      perform set_config('role', v_me, true);
+      v_ok := false;
+      v_lines := v_lines || ('✗ Return of 100 cartons: ' || sqlerrm);
+    end;
+  end if;
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- Offer comparison on the demo's mailer boxes (2 offers)
+  select id into v_req2 from public.requests where org_id = o_startup and title = 'Printed mailer boxes, 2,000 pcs' limit 1;
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_total := v_total + 1;
+  begin
+    select count(*), max(score), string_agg(supplier_alias || ' ' || score || '/100', ', ' order by rank)
+      into v_int, v_num, v_txt
+      from public.compare_offers(v_req2);
+    v_ok := v_int = 2 and v_num <= 100;
+    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Startup compares 2 offers, scored out of 100 on total cost incl. MPI fee: ' || coalesce(v_txt, 'none'));
+  exception when others then
+    v_ok := false;
+    v_lines := v_lines || ('✗ Offer comparison: ' || sqlerrm);
+  end;
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  begin
+    perform public.approve_quote((select id from public.quotes where request_id = v_req2 and status = 'submitted' limit 1), 1);
+    v_ok := false;
+    v_lines := v_lines || '✗ A quote could be approved at a price the startup never saw'::text;
+  exception when others then
+    v_ok := sqlerrm like '%price changed%';
+    v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Approving refuses a price that changed since the startup saw it');
+  end;
+  if v_ok then v_pass := v_pass + 1; end if;
+  perform set_config('role', v_me, true);
+
+  perform set_config('request.jwt.claim.sub', u_s3::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_s3, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_total := v_total + 1;
+  begin
+    perform public.compare_offers(v_req2);
+    v_ok := false;
+    v_lines := v_lines || '✗ A supplier could see the comparison of competing offers'::text;
+  exception when others then
+    v_ok := true;
+    v_lines := v_lines || '✓ Suppliers cannot see the comparison of competing offers'::text;
+  end;
+  if v_ok then v_pass := v_pass + 1; end if;
+  perform set_config('role', v_me, true);
+
+  perform set_config('request.jwt.claim.sub', u_s1::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_s1, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_total := v_total + 1;
+  select clients_last_month, current_pct into v_int, v_num
+    from public.volume_status() where category_name = 'Packaging & Printing';
+  v_ok := v_int = 10 and v_num = 10;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Supplier sees its MPI volume: ' || coalesce(v_int::text, '?')
+                         || ' clients last month, so MPI clients get ' || coalesce(v_num::text, '?') || '% off');
+  if v_ok then v_pass := v_pass + 1; end if;
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select max(score) into v_int from public.request_matches;
+  v_ok := v_int <= 100;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Match scores are out of 100 (highest now ' || coalesce(v_int::text, '?') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
 
   -- ==========================================================================
   -- 6. A remote service request

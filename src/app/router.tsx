@@ -10,12 +10,17 @@ import LoginPage from "../screens/auth/LoginPage"
 import ResetPasswordPage from "../screens/auth/ResetPasswordPage"
 import SignupPage from "../screens/auth/SignupPage"
 import NotFound from "../screens/NotFound"
+import OrdersPage from "../screens/orders/OrdersPage"
 import Placeholder from "../screens/Placeholder"
+import MatchesPage from "../screens/admin/MatchesPage"
 import AdminProfilePage from "../screens/profile/AdminProfilePage"
 import StartupProfilePage from "../screens/profile/StartupProfilePage"
 import SupplierProfilePage from "../screens/profile/SupplierProfilePage"
 import MyRequestsPage from "../screens/startup/MyRequestsPage"
+import QuotePage from "../screens/supplier/QuotePage"
+import SupplierRequestsPage from "../screens/supplier/RequestsPage"
 import NewRequestPage from "../screens/startup/new-request/NewRequestPage"
+import RequestDetailPage from "../screens/startup/request/RequestDetailPage"
 import FullPageMessage from "../ui/FullPageMessage"
 import AppShell from "./AppShell"
 import { MENUS } from "./menus"
@@ -34,11 +39,21 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
   startup: [
     { path: "requests", element: <MyRequestsPage /> },
     { path: "requests/new", element: <NewRequestPage /> },
+    { path: "requests/:requestId", element: <RequestDetailPage /> },
+    { path: "orders", element: <OrdersPage side="startup" /> },
     { path: "profile", element: <StartupProfilePage /> },
   ],
-  vendor: [{ path: "profile", element: <SupplierProfilePage /> }],
+  vendor: [
+    { path: "requests", element: <SupplierRequestsPage /> },
+    { path: "requests/:invitationId", element: <QuotePage /> },
+    { path: "orders", element: <OrdersPage side="vendor" /> },
+    { path: "profile", element: <SupplierProfilePage /> },
+  ],
   // Not in the admin menu; opened from the account menu.
-  admin: [{ path: "profile", element: <AdminProfilePage /> }],
+  admin: [
+    { path: "matches", element: <MatchesPage /> },
+    { path: "profile", element: <AdminProfilePage /> },
+  ],
 }
 
 /** A role's area: its guard, the frame, its built screens and a placeholder for the rest. */
