@@ -11,6 +11,7 @@ import ResetPasswordPage from "../screens/auth/ResetPasswordPage"
 import SignupPage from "../screens/auth/SignupPage"
 import NotFound from "../screens/NotFound"
 import Placeholder from "../screens/Placeholder"
+import MatchesPage from "../screens/admin/MatchesPage"
 import AdminProfilePage from "../screens/profile/AdminProfilePage"
 import StartupProfilePage from "../screens/profile/StartupProfilePage"
 import SupplierProfilePage from "../screens/profile/SupplierProfilePage"
@@ -38,7 +39,10 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
   ],
   vendor: [{ path: "profile", element: <SupplierProfilePage /> }],
   // Not in the admin menu; opened from the account menu.
-  admin: [{ path: "profile", element: <AdminProfilePage /> }],
+  admin: [
+    { path: "matches", element: <MatchesPage /> },
+    { path: "profile", element: <AdminProfilePage /> },
+  ],
 }
 
 /** A role's area: its guard, the frame, its built screens and a placeholder for the rest. */

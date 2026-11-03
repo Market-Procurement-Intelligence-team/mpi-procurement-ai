@@ -174,3 +174,112 @@ export async function listAuditLog(limit = 100): Promise<Tables<"audit_log">[]> 
 export async function resetDemoWorkspace(): Promise<string> {
   return unwrap(await db.rpc("reset_demo_workspace"))
 }
+
+// ---------------------------------------------------------------- match queue (admin screen)
+
+export interface QueueSupplier {
+  name: string
+  code: string
+  city: string | null
+  state: string | null
+  certifications: string[]
+  /** How full the supplier's production is, 0 to 100, if they told MPI. */
+  capacityBookedPct: number | null
+}
+
+export interface QueueMatch {
+  match: Tables<"request_matches">
+  supplier: QueueSupplier
+  /** The estimated delivery is after the date the startup needs it by. */
+  mayBeLate: boolean
+}
+
+export interface QueueRequest {
+  request: Tables<"requests">
+  lines: Tables<"request_lines">[]
+  buyerName: string
+  categoryName: string | null
+  /** Approved first, then waiting (best score first), then rejected. */
+  matches: QueueMatch[]
+  approvedCount: number
+  waitingCount: number
+}
+
+/** Most suppliers a request can invite. The database enforces it too. */
+export const MAX_APPROVED = 3
+
+const MATCH_ORDER: Record<Tables<"request_matches">["status"], number> = { approved: 0, suggested: 1, rejected: 2 }
+
+/**
+ * Every open request with its suppliers, for the "AI matches to review" screen.
+ * Requests with suppliers still waiting come first, oldest first, so nothing
+ * waits too long.
+ */
+export async function listMatchQueue(): Promise<QueueRequest[]> {
+  const requests = await withPrivateDetails(
+    unwrap(
+      await db.from("requests").select(REQUEST_FIELDS).in("status", ["open", "comparing"]).order("created_at"),
+    ),
+  )
+  if (!requests.length) return []
+  const requestIds = requests.map((r) => r.id)
+
+  const [matches, lines] = await Promise.all([
+    db.from("request_matches").select("*").in("request_id", requestIds).order("score", { ascending: false }).then(unwrap),
+    db.from("request_lines").select("*").in("request_id", requestIds).order("sort_order").then(unwrap),
+  ])
+
+  const vendorIds = [...new Set(matches.map((m) => m.vendor_org_id))]
+  const orgIds = [...new Set([...requests.map((r) => r.org_id), ...vendorIds])]
+  const categoryIds = [...new Set(requests.flatMap((r) => (r.category_id ? [r.category_id] : [])))]
+
+  const [orgs, details, categories] = await Promise.all([
+    db.from("organisations").select("id, name, display_name, city, state").in("id", orgIds).then(unwrap),
+    vendorIds.length
+      ? db.from("vendor_details").select("org_id, certifications, capacity_utilisation_pct").in("org_id", vendorIds).then(unwrap)
+      : Promise.resolve([]),
+    categoryIds.length
+      ? db.from("catalogue_categories").select("id, name").in("id", categoryIds).then(unwrap)
+      : Promise.resolve([]),
+  ])
+  const orgById = new Map(orgs.map((o) => [o.id, o]))
+  const detailsById = new Map(details.map((d) => [d.org_id, d]))
+  const categoryById = new Map(categories.map((c) => [c.id, c.name]))
+
+  const queue = requests.map((request): QueueRequest => {
+    const own = matches
+      .filter((m) => m.request_id === request.id)
+      .sort((a, b) => MATCH_ORDER[a.status] - MATCH_ORDER[b.status] || b.score - a.score)
+      .map((match): QueueMatch => {
+        const org = orgById.get(match.vendor_org_id)
+        const d = detailsById.get(match.vendor_org_id)
+        return {
+          match,
+          supplier: {
+            name: org?.name ?? "",
+            code: org?.display_name ?? "",
+            city: org?.city ?? null,
+            state: org?.state ?? null,
+            certifications: d?.certifications ?? [],
+            capacityBookedPct: d?.capacity_utilisation_pct ?? null,
+          },
+          mayBeLate: Boolean(
+            request.needed_by && match.estimated_delivery_date && match.estimated_delivery_date > request.needed_by,
+          ),
+        }
+      })
+    return {
+      request,
+      lines: lines.filter((l) => l.request_id === request.id),
+      buyerName: orgById.get(request.org_id)?.name ?? "",
+      categoryName: request.category_id ? categoryById.get(request.category_id) ?? null : null,
+      matches: own,
+      approvedCount: own.filter((m) => m.match.status === "approved").length,
+      waitingCount: own.filter((m) => m.match.status === "suggested").length,
+    }
+  })
+
+  // Requests with suppliers waiting first; then those still short of 3; oldest first within each.
+  const rank = (q: QueueRequest) => (q.waitingCount > 0 && q.approvedCount < MAX_APPROVED ? 0 : q.approvedCount < MAX_APPROVED ? 1 : 2)
+  return queue.sort((a, b) => rank(a) - rank(b))
+}
