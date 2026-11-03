@@ -230,3 +230,31 @@ export async function getRequestDetail(requestId: string): Promise<RequestDetail
     order,
   }
 }
+
+/** One row of the startup's My requests list. */
+export interface RequestCard {
+  request: Request
+  lines: RequestLine[]
+  /** Quotes the startup can compare now (sent, not withdrawn or replaced). */
+  quoteCount: number
+  /** The order placed from this request, if any. */
+  orderId: string | null
+}
+
+/** The signed-in startup's requests with their items, quote count and order, newest first. */
+export async function listMyRequestCards(orgId: string): Promise<RequestCard[]> {
+  const requests = await listMyRequests(orgId)
+  if (!requests.length) return []
+  const ids = requests.map((r) => r.id)
+  const [lines, quotes, orders] = await Promise.all([
+    db.from("request_lines").select("*").in("request_id", ids).order("sort_order").then(unwrap),
+    db.from("quotes").select("request_id, status").in("request_id", ids).in("status", ["submitted", "accepted"]).then(unwrap),
+    db.from("purchase_orders").select("id, request_id").in("request_id", ids).then(unwrap),
+  ])
+  return requests.map((request) => ({
+    request,
+    lines: lines.filter((l) => l.request_id === request.id),
+    quoteCount: quotes.filter((q) => q.request_id === request.id).length,
+    orderId: orders.find((o) => o.request_id === request.id)?.id ?? null,
+  }))
+}
