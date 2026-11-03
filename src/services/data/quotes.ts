@@ -206,3 +206,8 @@ export async function listQuotesForRequest(requestId: string, includeOld = false
 export async function approveQuote(quoteId: string): Promise<string> {
   return unwrap(await db.rpc("approve_quote", { p_quote_id: quoteId }))
 }
+
+/** The lines of one of the signed-in supplier's quotes (or any quote the person can see). */
+export async function listQuoteLines(quoteId: string): Promise<QuoteLine[]> {
+  return unwrap(await db.from("quote_lines").select("*").eq("quote_id", quoteId).order("sort_order"))
+}

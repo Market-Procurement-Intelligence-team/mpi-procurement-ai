@@ -16,6 +16,8 @@ import AdminProfilePage from "../screens/profile/AdminProfilePage"
 import StartupProfilePage from "../screens/profile/StartupProfilePage"
 import SupplierProfilePage from "../screens/profile/SupplierProfilePage"
 import MyRequestsPage from "../screens/startup/MyRequestsPage"
+import QuotePage from "../screens/supplier/QuotePage"
+import SupplierRequestsPage from "../screens/supplier/RequestsPage"
 import NewRequestPage from "../screens/startup/new-request/NewRequestPage"
 import FullPageMessage from "../ui/FullPageMessage"
 import AppShell from "./AppShell"
@@ -37,7 +39,11 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
     { path: "requests/new", element: <NewRequestPage /> },
     { path: "profile", element: <StartupProfilePage /> },
   ],
-  vendor: [{ path: "profile", element: <SupplierProfilePage /> }],
+  vendor: [
+    { path: "requests", element: <SupplierRequestsPage /> },
+    { path: "requests/:invitationId", element: <QuotePage /> },
+    { path: "profile", element: <SupplierProfilePage /> },
+  ],
   // Not in the admin menu; opened from the account menu.
   admin: [
     { path: "matches", element: <MatchesPage /> },
