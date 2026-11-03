@@ -10,6 +10,7 @@ import LoginPage from "../screens/auth/LoginPage"
 import ResetPasswordPage from "../screens/auth/ResetPasswordPage"
 import SignupPage from "../screens/auth/SignupPage"
 import NotFound from "../screens/NotFound"
+import OrdersPage from "../screens/orders/OrdersPage"
 import Placeholder from "../screens/Placeholder"
 import MatchesPage from "../screens/admin/MatchesPage"
 import AdminProfilePage from "../screens/profile/AdminProfilePage"
@@ -39,11 +40,13 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
     { path: "requests", element: <MyRequestsPage /> },
     { path: "requests/new", element: <NewRequestPage /> },
     { path: "requests/:requestId", element: <RequestDetailPage /> },
+    { path: "orders", element: <OrdersPage side="startup" /> },
     { path: "profile", element: <StartupProfilePage /> },
   ],
   vendor: [
     { path: "requests", element: <SupplierRequestsPage /> },
     { path: "requests/:invitationId", element: <QuotePage /> },
+    { path: "orders", element: <OrdersPage side="vendor" /> },
     { path: "profile", element: <SupplierProfilePage /> },
   ],
   // Not in the admin menu; opened from the account menu.

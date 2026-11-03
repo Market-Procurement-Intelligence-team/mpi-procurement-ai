@@ -910,7 +910,7 @@ export default function RequestDetailPage() {
               </span>
             </span>
           </p>
-          <Link to="/startup/orders" className="btn-gradient inline-flex min-h-10 items-center rounded-md px-4 text-[14px] font-bold text-navy">
+          <Link to={`/startup/orders?o=${detail.order.id}`} className="btn-gradient inline-flex min-h-10 items-center rounded-md px-4 text-[14px] font-bold text-navy">
             Go to orders
           </Link>
         </div>
