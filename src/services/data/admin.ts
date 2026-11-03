@@ -8,6 +8,7 @@ import { db } from "../../lib/db"
 import type { Enums, Tables } from "../../lib/database.types"
 import { check, unwrap } from "./errors"
 import { REQUEST_FIELDS, withPrivateDetails } from "./requests"
+import { listMyOrders, type OrderMessage, type OrderSummary } from "./orders"
 
 export type VerificationStatus = Enums<"verification_status">
 export type PaymentTerms = "full_advance" | "30_70"
@@ -286,4 +287,31 @@ export async function listMatchQueue(): Promise<QueueRequest[]> {
   // Requests with suppliers waiting first; then those still short of 3; oldest first within each.
   const rank = (q: QueueRequest) => (q.waitingCount > 0 && q.approvedCount < MAX_APPROVED ? 0 : q.approvedCount < MAX_APPROVED ? 1 : 2)
   return queue.sort((a, b) => rank(a) - rank(b))
+}
+
+// ---------------------------------------------------------------- orders and messages
+
+export interface AdminOrder extends OrderSummary {
+  /** Real company names (admin only). buyerName / supplierName stay the MPI aliases. */
+  buyerRealName: string
+  supplierRealName: string
+}
+
+/** Every order on MPI, newest first, with real and alias names. */
+export async function listAllOrders(): Promise<AdminOrder[]> {
+  const orders = await listMyOrders() // the admin can read every order
+  if (!orders.length) return []
+  const ids = [...new Set(orders.flatMap((o) => [o.buyer_org_id, o.vendor_org_id]))]
+  const orgs = unwrap(await db.from("organisations").select("id, name").in("id", ids))
+  const real = new Map(orgs.map((o) => [o.id, o.name]))
+  return orders.map((o) => ({
+    ...o,
+    buyerRealName: real.get(o.buyer_org_id) ?? o.buyerName,
+    supplierRealName: real.get(o.vendor_org_id) ?? o.supplierName,
+  }))
+}
+
+/** Every order message on MPI (both sides of every order), oldest first. */
+export async function listAllOrderMessages(): Promise<OrderMessage[]> {
+  return unwrap(await db.from("order_messages").select("*").order("created_at"))
 }

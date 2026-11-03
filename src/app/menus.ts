@@ -52,6 +52,7 @@ export const MENUS: Record<Role, { area: string; title: string; items: MenuItem[
     items: [
       { label: "Overview", to: "", icon: LayoutDashboard },
       { label: "AI matches to review", short: "AI matches", to: "matches", icon: Sparkles },
+      { label: "Orders and messages", short: "Orders", to: "orders", icon: Package },
       { label: "Supplier verification", short: "Verification", to: "verification", icon: ShieldCheck },
       { label: "Payment terms", to: "payment-terms", icon: Wallet },
       { label: "Price offers and activity", short: "Activity", to: "activity", icon: Activity },

@@ -68,7 +68,7 @@ type Side = "startup" | "vendor"
 type ListTab = "active" | "done"
 type DetailTab = "progress" | "payments" | "items" | "messages"
 
-const STEP_LABEL: Record<OrderStatus, string> = {
+export const STEP_LABEL: Record<OrderStatus, string> = {
   issued: "Order placed",
   in_production: "In production",
   qc_passed: "Quality checked",
@@ -88,7 +88,7 @@ const STEP_ICON: Record<OrderStatus, typeof Package> = {
   cancelled: FileText,
 }
 
-const STATUS_TONE: Record<OrderStatus, "navy" | "orange" | "red" | "line"> = {
+export const STATUS_TONE: Record<OrderStatus, "navy" | "orange" | "red" | "line"> = {
   issued: "orange",
   in_production: "orange",
   qc_passed: "orange",
@@ -98,7 +98,7 @@ const STATUS_TONE: Record<OrderStatus, "navy" | "orange" | "red" | "line"> = {
   cancelled: "red",
 }
 
-const isDone = (o: OrderSummary) => o.status === "completed" || o.status === "cancelled"
+export const isDone = (o: OrderSummary) => o.status === "completed" || o.status === "cancelled"
 
 const isoIn = (days: number) => {
   const d = new Date()
@@ -189,7 +189,7 @@ function OrderList({
 
 // ---------------------------------------------------------------- progress
 
-function Stepper({ status, events }: { status: OrderStatus; events: OrderEvent[] }) {
+export function Stepper({ status, events }: { status: OrderStatus; events: OrderEvent[] }) {
   const reached = ORDER_STEPS.indexOf(status)
   return (
     <ol className="grid gap-2 sm:grid-cols-6">
@@ -338,7 +338,7 @@ const INVOICE_TONE: Record<InvoiceSummary["status"], { label: string; tone: "nav
 
 const DUE_TEXT = { on_order: "Before work starts", on_delivery: "On delivery", on_settlement: "When MPI settles" } as const
 
-function InvoiceCard({ invoice, side, order }: { invoice: InvoiceSummary; side: Side; order: OrderSummary }) {
+export function InvoiceCard({ invoice, side, order }: { invoice: InvoiceSummary; side: Side | "admin"; order: OrderSummary }) {
   const st = INVOICE_TONE[invoice.status]
   const label =
     side === "vendor" && invoice.kind === "supplier_to_buyer"
