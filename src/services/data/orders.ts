@@ -82,3 +82,8 @@ export async function sendOrderMessage(orderId: string, topic: MessageTopic, bod
 export async function replyOrderMessage(orderId: string, orgId: string, body: string): Promise<void> {
   check(await db.rpc("reply_order_message", { p_po_id: orderId, p_org_id: orgId, p_body: body }))
 }
+
+/** Every order message you can see: your own side's conversations (the admin sees all), oldest first. */
+export async function listVisibleOrderMessages(): Promise<OrderMessage[]> {
+  return unwrap(await db.from("order_messages").select("*").order("created_at"))
+}

@@ -6,11 +6,11 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Link, NavLink, Outlet, useLocation } from "react-router"
-import { Bell, ChevronDown, LogOut, Menu, UserRound, X } from "lucide-react"
+import { ChevronDown, LogOut, Menu, UserRound, X } from "lucide-react"
 import { signOut } from "../services/data/auth"
-import { countUnread } from "../services/data/notifications"
 import MpiLogo from "../ui/brand/MpiLogo"
 import { MENUS } from "./menus"
+import NotificationBell from "./NotificationBell"
 import { useSession, type Role } from "./session"
 
 function initialsOf(name: string): string {
@@ -23,7 +23,6 @@ export default function AppShell({ role }: { role: Role }) {
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
-  const [unread, setUnread] = useState(0)
   const accountRef = useRef<HTMLDivElement>(null)
   const menu = MENUS[role]
 
@@ -31,12 +30,6 @@ export default function AppShell({ role }: { role: Role }) {
   useEffect(() => {
     setMenuOpen(false)
     setAccountOpen(false)
-  }, [location.pathname])
-
-  useEffect(() => {
-    countUnread()
-      .then(setUnread)
-      .catch(() => setUnread(0))
   }, [location.pathname])
 
   // Close the account menu on a click outside it, or on Escape.
@@ -93,18 +86,7 @@ export default function AppShell({ role }: { role: Role }) {
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4">
-            <button
-              type="button"
-              className="relative rounded-md p-2 text-white/85 hover:bg-white/10 hover:text-white"
-              aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
-            >
-              <Bell size={22} />
-              {unread > 0 && (
-                <span className="absolute right-0.5 top-0.5 min-w-5 rounded-full bg-red px-1 text-center text-xs font-bold leading-5 text-white">
-                  {unread > 9 ? "9+" : unread}
-                </span>
-              )}
-            </button>
+            <NotificationBell role={role} />
 
             {/* Account */}
             <div className="relative hidden sm:block" ref={accountRef}>

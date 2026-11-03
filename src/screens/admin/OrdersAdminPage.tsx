@@ -1,32 +1,29 @@
 /**
- * Admin: Orders and messages (/admin/orders).
+ * Admin: Orders (/admin/orders).
  *
  * Every order on MPI. Summary cards on top. Left: the order list (Needs reply /
  * Active / Done). Right: one order, with tabs:
- * - Messages: the buyer's and the supplier's conversations with MPI, side by
- *   side, each with a reply box. A message meant for the other side can be
- *   passed on in one click. Names stay private between the two sides.
  * - Progress: the 6 steps. The admin can step in and set the status.
  * - Money: what the buyer paid, what MPI owes the supplier (with a simulated
  *   payout), MPI's revenue, and all 3 invoices.
+ * "Message buyer / supplier" open that conversation on the Notifications
+ * screen (Messages tab), where the admin replies and passes messages on.
  *
  * The admin sees real company names next to the MPI aliases.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { useSearchParams } from "react-router"
+import { Link, useNavigate, useSearchParams } from "react-router"
 import {
   ArrowLeft,
   Banknote,
   Building2,
   CircleDollarSign,
-  Forward,
   Inbox,
   Info,
   MessageSquare,
   Package,
   Search,
-  Send,
   ShieldCheck,
   Wallet,
 } from "lucide-react"
@@ -35,7 +32,6 @@ import { getOrderMoney, payOutSupplier, SIMULATED_NOTE, type OrderMoney } from "
 import {
   listOrderHistory,
   ORDER_STEPS,
-  replyOrderMessage,
   updateOrderStatus,
   type OrderEvent,
   type OrderMessage,
@@ -45,22 +41,12 @@ import Button from "../../ui/Button"
 import EmptyState from "../../ui/EmptyState"
 import { Alert, BOX, boxBorder } from "../../ui/form"
 import PageHeader from "../../ui/PageHeader"
+import { notificationsPath } from "../notifications/notify"
 import { InvoiceCard, isDone, STATUS_TONE, STEP_LABEL, Stepper } from "../orders/OrdersPage"
 import { Chip, day, daysLeft, daysUntil, errorText, GRADIENT_PANEL, rupees, SummaryCards, useToast } from "../supplier/parts"
 
 type ListTab = "reply" | "active" | "done"
-type DetailTab = "messages" | "progress" | "money"
-
-const TOPIC: Record<string, string> = {
-  for_other_side: "For the other side",
-  delivery: "Delivery",
-  quality: "Quality",
-  payment: "Payment",
-  other: "Something else",
-}
-
-const time = (iso: string) =>
-  `${day(iso)} ${new Date(iso).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}`
+type DetailTab = "progress" | "money"
 
 /** Conversations (one per order and side) whose last message is still waiting for MPI. */
 function waiting(messages: OrderMessage[]): Set<string> {
@@ -135,133 +121,6 @@ function OrderList({
         )
       })}
     </ul>
-  )
-}
-
-// ---------------------------------------------------------------- messages
-
-function Conversation({
-  order,
-  side,
-  messages,
-  waitingReply,
-  onReply,
-  onPassOn,
-}: {
-  order: AdminOrder
-  side: "buyer" | "supplier"
-  messages: OrderMessage[]
-  waitingReply: boolean
-  onReply: (body: string, alsoOther: boolean) => Promise<void>
-  onPassOn: (m: OrderMessage) => Promise<void>
-}) {
-  const [body, setBody] = useState("")
-  const [alsoOther, setAlsoOther] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const real = side === "buyer" ? order.buyerRealName : order.supplierRealName
-  const alias = side === "buyer" ? order.buyerName : order.supplierName
-  const other = side === "buyer" ? "supplier" : "buyer"
-
-  return (
-    <section className="flex flex-col rounded-xl border-[1.5px] border-line bg-white" aria-label={`Conversation with the ${side}`}>
-      <header className="flex items-start justify-between gap-2 border-b border-line px-4 py-3">
-        <div className="min-w-0">
-          <p className="text-[11.5px] font-bold uppercase tracking-[0.06em] text-muted">{side === "buyer" ? "Buyer" : "Supplier"}</p>
-          <p className="truncate text-[15px] font-bold text-navy">{real}</p>
-          <p className="text-[12.5px] text-muted">Sees itself as {alias}</p>
-        </div>
-        {waitingReply && <Chip tone="orange">Waiting for MPI</Chip>}
-      </header>
-
-      <div className="max-h-80 flex-1 space-y-3 overflow-y-auto px-4 py-3">
-        {messages.length === 0 ? (
-          <p className="text-[13.5px] text-muted">No messages from the {side} yet.</p>
-        ) : (
-          messages.map((m) => (
-            <div key={m.id} className={`flex ${m.from_mpi ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[90%] rounded-xl px-3.5 py-2.5 text-[14px] ${
-                  m.from_mpi ? "bg-navy text-white" : "border-[1.5px] border-line bg-page/60 text-navy"
-                }`}
-              >
-                <p className={`mb-1 text-[11.5px] font-semibold ${m.from_mpi ? "text-white/70" : "text-muted"}`}>
-                  {m.from_mpi ? "MPI (you)" : side === "buyer" ? "Buyer" : "Supplier"}
-                  {!m.from_mpi && ` · ${TOPIC[m.topic] ?? TOPIC.other}`} · {time(m.created_at)}
-                </p>
-                <p className="whitespace-pre-wrap">{m.body}</p>
-                {!m.from_mpi && m.topic === "for_other_side" && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      setError(null)
-                      try {
-                        await onPassOn(m)
-                      } catch (err) {
-                        setError(errorText(err))
-                      }
-                    }}
-                    className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-orange px-3 py-1 text-[12.5px] font-bold text-navy hover:bg-orange-2"
-                  >
-                    <Forward size={14} aria-hidden="true" /> Pass on to the {other}
-                  </button>
-                )}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      <form
-        className="border-t border-line p-3"
-        onSubmit={async (e) => {
-          e.preventDefault()
-          if (!body.trim()) return setError("Please write a reply.")
-          setBusy(true)
-          setError(null)
-          try {
-            await onReply(body, alsoOther)
-            setBody("")
-            setAlsoOther(false)
-          } catch (err) {
-            setError(errorText(err))
-          } finally {
-            setBusy(false)
-          }
-        }}
-      >
-        <label htmlFor={`reply-${side}`} className="sr-only">
-          Reply to the {side}
-        </label>
-        <textarea
-          id={`reply-${side}`}
-          rows={2}
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder={`Reply to the ${side}. They see it as from MPI.`}
-          className={`${BOX} ${boxBorder()} py-2 text-[14.5px]`}
-        />
-        {error && (
-          <div className="mt-2">
-            <Alert>{error}</Alert>
-          </div>
-        )}
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <label className="inline-flex cursor-pointer items-center gap-2 text-[13.5px] font-semibold text-navy">
-            <input
-              type="checkbox"
-              checked={alsoOther}
-              onChange={(e) => setAlsoOther(e.target.checked)}
-              className="h-4 w-4 accent-[#F09A47]"
-            />
-            <Forward size={14} aria-hidden="true" /> Also pass on to the {other}
-          </label>
-          <Button type="submit" className="min-h-10 px-4" busy={busy}>
-            <Send size={16} aria-hidden="true" /> {alsoOther ? "Send to both" : "Send reply"}
-          </Button>
-        </div>
-      </form>
-    </section>
   )
 }
 
@@ -418,7 +277,7 @@ function OrderPanel({
   onDone: (msg: string) => Promise<void>
 }) {
   const [params, setParams] = useSearchParams()
-  const tab = (params.get("tab") as DetailTab | null) ?? "messages"
+  const tab = (params.get("tab") as DetailTab | null) ?? "progress"
   const setTab = (t: DetailTab) => {
     const p = new URLSearchParams(params)
     p.set("tab", t)
@@ -433,22 +292,11 @@ function OrderPanel({
     }
   }, [order.id, order.status])
 
-  const mine = messages.filter((m) => m.po_id === order.id)
-  const buyerMsgs = mine.filter((m) => m.org_id === order.buyer_org_id)
-  const supplierMsgs = mine.filter((m) => m.org_id === order.vendor_org_id)
-  const toReply = [order.buyer_org_id, order.vendor_org_id].filter((o) => unanswered.has(`${order.id}:${o}`)).length
+  const waitBuyer = unanswered.has(`${order.id}:${order.buyer_org_id}`)
+  const waitSupplier = unanswered.has(`${order.id}:${order.vendor_org_id}`)
+  const count = (org: string) => messages.filter((m) => m.po_id === order.id && m.org_id === org).length
   const eta = order.expected_delivery
   const arrived = order.status === "delivered" || isDone(order)
-
-  const reply = (orgId: string, who: string, otherOrg: string, otherWho: string) => async (body: string, alsoOther: boolean) => {
-    await replyOrderMessage(order.id, orgId, body)
-    if (alsoOther) await replyOrderMessage(order.id, otherOrg, body)
-    await onDone(alsoOther ? `Sent to the ${who} and the ${otherWho}` : `Reply sent to the ${who}`)
-  }
-  const passOn = (toOrg: string, from: string, to: string) => async (m: OrderMessage) => {
-    await replyOrderMessage(order.id, toOrg, `Message from the ${from}, passed on by MPI:\n${m.body}`)
-    await onDone(`Passed on to the ${to}`)
-  }
 
   return (
     <section className="@container overflow-hidden rounded-xl shadow-[0_1px_3px_rgba(21,35,61,0.08)]" style={GRADIENT_PANEL} aria-label={order.po_number}>
@@ -488,11 +336,32 @@ function OrderPanel({
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 border-t border-line bg-white px-5 py-2.5 text-[13.5px] sm:px-6">
+        <span className="mr-1 font-semibold text-muted">Messages:</span>
+        {(
+          [
+            ["buyer", order.buyer_org_id, waitBuyer],
+            ["supplier", order.vendor_org_id, waitSupplier],
+          ] as const
+        ).map(([side, org, wait]) => (
+          <Link
+            key={side}
+            to={notificationsPath("admin", { order: order.id, side })}
+            className={`inline-flex min-h-9 items-center gap-1.5 rounded-md border-[1.5px] px-3 font-semibold ${
+              wait ? "border-orange bg-orange-tint/50 text-navy" : "border-line bg-white text-navy hover:border-navy"
+            }`}
+          >
+            {wait && <span className="h-2 w-2 rounded-full bg-red" aria-label="Waiting for MPI" />}
+            <MessageSquare size={15} aria-hidden="true" /> {side === "buyer" ? "Buyer" : "Supplier"}
+            <span className="text-muted">({count(org)})</span>
+          </Link>
+        ))}
+      </div>
+
       <div className="border-y border-line bg-white px-5 py-2.5 sm:px-6">
-        <div role="tablist" aria-label="Order sections" className="grid w-full grid-cols-3 gap-1 rounded-lg bg-page p-1 ring-1 ring-inset ring-line">
+        <div role="tablist" aria-label="Order sections" className="grid w-full grid-cols-2 gap-1 rounded-lg bg-page p-1 ring-1 ring-inset ring-line">
           {(
             [
-              { id: "messages", label: "Messages", count: toReply || undefined },
               { id: "progress", label: "Progress" },
               { id: "money", label: "Money" },
             ] as { id: DetailTab; label: string; count?: number }[]
@@ -518,32 +387,6 @@ function OrderPanel({
       </div>
 
       <div className="bg-white p-5 sm:p-6">
-        {tab === "messages" && (
-          <>
-            <p className="mb-4 flex items-start gap-2 text-[13.5px] text-muted">
-              <ShieldCheck size={16} className="mt-0.5 shrink-0 text-orange" aria-hidden="true" />
-              Each side only sees its own conversation with MPI. Use "Pass on" to forward a message meant for the other side; it arrives as from MPI.
-            </p>
-            <div className="grid items-start gap-4 @2xl:grid-cols-2">
-              <Conversation
-                order={order}
-                side="buyer"
-                messages={buyerMsgs}
-                waitingReply={unanswered.has(`${order.id}:${order.buyer_org_id}`)}
-                onReply={reply(order.buyer_org_id, "buyer", order.vendor_org_id, "supplier")}
-                onPassOn={passOn(order.vendor_org_id, "buyer", "supplier")}
-              />
-              <Conversation
-                order={order}
-                side="supplier"
-                messages={supplierMsgs}
-                waitingReply={unanswered.has(`${order.id}:${order.vendor_org_id}`)}
-                onReply={reply(order.vendor_org_id, "supplier", order.buyer_org_id, "buyer")}
-                onPassOn={passOn(order.buyer_org_id, "supplier", "buyer")}
-              />
-            </div>
-          </>
-        )}
         {tab === "progress" && (
           <div className="space-y-5">
             {order.status === "cancelled" ? <Chip tone="red">Cancelled</Chip> : <Stepper status={order.status} events={events} />}
@@ -566,6 +409,7 @@ export default function OrdersAdminPage() {
   const [params, setParams] = useSearchParams()
   const [query, setQuery] = useState("")
   const [toast, toastNode] = useToast()
+  const navigate = useNavigate()
 
   const selectedId = params.get("o")
 
@@ -584,7 +428,7 @@ export default function OrdersAdminPage() {
   }, [])
 
   useEffect(() => {
-    document.title = "Orders and messages · MPI admin"
+    document.title = "Orders · MPI admin"
     void reload()
   }, [reload])
 
@@ -640,8 +484,8 @@ export default function OrdersAdminPage() {
   return (
     <div>
       <PageHeader
-        title="Orders and messages"
-        description="Every order on MPI. Reply to buyers and suppliers, pay suppliers out, and step in only when needed."
+        title="Orders"
+        description="Every order on MPI. Track progress, pay suppliers out, and step in only when needed. Messages are under the bell."
       />
       {error && (
         <div className="mb-4">
@@ -659,7 +503,11 @@ export default function OrdersAdminPage() {
         <>
           <SummaryCards
             selected={listTab === "reply" ? "reply" : listTab === "done" ? null : "active"}
-            onPick={(id) => update({ list: id === "reply" ? "reply" : "active", o: null, tab: id === "payout" || id === "revenue" ? "money" : null })}
+            onPick={(id) =>
+              id === "reply"
+                ? navigate(notificationsPath("admin", {}))
+                : update({ list: "active", o: null, tab: id === "payout" || id === "revenue" ? "money" : null })
+            }
             items={[
               { id: "reply", label: "Messages to answer", value: waitingCount, hint: waitingCount ? "buyers and suppliers waiting" : "all answered", icon: MessageSquare, dot: waitingCount > 0 },
               { id: "active", label: "Active orders", value: activeCount, hint: `${all.length} in total`, icon: Package },
@@ -713,7 +561,7 @@ export default function OrdersAdminPage() {
                   onDone={done}
                 />
               ) : (
-                <EmptyState icon={Package} title="Pick an order" body="Choose an order on the left to see its messages, progress and money." />
+                <EmptyState icon={Package} title="Pick an order" body="Choose an order on the left to see its progress and money." />
               )}
             </div>
           </div>
