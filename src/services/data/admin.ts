@@ -171,6 +171,96 @@ export async function listAuditLog(limit = 100): Promise<Tables<"audit_log">[]> 
   return unwrap(await db.from("audit_log").select("*").order("created_at", { ascending: false }).limit(limit))
 }
 
+// ---------------------------------------------------------------- price offers and activity (admin screen)
+
+/** One startup–supplier price negotiation on a request: every offer in order. */
+export interface NegotiationThread {
+  /** request id + supplier org id */
+  key: string
+  requestId: string
+  requestTitle: string
+  buyerName: string
+  supplierName: string
+  /** The quote total before the first offer. */
+  startTotal: number | null
+  /** Oldest first. */
+  offers: Tables<"quote_negotiations">[]
+}
+
+/** Every price negotiation on MPI, latest activity first, with real names. */
+export async function listNegotiationThreads(limit = 500): Promise<NegotiationThread[]> {
+  // Offers saved in one step can share a time; a countered offer always comes before the counter.
+  const offers = unwrap(await db.from("quote_negotiations").select("*").order("created_at", { ascending: false }).limit(limit)).sort(
+    (x, y) => x.created_at.localeCompare(y.created_at) || (x.status === "countered" ? 0 : 1) - (y.status === "countered" ? 0 : 1),
+  )
+  if (!offers.length) return []
+  const groups = new Map<string, Tables<"quote_negotiations">[]>()
+  for (const o of offers) {
+    const key = `${o.request_id}:${o.vendor_org_id}`
+    groups.set(key, [...(groups.get(key) ?? []), o])
+  }
+  const firstQuoteIds = [...new Set([...groups.values()].map((g) => g[0].quote_id))]
+  const requestIds = [...new Set(offers.map((o) => o.request_id))]
+  const orgIds = [...new Set(offers.flatMap((o) => [o.buyer_org_id, o.vendor_org_id]))]
+  const [quotes, requests, orgs] = await Promise.all([
+    db.from("quotes").select("id, total").in("id", firstQuoteIds).then(unwrap),
+    db.from("requests").select("id, title").in("id", requestIds).then(unwrap),
+    db.from("organisations").select("id, name").in("id", orgIds).then(unwrap),
+  ])
+  const quoteTotal = new Map(quotes.map((q) => [q.id, q.total]))
+  const title = new Map(requests.map((r) => [r.id, r.title]))
+  const orgName = new Map(orgs.map((o) => [o.id, o.name]))
+  return [...groups.entries()]
+    .map(([key, list]) => ({
+      key,
+      requestId: list[0].request_id,
+      requestTitle: title.get(list[0].request_id) ?? "Request",
+      buyerName: orgName.get(list[0].buyer_org_id) ?? "Startup",
+      supplierName: orgName.get(list[0].vendor_org_id) ?? "Supplier",
+      startTotal: quoteTotal.get(list[0].quote_id) ?? null,
+      offers: list,
+    }))
+    .sort((a, b) => b.offers[b.offers.length - 1].created_at.localeCompare(a.offers[a.offers.length - 1].created_at))
+}
+
+/** An activity log entry with the name of who did it. */
+export interface ActivityEntry {
+  entry: Tables<"audit_log">
+  /** Person's name, or null for automatic steps. */
+  actorName: string | null
+  /** Their company, or "MPI" for the admin. */
+  orgName: string | null
+  /** A company named in the entry (e.g. the supplier invited or approved). */
+  subjectName: string | null
+}
+
+/** The activity log, newest first, with names. */
+export async function listActivity(limit = 200): Promise<ActivityEntry[]> {
+  const rows = await listAuditLog(limit)
+  const detail = (r: Tables<"audit_log">, k: string) => {
+    const d = r.details
+    return d && typeof d === "object" && !Array.isArray(d) && typeof d[k] === "string" ? (d[k] as string) : null
+  }
+  const subjectOrg = (r: Tables<"audit_log">) => detail(r, "vendor_org_id") ?? (r.entity_type === "organisation" ? r.entity_id : null)
+  const actorIds = [...new Set(rows.flatMap((r) => (r.actor_id ? [r.actor_id] : [])))]
+  const orgIds = [...new Set(rows.flatMap((r) => [r.org_id, subjectOrg(r)].filter((x): x is string => !!x)))]
+  const [people, orgs] = await Promise.all([
+    actorIds.length ? db.from("profiles").select("id, full_name").in("id", actorIds).then(unwrap) : Promise.resolve([]),
+    orgIds.length ? db.from("organisations").select("id, name, type").in("id", orgIds).then(unwrap) : Promise.resolve([]),
+  ])
+  const person = new Map(people.map((p) => [p.id, p.full_name]))
+  const org = new Map(orgs.map((o) => [o.id, o.type === "platform" ? "MPI" : o.name]))
+  return rows.map((entry) => {
+    const s = subjectOrg(entry)
+    return {
+      entry,
+      actorName: entry.actor_id ? person.get(entry.actor_id) ?? null : null,
+      orgName: entry.org_id ? org.get(entry.org_id) ?? null : null,
+      subjectName: s ? org.get(s) ?? null : null,
+    }
+  })
+}
+
 /** Reloads the investor demo workspace with fresh sample data. */
 export async function resetDemoWorkspace(): Promise<string> {
   return unwrap(await db.rpc("reset_demo_workspace"))

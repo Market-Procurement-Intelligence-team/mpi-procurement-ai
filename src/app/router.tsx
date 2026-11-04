@@ -22,6 +22,7 @@ import VerificationPage from "../screens/admin/VerificationPage"
 import PaymentTermsPage from "../screens/admin/PaymentTermsPage"
 import SchemesPage from "../screens/schemes/SchemesPage"
 import AdminSchemesPage from "../screens/schemes/AdminSchemesPage"
+import ActivityPage from "../screens/admin/ActivityPage"
 import AdminProfilePage from "../screens/profile/AdminProfilePage"
 import StartupProfilePage from "../screens/profile/StartupProfilePage"
 import SupplierProfilePage from "../screens/profile/SupplierProfilePage"
@@ -71,6 +72,7 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
     { path: "verification", element: <VerificationPage /> },
     { path: "payment-terms", element: <PaymentTermsPage /> },
     { path: "schemes", element: <AdminSchemesPage /> },
+    { path: "activity", element: <ActivityPage /> },
     { path: "orders", element: <OrdersAdminPage /> },
     { path: "notifications", element: <NotificationsPage role="admin" /> },
     { path: "profile", element: <AdminProfilePage /> },
