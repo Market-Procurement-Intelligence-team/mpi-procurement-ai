@@ -32,7 +32,7 @@ export interface SaleEntry {
 }
 
 const MONTHS = 6
-const BLUE = "#8EC5FF"
+const BLUE = "#3A6BB5"
 const WORDS: TrendWords = { low: "you receive", high: "invoiced", gap: "MPI commission", highColor: BLUE, gapText: "#5f6b7c", caption: "Monthly sales" }
 
 function sampleEntries(now: Date): SaleEntry[] {
@@ -151,7 +151,7 @@ export default function SalesPanel({ entries, won, decided }: { entries: SaleEnt
                       Invoiced
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-[3px] w-4 rounded-full bg-orange" />
+                      <span className="h-[3px] w-4 rounded-full bg-[#E07B2E]" />
                       You receive
                     </span>
                     <span className="hidden @md:inline">gap = MPI commission</span>

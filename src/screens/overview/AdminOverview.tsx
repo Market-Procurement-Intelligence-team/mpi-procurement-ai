@@ -171,7 +171,7 @@ export default function AdminOverview() {
     const gettingStarted: TodoItem[] = [
       { id: "gs-matches", icon: Sparkles, title: "Look at the AI matches queue", detail: "New startup requests show up here for approval", cta: "Open", to: "/admin/matches" },
       { id: "gs-terms", icon: CircleDollarSign, title: "Check the payment terms", detail: "Full advance or 30/70, per category", cta: "Open", to: "/admin/payment-terms" },
-      { id: "gs-demo", icon: RefreshCcw, title: "Reset the demo workspace", detail: "Fresh demo requests, offers and orders", cta: "Open", to: "/admin/demo" },
+      { id: "gs-demo", icon: RefreshCcw, title: "Reset the demo workspace", detail: "Fresh demo requests, offers and orders", cta: "Open", to: "/admin/profile?tab=settings" },
     ]
 
     // Business through MPI: every order that wasn't cancelled.

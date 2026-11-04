@@ -1,4 +1,4 @@
-/** Admin profile: the person's own details and settings. */
+/** Admin profile: the person's own details and settings (Settings includes Demo workspace). */
 
 import { useEffect, useMemo, useState } from "react"
 import { UserRound } from "lucide-react"
@@ -6,7 +6,7 @@ import { useMe, useSession } from "../../app/session"
 import { updateMyProfile } from "../../services/data/auth"
 import { ProfileSection, TextInput } from "./parts"
 import ProfileShell, { HeroChip } from "./ProfileShell"
-import SettingsSection from "./SettingsSection"
+import AdminSettings from "./AdminSettings"
 import { textOrNull, useForm } from "./useForm"
 
 export default function AdminProfilePage() {
@@ -73,7 +73,7 @@ export default function AdminProfilePage() {
           </ProfileSection>
         </>,
       ]}
-      settings={<SettingsSection email={me.email} />}
+      settings={<AdminSettings email={me.email} />}
     />
   )
 }

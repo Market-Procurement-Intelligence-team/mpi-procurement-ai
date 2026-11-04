@@ -26,7 +26,7 @@ type PrivateField = "budget_min" | "budget_max" | "requirement_text" | "ai_extra
 
 /** Every request field anyone who can see the request may read. */
 export const REQUEST_FIELDS =
-  "id, org_id, created_by, title, description, input_language, required_certifications, category_id, source, status, needed_by, delivery_city, delivery_state, currency, created_at, updated_at" as const
+  "id, org_id, created_by, title, description, input_language, required_certifications, scheme_ids, category_id, source, status, needed_by, delivery_city, delivery_state, currency, created_at, updated_at" as const
 
 /**
  * Adds the private fields (budget, original wording, AI reading) to requests
@@ -66,6 +66,8 @@ export interface RequestInput {
   inputLanguage?: string | null
   aiExtracted?: Json | null
   requiredCertifications?: string[]
+  /** Government schemes the startup plans to use (ticked on Review & send). */
+  schemeIds?: string[]
   categoryId?: string | null
   source?: Request["source"]
   neededBy?: string | null
@@ -114,6 +116,7 @@ export async function createRequest(orgId: string, userId: string, input: Reques
         input_language: input.inputLanguage ?? null,
         ai_extracted: input.aiExtracted ?? null,
         required_certifications: input.requiredCertifications ?? [],
+        scheme_ids: input.schemeIds ?? [],
         category_id: input.categoryId ?? null,
         source: input.source ?? "catalogue",
         needed_by: input.neededBy ?? null,

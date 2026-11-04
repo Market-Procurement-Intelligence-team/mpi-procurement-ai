@@ -18,6 +18,9 @@ import SupplierOverview from "../screens/overview/SupplierOverview"
 import Placeholder from "../screens/Placeholder"
 import MatchesPage from "../screens/admin/MatchesPage"
 import OrdersAdminPage from "../screens/admin/OrdersAdminPage"
+import VerificationPage from "../screens/admin/VerificationPage"
+import PaymentTermsPage from "../screens/admin/PaymentTermsPage"
+import SchemesPage from "../screens/schemes/SchemesPage"
 import AdminProfilePage from "../screens/profile/AdminProfilePage"
 import StartupProfilePage from "../screens/profile/StartupProfilePage"
 import SupplierProfilePage from "../screens/profile/SupplierProfilePage"
@@ -48,6 +51,7 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
     { path: "requests/:requestId", element: <RequestDetailPage /> },
     { path: "orders", element: <OrdersPage side="startup" /> },
     { path: "notifications", element: <NotificationsPage role="startup" /> },
+    { path: "schemes", element: <SchemesPage audience="startup" /> },
     { path: "profile", element: <StartupProfilePage /> },
   ],
   vendor: [
@@ -56,12 +60,15 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
     { path: "requests/:invitationId", element: <QuotePage /> },
     { path: "orders", element: <OrdersPage side="vendor" /> },
     { path: "notifications", element: <NotificationsPage role="vendor" /> },
+    { path: "schemes", element: <SchemesPage audience="vendor" /> },
     { path: "profile", element: <SupplierProfilePage /> },
   ],
   // Not in the admin menu; opened from the account menu.
   admin: [
     { index: true, element: <AdminOverview /> },
     { path: "matches", element: <MatchesPage /> },
+    { path: "verification", element: <VerificationPage /> },
+    { path: "payment-terms", element: <PaymentTermsPage /> },
     { path: "orders", element: <OrdersAdminPage /> },
     { path: "notifications", element: <NotificationsPage role="admin" /> },
     { path: "profile", element: <AdminProfilePage /> },

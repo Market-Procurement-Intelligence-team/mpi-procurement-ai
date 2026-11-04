@@ -141,11 +141,11 @@ export default function SpendPanel({ entries, orderCount }: { entries: SpendEntr
               {show === "chart" && (
               <span className="flex items-center gap-3 text-[12px] text-muted" aria-hidden="true">
                 <span className="flex items-center gap-1.5">
-                  <span className="h-[3px] w-4 rounded-full bg-orange" />
+                  <span className="h-[3px] w-4 rounded-full bg-[#E07B2E]" />
                   Paid
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="h-[3px] w-4 rounded-full bg-[#8BE3B8]" />
+                  <span className="h-[3px] w-4 rounded-full bg-[#15967B]" />
                   Usual price
                 </span>
                 <span className="hidden @md:inline">gap = saved</span>

@@ -55,6 +55,7 @@ function toFields(input: RequestInput) {
     input_language: input.inputLanguage ?? null,
     ai_extracted: input.aiExtracted ?? null,
     required_certifications: input.requiredCertifications ?? [],
+    scheme_ids: input.schemeIds ?? [],
     category_id: input.categoryId ?? null,
     source: input.source ?? "catalogue",
     needed_by: input.neededBy ?? null,
@@ -400,7 +401,7 @@ export default function NewRequestPage() {
       )}
       {step === 2 && <DetailsStep draft={draft} update={update} errors={errors} />}
       {step === 3 && <DeliveryStep draft={draft} update={update} errors={errors} isService={isService} />}
-      {step === 4 && <ReviewStep draft={draft} categories={categories} onEdit={go} />}
+      {step === 4 && <ReviewStep draft={draft} categories={categories} onEdit={go} update={update} />}
 
       {/* Back / Save / Next, always in reach */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t-[1.5px] border-line bg-white/95 backdrop-blur">

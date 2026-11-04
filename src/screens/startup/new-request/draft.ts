@@ -33,6 +33,8 @@ export interface WizardDraft {
   categoryId: string | null
   items: DraftItem[]
   certifications: string[]
+  /** Government schemes ticked on Review & send. */
+  schemeIds: string[]
   neededBy: string
   remote: boolean
   deliveryCity: string
@@ -72,6 +74,7 @@ export function emptyDraft(): WizardDraft {
     categoryId: null,
     items: [],
     certifications: [],
+    schemeIds: [],
     neededBy: "",
     remote: false,
     deliveryCity: "",
@@ -135,6 +138,7 @@ export function fromRequest(request: Request, lines: RequestLine[]): WizardDraft
       unit: line.unit,
     })),
     certifications: request.required_certifications,
+    schemeIds: request.scheme_ids ?? [],
     neededBy: request.needed_by ?? "",
     remote: reading?.remote === true && !request.delivery_city,
     deliveryCity: request.delivery_city ?? "",
@@ -210,6 +214,7 @@ export function toRequestInput(draft: WizardDraft): RequestInput {
     inputLanguage: draft.language,
     aiExtracted: (draft.aiReading as unknown as Json) ?? null,
     requiredCertifications: draft.certifications,
+    schemeIds: draft.schemeIds,
     categoryId: draft.categoryId,
     source: draft.aiReading ? "ai_assisted" : "catalogue",
     neededBy: draft.neededBy || null,

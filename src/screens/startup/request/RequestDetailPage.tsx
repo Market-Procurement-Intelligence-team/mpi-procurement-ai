@@ -52,6 +52,7 @@ import { listQuotesForRequest, type QuoteWithLines } from "../../../services/dat
 import { cancelRequest, getRequestDetail, type RequestDetail } from "../../../services/data/requests"
 import { listCategories, type Category } from "../../../services/data/catalogue"
 import Button from "../../../ui/Button"
+import { RequestSchemeChips } from "../../schemes/parts"
 import EmptyState from "../../../ui/EmptyState"
 import { Alert, BOX, boxBorder } from "../../../ui/form"
 import VoiceTextArea from "../../../ui/VoiceTextArea"
@@ -710,6 +711,12 @@ function RequestTab({ detail, category }: { detail: RequestDetail; category: Cat
             <dd className="px-3 py-2.5 text-navy">{v}</dd>
           </div>
         ))}
+        <div className="grid grid-cols-[7.5rem_1fr] border-b border-line">
+          <dt className="bg-navy-tint/60 px-3 py-2.5 font-semibold text-navy">Schemes</dt>
+          <dd className="px-3 py-2.5 text-navy">
+            <RequestSchemeChips ids={request.scheme_ids ?? []} linkBase="/startup/schemes" empty="None chosen" />
+          </dd>
+        </div>
         <div className="grid grid-cols-[7.5rem_1fr]">
           <dt className="bg-orange-tint px-3 py-2.5 font-semibold text-navy">Budget</dt>
           <dd className="px-3 py-2.5 text-navy">
