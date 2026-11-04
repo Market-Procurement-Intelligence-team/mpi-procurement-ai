@@ -5,9 +5,7 @@ import {
   Landmark,
   LayoutDashboard,
   Package,
-  RefreshCcw,
   ShieldCheck,
-  Sparkles,
   UserRound,
   Wallet,
   type LucideIcon,
@@ -51,13 +49,11 @@ export const MENUS: Record<Role, { area: string; title: string; items: MenuItem[
     title: "Admin",
     items: [
       { label: "Dashboard", to: "", icon: LayoutDashboard },
-      { label: "AI matches to review", short: "AI matches", to: "matches", icon: Sparkles },
       { label: "Orders", to: "orders", icon: Package },
       { label: "Supplier verification", short: "Verification", to: "verification", icon: ShieldCheck },
       { label: "Payment terms", to: "payment-terms", icon: Wallet },
       { label: "Price offers and activity", short: "Activity", to: "activity", icon: Activity },
       { label: "Government schemes", short: "Schemes", to: "schemes", icon: Landmark },
-      { label: "Demo workspace", short: "Demo", to: "demo", icon: RefreshCcw },
     ],
   },
 }
