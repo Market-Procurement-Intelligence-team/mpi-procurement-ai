@@ -1,9 +1,9 @@
 /**
- * Monthly spend as smooth glowing lines on a navy card, for the startup
+ * Monthly spend as smooth glowing lines on a light grey-to-peach card (same as the order header), for the startup
  * Dashboard (in the style of rivanah's reference image).
  *
  * - Orange line and fill: what the startup paid each month.
- * - Mint line: the usual price for the same orders. The mint band between
+ * - Teal line: the usual price for the same orders. The teal band between
  *   the two lines is what MPI saved.
  * - The lines draw themselves in and the fills sweep in from the left.
  * - Hover (or tap) a month for a guide line, dots and the exact amounts.
@@ -20,8 +20,8 @@ const VH = 300
 const PAD_X = 28 // keeps the first and last month off the edges
 const PAD_TOP = 18
 const SAMPLES = 100
-const ORANGE = "#F09A47"
-const MINT = "#8BE3B8"
+const ORANGE = "#E07B2E"
+const MINT = "#15967B"
 const CHART_H = "clamp(240px, 26vw, 320px)"
 
 /** What the two lines and the gap between them mean. */
@@ -77,13 +77,13 @@ export default function SpendTrend({
   return (
     <div
       className="rounded-xl px-3 pb-3 pt-4 sm:px-4"
-      style={{ background: "radial-gradient(120% 120% at 0% 0%, #1f3256 0%, #15233d 55%, #111c31 100%)", boxShadow: "0 6px 20px rgba(21,35,61,0.25)" }}
+      style={{ background: "linear-gradient(to bottom right, #e8ecf3, rgba(232,236,243,0.6), rgba(253,235,217,0.5)), #ffffff", border: "1px solid #dfe4eb", boxShadow: "0 1px 3px rgba(21,35,61,0.06)" }}
     >
       <div className="grid" style={{ gridTemplateColumns: "2.4rem minmax(0, 1fr)" }}>
         {/* amount labels */}
         <div className="relative" style={{ height: CHART_H }} aria-hidden="true">
           {ticks.map((f) => (
-            <span key={f} className="absolute right-2 -translate-y-1/2 text-[11px] text-white/55" style={{ top: `${py(max * f)}%` }}>
+            <span key={f} className="absolute right-2 -translate-y-1/2 text-[11px] text-muted" style={{ top: `${py(max * f)}%` }}>
               {short(max * f)}
             </span>
           ))}
@@ -100,22 +100,22 @@ export default function SpendTrend({
           >
             {/* faint guide lines */}
             {ticks.map((f) => (
-              <span key={f} className="absolute inset-x-0 h-px bg-white/[0.08]" style={{ top: `${py(max * f)}%` }} />
+              <span key={f} className="absolute inset-x-0 h-px bg-navy/[0.08]" style={{ top: `${py(max * f)}%` }} />
             ))}
-            <span className="absolute inset-x-0 bottom-0 h-px bg-white/25" />
+            <span className="absolute inset-x-0 bottom-0 h-px bg-navy/25" />
 
             <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible">
               <defs>
                 <linearGradient id={`${id}-paid`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={ORANGE} stopOpacity="0.5" />
-                  <stop offset="100%" stopColor={ORANGE} stopOpacity="0.02" />
+                  <stop offset="0%" stopColor={ORANGE} stopOpacity="0.26" />
+                  <stop offset="100%" stopColor={ORANGE} stopOpacity="0" />
                 </linearGradient>
                 <linearGradient id={`${id}-usual`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={HIGH} stopOpacity="0.38" />
+                  <stop offset="0%" stopColor={HIGH} stopOpacity="0.22" />
                   <stop offset="100%" stopColor={HIGH} stopOpacity="0.04" />
                 </linearGradient>
                 <filter id={`${id}-glow`} x="-5%" y="-20%" width="110%" height="140%">
-                  <feGaussianBlur stdDeviation="4" result="b" />
+                  <feGaussianBlur stdDeviation="2.5" result="b" />
                   <feMerge>
                     <feMergeNode in="b" />
                     <feMergeNode in="SourceGraphic" />
@@ -167,7 +167,7 @@ export default function SpendTrend({
               >
                 <span className="absolute -left-2 -top-2 h-4 w-4 rounded-full bg-orange/50 motion-safe:animate-ping" />
                 <span className="absolute -left-[5px] -top-[5px] h-2.5 w-2.5 rounded-full bg-orange ring-2 ring-white" />
-                <span className="absolute bottom-3 right-1 whitespace-nowrap text-[12px] font-bold text-white">{short(months[last].spent)}</span>
+                <span className="absolute bottom-3 right-1 whitespace-nowrap text-[12px] font-bold text-navy">{short(months[last].spent)}</span>
               </motion.span>
             )}
 
@@ -175,7 +175,7 @@ export default function SpendTrend({
             {a && active !== null && (
               <>
                 <motion.span
-                  className="absolute bottom-0 w-px bg-white/40"
+                  className="absolute bottom-0 w-px bg-navy/30"
                   style={{ left: `${px(active)}%`, top: `${py(a.spent + a.saved)}%` }}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -186,7 +186,7 @@ export default function SpendTrend({
                 ].map((d) => (
                   <motion.span
                     key={d.c}
-                    className="absolute -ml-[7px] -mt-[7px] h-3.5 w-3.5 rounded-full ring-[3px] ring-[#15233d]"
+                    className="absolute -ml-[7px] -mt-[7px] h-3.5 w-3.5 rounded-full ring-[3px] ring-white"
                     style={{ left: `${px(active)}%`, top: `${py(d.v)}%`, background: d.c }}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
@@ -195,7 +195,7 @@ export default function SpendTrend({
                 ))}
                 <motion.div
                   key={active}
-                  className="pointer-events-none absolute z-10 w-max max-w-[210px] rounded-lg border border-white/15 bg-white px-3 py-2 text-[12.5px] leading-snug text-navy shadow-xl"
+                  className="pointer-events-none absolute z-10 w-max max-w-[210px] rounded-lg border border-line bg-white px-3 py-2 text-[12.5px] leading-snug text-navy shadow-xl"
                   style={{
                     left: `${px(active)}%`,
                     top: `${py(a.spent + a.saved)}%`,
@@ -227,7 +227,7 @@ export default function SpendTrend({
             {months.map((m, i) => (
               <span
                 key={m.key}
-                className={`absolute -translate-x-1/2 text-[12.5px] ${i === last ? "font-bold text-white" : active === i ? "font-semibold text-white" : "text-white/60"}`}
+                className={`absolute -translate-x-1/2 text-[12.5px] ${i === last ? "font-bold text-navy" : active === i ? "font-semibold text-navy" : "text-muted"}`}
                 style={{ left: `${px(i)}%` }}
               >
                 {m.label}

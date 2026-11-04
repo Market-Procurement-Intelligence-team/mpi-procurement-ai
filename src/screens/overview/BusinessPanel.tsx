@@ -36,7 +36,7 @@ export interface BusinessEntry {
 }
 
 const MONTHS = 6
-const BLUE = "#8EC5FF"
+const BLUE = "#3A6BB5"
 const WORDS: TrendWords = {
   low: "to suppliers",
   high: "order value",
@@ -164,7 +164,7 @@ export default function BusinessPanel({ entries }: { entries: BusinessEntry[] })
                       Order value
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="h-[3px] w-4 rounded-full bg-orange" />
+                      <span className="h-[3px] w-4 rounded-full bg-[#E07B2E]" />
                       To suppliers
                     </span>
                     <span className="hidden @md:inline">gap = MPI invoices</span>
