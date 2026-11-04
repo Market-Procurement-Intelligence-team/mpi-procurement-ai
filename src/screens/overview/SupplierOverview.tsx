@@ -15,7 +15,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { motion } from "motion/react"
 import { Link, useNavigate } from "react-router"
-import { Factory, Handshake, Inbox, ListChecks, Package, PenLine, Truck, Wallet } from "lucide-react"
+import { BellRing, Factory, Handshake, Inbox, ListChecks, Package, PenLine, Truck, UserRound, Wallet } from "lucide-react"
 import { useMe } from "../../app/session"
 import { listCategories, type Category } from "../../services/data/catalogue"
 import { getOrderMoney, getVolumeStatus, type OrderMoney, type VolumeStatus } from "../../services/data/money"
@@ -144,6 +144,13 @@ export default function SupplierOverview() {
     }
     todo.sort((a, b) => Number(!!b.urgent) - Number(!!a.urgent))
 
+    // Nothing to do yet (a new account): useful first steps instead of an empty box.
+    const gettingStarted: TodoItem[] = [
+      { id: "gs-profile", icon: UserRound, title: "Complete your supplier profile", detail: "A full profile helps MPI match you to more buyers", cta: "Open profile", to: "/supplier/profile" },
+      { id: "gs-requests", icon: Inbox, title: "See requests matched to you", detail: "MPI sends you buyer requests that fit your business", cta: "View", to: "/supplier/requests" },
+      { id: "gs-alerts", icon: BellRing, title: "Check your notifications", detail: "New requests and price offers show up here first", cta: "Open", to: "/supplier/notifications" },
+    ]
+
     // Sales & earnings: every order that wasn't cancelled.
     const catName = new Map(categories.map((c) => [c.id, c.name]))
     const sales: SaleEntry[] = placed.map((o) => {
@@ -182,7 +189,7 @@ export default function SupplierOverview() {
       ? `${plural(todo.length, "thing")} need${todo.length === 1 ? "s" : ""} you today, starting with: ${todo[0].title.charAt(0).toLowerCase()}${todo[0].title.slice(1)}.`
       : `Nothing needs you right now. ${waiting.length ? `${plural(waiting.length, "quote")} waiting for the buyer.` : "New requests from MPI show up here."}`
 
-    return { fresh, unseen, toAnswer, waiting, won, decided: won + lost, newThisWeek, liveOrders, toMove, newOrders, owed, earned, soonest, todo, facts, fallback, sales }
+    return { gettingStarted, fresh, unseen, toAnswer, waiting, won, decided: won + lost, newThisWeek, liveOrders, toMove, newOrders, owed, earned, soonest, todo, facts, fallback, sales }
   }, [data])
 
   return (
@@ -264,7 +271,7 @@ export default function SupplierOverview() {
                 title="Orders to deliver"
                 icon={Truck}
                 action={
-                  <Link to="/supplier/orders" className="text-[13.5px] font-semibold text-white hover:underline">
+                  <Link to="/supplier/orders" className="text-[13.5px] font-semibold text-navy hover:underline">
                     All orders
                   </Link>
                 }
@@ -305,13 +312,13 @@ export default function SupplierOverview() {
             <div className="min-w-0 space-y-5 max-lg:contents">
               <RecentActivity role="vendor" />
               <Panel
-                title="Needs your attention"
+                title={view.todo.length ? "Needs your attention" : "Getting started"}
                 icon={ListChecks}
                 className="flex flex-col max-lg:order-first"
                 action={view.todo.length ? <span className="rounded-full bg-orange px-2 py-px text-[12px] font-bold text-navy">{view.todo.length}</span> : undefined}
               >
                 <TodoList
-                  items={view.todo}
+                  items={view.todo.length ? view.todo : view.gettingStarted}
                   empty="No requests to quote, price offers to answer or orders to update right now."
                   emptyActions={
                     <>

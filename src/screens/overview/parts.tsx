@@ -180,9 +180,9 @@ export function Panel({
 }) {
   return (
     <section className={`rise-in overflow-hidden rounded-xl shadow-[0_1px_3px_rgba(21,35,61,0.06)] transition-shadow hover:shadow-[0_6px_18px_rgba(21,35,61,0.10)] ${className}`} style={GRADIENT_PANEL}>
-      <header className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5" style={{ background: "#15233D" }}>
-        <h2 className="flex items-center gap-2 font-display text-[17px] font-bold text-white">
-          {Icon && <Icon size={18} className="text-orange" aria-hidden="true" />}
+      <header className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5" style={{ background: "#eef1f5", borderBottom: "1px solid #cbd2dc" }}>
+        <h2 className="flex items-center gap-2 font-display text-[17px] font-bold" style={{ color: "#15233d" }}>
+          {Icon && <Icon size={18} aria-hidden="true" />}
           {title}
         </h2>
         {action}
@@ -280,7 +280,7 @@ export function RecentActivity({ role, limit = 6 }: { role: Role; limit?: number
     <Panel
       title="Recent activity"
       action={
-        <Link to={notificationsPath(role)} className="text-[13.5px] font-semibold text-white hover:underline">
+        <Link to={notificationsPath(role)} className="text-[13.5px] font-semibold text-navy hover:underline">
           See all
         </Link>
       }
@@ -292,7 +292,7 @@ export function RecentActivity({ role, limit = 6 }: { role: Role; limit?: number
           ))}
         </div>
       ) : items.length === 0 ? (
-        <p className="px-5 py-8 text-center text-[14px] text-muted">Nothing yet. Updates on your work show up here.</p>
+        <p className="px-5 py-3.5 text-[13.5px] text-muted">Nothing yet. Updates on your work show up here.</p>
       ) : (
         <motion.ul variants={listStagger} initial="hidden" animate="show">
           {items.map((n) => {

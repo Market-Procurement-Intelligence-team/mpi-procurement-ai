@@ -12,8 +12,8 @@
  */
 
 import { useState } from "react"
-import { MotionConfig, motion } from "motion/react"
-import { TrendingUp } from "lucide-react"
+import { AnimatePresence, MotionConfig, motion } from "motion/react"
+import { Info, TrendingUp } from "lucide-react"
 import { Chip, rupees } from "../supplier/parts"
 import CategoryDonut from "./CategoryDonut"
 import { monthKey, niceCeil, short } from "./chartMath"
@@ -104,9 +104,12 @@ export default function SalesPanel({ entries, won, decided }: { entries: SaleEnt
       <MotionConfig reducedMotion="user">
         <div className="@container px-4 py-4 sm:px-5">
           {sample && (
-            <p className="mb-3 text-[12.5px] text-muted">
-              Sample figures until you have 2 or more orders{entries.length ? ` (you have ${entries.length} so far)` : ""}.
-            </p>
+            <div className="mb-4 flex items-start gap-2.5 rounded-lg border border-orange/40 bg-orange-tint px-3.5 py-2.5 text-[13.5px] text-navy" role="note">
+              <Info size={17} className="mt-0.5 shrink-0 text-red-text" aria-hidden="true" />
+              <span>
+                <b>These are sample figures, not your data.</b> Your real sales show here after your 2nd order through MPI{entries.length ? ` (you have ${entries.length} so far)` : ""}.
+              </span>
+            </div>
           )}
 
           <div className="grid grid-cols-2 gap-3 @xl:grid-cols-3">
@@ -171,6 +174,14 @@ export default function SalesPanel({ entries, won, decided }: { entries: SaleEnt
               </div>
             </div>
             <div className="mt-3">
+              <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={show}
+                initial={{ opacity: 0, y: 8, scale: 0.99 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.99 }}
+                transition={{ duration: 0.2 }}
+              >
               {show === "chart" ? (
                 <SpendTrend months={months} max={max} short={short} words={WORDS} />
               ) : (
@@ -205,6 +216,8 @@ export default function SalesPanel({ entries, won, decided }: { entries: SaleEnt
                   </table>
                 </div>
               )}
+              </motion.div>
+              </AnimatePresence>
             </div>
           </div>
 

@@ -22,7 +22,7 @@ const PAD_TOP = 18
 const SAMPLES = 100
 const ORANGE = "#F09A47"
 const MINT = "#8BE3B8"
-const CHART_H = "clamp(200px, 22vw, 260px)"
+const CHART_H = "clamp(240px, 26vw, 320px)"
 
 /** What the two lines and the gap between them mean. */
 export interface TrendWords {
@@ -223,7 +223,7 @@ export default function SpendTrend({
           </div>
 
           {/* month names */}
-          <div className="relative mt-2 h-5" aria-hidden="true">
+          <div className="relative" style={{ height: 20, marginTop: 8 }} aria-hidden="true">
             {months.map((m, i) => (
               <span
                 key={m.key}

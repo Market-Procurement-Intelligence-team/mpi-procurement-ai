@@ -249,7 +249,7 @@ export default function StartupOverview() {
                 title="Orders on the way"
                 icon={Truck}
                 action={
-                  <Link to="/startup/orders" className="text-[13.5px] font-semibold text-white hover:underline">
+                  <Link to="/startup/orders" className="text-[13.5px] font-semibold text-navy hover:underline">
                     All orders
                   </Link>
                 }
