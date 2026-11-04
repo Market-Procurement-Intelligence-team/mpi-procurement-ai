@@ -721,7 +721,7 @@ function DetailsTab({ q }: { q: QueueRequest }) {
         <Row label="Deliver to">{place(request.delivery_city, request.delivery_state) ?? "Remote, anywhere in India"}</Row>
         <Row label="Certifications">{request.required_certifications.length ? request.required_certifications.join(", ") : "None required"}</Row>
         <Row label="Schemes">
-          <RequestSchemeChips ids={request.scheme_ids ?? []} empty="None chosen" />
+          <RequestSchemeChips ids={request.scheme_ids ?? []} linkBase="/admin/schemes" empty="None chosen" />
           {(request.scheme_ids ?? []).length > 0 && (
             <span className="mt-1 block text-[12.5px] text-muted">The startup plans to use these. Prefer suppliers who can give the invoices and certificates they need.</span>
           )}

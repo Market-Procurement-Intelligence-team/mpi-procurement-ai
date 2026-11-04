@@ -134,3 +134,14 @@ export async function getSchemesByIds(ids: string[]): Promise<Scheme[]> {
   if (!ids.length) return []
   return unwrap(await db.from("government_schemes").select("*").in("id", ids).order("short_name"))
 }
+
+/**
+ * Admin: how many sent requests picked each scheme (Review & send), by
+ * scheme id. Drafts are not counted.
+ */
+export async function countSchemePicks(): Promise<Map<string, number>> {
+  const rows = unwrap(await db.from("requests").select("scheme_ids").neq("status", "draft"))
+  const counts = new Map<string, number>()
+  for (const r of rows) for (const id of r.scheme_ids ?? []) counts.set(id, (counts.get(id) ?? 0) + 1)
+  return counts
+}
