@@ -966,6 +966,7 @@ export type Database = {
           ai_extracted: Json | null
           required_certifications: string[]
           category_id: string | null
+          scheme_ids: string[]
           source: Database["public"]["Enums"]["request_source"]
           status: Database["public"]["Enums"]["request_status"]
           needed_by: string | null
@@ -988,6 +989,7 @@ export type Database = {
           ai_extracted?: Json | null
           required_certifications?: string[]
           category_id?: string | null
+          scheme_ids?: string[]
           source?: Database["public"]["Enums"]["request_source"]
           status?: Database["public"]["Enums"]["request_status"]
           needed_by?: string | null
@@ -1010,6 +1012,7 @@ export type Database = {
           ai_extracted?: Json | null
           required_certifications?: string[]
           category_id?: string | null
+          scheme_ids?: string[]
           source?: Database["public"]["Enums"]["request_source"]
           status?: Database["public"]["Enums"]["request_status"]
           needed_by?: string | null

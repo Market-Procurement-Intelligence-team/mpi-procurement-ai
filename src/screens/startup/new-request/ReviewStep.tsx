@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { BadgeCheck, Lock, Pencil, Sparkles, Users } from "lucide-react"
 import type { Category } from "../../../services/data/catalogue"
 import { formatDate, formatRupees, toNumber, type StepIndex, type WizardDraft } from "./draft"
+import SchemePicker from "./SchemePicker"
 
 function Section({ title, step, onEdit, children }: { title: string; step: StepIndex; onEdit: (step: StepIndex) => void; children: ReactNode }) {
   return (
@@ -42,10 +43,12 @@ export default function ReviewStep({
   draft,
   categories,
   onEdit,
+  update,
 }: {
   draft: WizardDraft
   categories: Category[] | null
   onEdit: (step: StepIndex) => void
+  update: (patch: Partial<WizardDraft>) => void
 }) {
   const category = categories?.find((c) => c.id === draft.categoryId)
   const min = toNumber(draft.budgetMin)
@@ -61,79 +64,82 @@ export default function ReviewStep({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)] lg:items-start">
-      <div className="overflow-hidden rounded-xl border-[1.5px] border-line bg-white shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
-        <div className="accent-line h-1" />
-        <div className="px-5 pt-5 sm:px-6">
-          <p className="text-sm font-semibold text-muted">{category?.name ?? "No group chosen"}</p>
-          <h2 className="mt-1 text-2xl font-bold text-navy">{draft.title.trim() || "Untitled request"}</h2>
-          {draft.description.trim() && <p className="mt-2 whitespace-pre-line text-[15px] text-muted">{draft.description.trim()}</p>}
-        </div>
+      <div className="min-w-0 space-y-6">
+        <div className="overflow-hidden rounded-xl border-[1.5px] border-line bg-white shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
+          <div className="accent-line h-1" />
+          <div className="px-5 pt-5 sm:px-6">
+            <p className="text-sm font-semibold text-muted">{category?.name ?? "No group chosen"}</p>
+            <h2 className="mt-1 text-2xl font-bold text-navy">{draft.title.trim() || "Untitled request"}</h2>
+            {draft.description.trim() && <p className="mt-2 whitespace-pre-line text-[15px] text-muted">{draft.description.trim()}</p>}
+          </div>
 
-        <div className="divide-y divide-line">
-          <Section title="Items" step={1} onEdit={onEdit}>
-            <ul className="divide-y divide-line rounded-lg border-[1.5px] border-line">
-              {draft.items.map((item) => (
-                <li key={item.key} className="flex items-start justify-between gap-4 px-4 py-3">
-                  <span className="min-w-0">
-                    <span className="block font-semibold text-navy">{item.description}</span>
-                    {item.itemName && item.itemName !== item.description && (
-                      <span className="block text-xs text-muted">Catalogue: {item.itemName}</span>
+          <div className="divide-y divide-line">
+            <Section title="Items" step={1} onEdit={onEdit}>
+              <ul className="divide-y divide-line rounded-lg border-[1.5px] border-line">
+                {draft.items.map((item) => (
+                  <li key={item.key} className="flex items-start justify-between gap-4 px-4 py-3">
+                    <span className="min-w-0">
+                      <span className="block font-semibold text-navy">{item.description}</span>
+                      {item.itemName && item.itemName !== item.description && (
+                        <span className="block text-xs text-muted">Catalogue: {item.itemName}</span>
+                      )}
+                    </span>
+                    <span className="shrink-0 font-semibold tabular-nums text-navy">
+                      {toNumber(item.quantity)?.toLocaleString("en-IN")} {item.unit}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+
+            <Section title="Details" step={2} onEdit={onEdit}>
+              <dl>
+                <Row label="Certifications">
+                  {draft.certifications.length ? (
+                    <span className="flex flex-wrap gap-1.5">
+                      {draft.certifications.map((c) => (
+                        <span key={c} className="rounded-full bg-navy-tint px-2.5 py-0.5 text-sm font-semibold">
+                          {c}
+                        </span>
+                      ))}
+                    </span>
+                  ) : (
+                    "None needed"
+                  )}
+                </Row>
+              </dl>
+            </Section>
+
+            <Section title="Delivery and budget" step={3} onEdit={onEdit}>
+              <dl>
+                <Row label="Needed by">{formatDate(draft.neededBy)}</Row>
+                <Row label="Delivery place">
+                  {draft.remote ? "Done online, no delivery place" : [draft.deliveryCity.trim(), draft.deliveryState].filter(Boolean).join(", ")}
+                </Row>
+                <Row label="Budget">
+                  <span className="inline-flex items-center gap-2">
+                    {budget}
+                    {(min != null || max != null) && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-orange-tint px-2 py-0.5 text-xs font-semibold">
+                        <Lock size={12} aria-hidden="true" />
+                        Private
+                      </span>
                     )}
                   </span>
-                  <span className="shrink-0 font-semibold tabular-nums text-navy">
-                    {toNumber(item.quantity)?.toLocaleString("en-IN")} {item.unit}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Section>
+                </Row>
+              </dl>
+            </Section>
 
-          <Section title="Details" step={2} onEdit={onEdit}>
-            <dl>
-              <Row label="Certifications">
-                {draft.certifications.length ? (
-                  <span className="flex flex-wrap gap-1.5">
-                    {draft.certifications.map((c) => (
-                      <span key={c} className="rounded-full bg-navy-tint px-2.5 py-0.5 text-sm font-semibold">
-                        {c}
-                      </span>
-                    ))}
-                  </span>
-                ) : (
-                  "None needed"
-                )}
-              </Row>
-            </dl>
-          </Section>
-
-          <Section title="Delivery and budget" step={3} onEdit={onEdit}>
-            <dl>
-              <Row label="Needed by">{formatDate(draft.neededBy)}</Row>
-              <Row label="Delivery place">
-                {draft.remote ? "Done online, no delivery place" : [draft.deliveryCity.trim(), draft.deliveryState].filter(Boolean).join(", ")}
-              </Row>
-              <Row label="Budget">
-                <span className="inline-flex items-center gap-2">
-                  {budget}
-                  {(min != null || max != null) && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-orange-tint px-2 py-0.5 text-xs font-semibold">
-                      <Lock size={12} aria-hidden="true" />
-                      Private
-                    </span>
-                  )}
-                </span>
-              </Row>
-            </dl>
-          </Section>
-
-          {draft.text.trim() && (
-            <section className="px-5 py-5 sm:px-6">
-              <h3 className="mb-2 text-[15px] font-bold uppercase tracking-wide text-muted">Your own words</h3>
-              <p className="whitespace-pre-line rounded-lg bg-page p-3 text-[15px] text-navy">{draft.text.trim()}</p>
-              <p className="mt-2 text-xs text-muted">Kept with the request for the MPI team. Suppliers don't see this.</p>
-            </section>
-          )}
+            {draft.text.trim() && (
+              <section className="px-5 py-5 sm:px-6">
+                <h3 className="mb-2 text-[15px] font-bold uppercase tracking-wide text-muted">Your own words</h3>
+                <p className="whitespace-pre-line rounded-lg bg-page p-3 text-[15px] text-navy">{draft.text.trim()}</p>
+                <p className="mt-2 text-xs text-muted">Kept with the request for the MPI team. Suppliers don't see this.</p>
+              </section>
+            )}
+          </div>
         </div>
+        <SchemePicker draft={draft} categories={categories} update={update} />
       </div>
 
       <aside className="relative overflow-hidden rounded-xl bg-ink p-6 text-white">

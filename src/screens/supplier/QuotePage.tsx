@@ -62,6 +62,7 @@ import {
 import Button from "../../ui/Button"
 import VoiceTextArea from "../../ui/VoiceTextArea"
 import { Alert, BOX, boxBorder } from "../../ui/form"
+import { RequestSchemeChips } from "../schemes/parts"
 import {
   ago,
   Chip,
@@ -242,6 +243,13 @@ function RequestHeader({ item, category }: { item: InvitationWithRequest; catego
               </span>
             ))}
           </div>
+          {(request.scheme_ids ?? []).length > 0 && (
+            <div className="mt-3 max-w-2xl rounded-lg border-[1.5px] border-orange/60 bg-orange-tint/40 px-3.5 py-2.5 text-[13.5px] text-navy">
+              <p className="mb-1.5 font-semibold">The startup plans to use these government schemes:</p>
+              <RequestSchemeChips ids={request.scheme_ids} linkBase="/supplier/schemes" />
+              <p className="mt-1.5 text-[12.5px] text-muted">Keep a proper GST invoice and any certificates these schemes ask for, so the startup can claim them.</p>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3 rounded-xl bg-navy px-4 py-3 text-white shadow-[0_3px_10px_rgba(21,35,61,0.2)]">
           <span className="btn-gradient flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-navy" aria-hidden="true">
