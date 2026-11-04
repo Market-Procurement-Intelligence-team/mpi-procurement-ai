@@ -158,11 +158,6 @@ export function SummaryCards({ items, selected, onPick }: { items: SummaryItem[]
           }}
         >
           <span
-            className="pointer-events-none absolute inset-x-0 top-0 h-[3px]"
-            style={{ background: i.tone === "good" ? "linear-gradient(90deg, #10b981, #6ee7b7)" : "linear-gradient(90deg, #f09a47, #ec8d49, #db4230)" }}
-            aria-hidden="true"
-          />
-          <span
             className="pointer-events-none absolute -bottom-8 -right-8 h-20 w-20 rounded-full border-[8px] border-white/[0.04]"
             aria-hidden="true"
           />
