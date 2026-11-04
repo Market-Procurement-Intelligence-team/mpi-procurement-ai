@@ -617,7 +617,7 @@ function SuppliersTab({ detail, quotes }: { detail: RequestDetail; quotes: Quote
               ? { label: "Looking at it", tone: "orange" as const }
               : { label: "Invited", tone: "orange" as const }
         return (
-          <article key={match.id} className="rounded-xl border-[1.5px] border-line bg-white p-4 shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
+          <article key={match.id} className="rounded-xl border-[1.5px] border-line bg-white soft-panel p-4 shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="flex items-center gap-1.5 truncate text-[15px] font-bold text-navy">
@@ -667,7 +667,7 @@ function RequestTab({ detail, category }: { detail: RequestDetail; category: Cat
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="min-w-0 space-y-4">
-        <div className="overflow-x-auto rounded-xl border-[1.5px] border-line bg-white">
+        <div className="overflow-x-auto rounded-xl border-[1.5px] border-line bg-white soft-panel">
           <table className="w-full min-w-[32rem] text-[14px]">
             <thead className="bg-navy text-left text-[12px] uppercase tracking-[0.05em] text-white">
               <tr>
@@ -692,13 +692,13 @@ function RequestTab({ detail, category }: { detail: RequestDetail; category: Cat
           </table>
         </div>
         {request.requirement_text && (
-          <div className="rounded-xl border-[1.5px] border-line bg-white p-4">
+          <div className="rounded-xl border-[1.5px] border-line bg-white soft-panel p-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted">In your words</p>
             <p className="mt-1 whitespace-pre-line text-[14.5px] text-navy">{request.requirement_text}</p>
           </div>
         )}
       </div>
-      <dl className="h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white text-[14px]">
+      <dl className="h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white soft-panel text-[14px]">
         {[
           ["Category", category?.name ?? "Not set"],
           ["Needed by", request.needed_by ? `${day(request.needed_by, true)} (${daysLeft(request.needed_by)})` : "Flexible"],

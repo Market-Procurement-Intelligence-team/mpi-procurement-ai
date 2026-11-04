@@ -139,7 +139,7 @@ function StepIn({ order, onDone }: { order: AdminOrder; onDone: (msg: string) =>
     )
   }
   return (
-    <div className="rounded-xl border-[1.5px] border-line bg-white p-4">
+    <div className="rounded-xl border-[1.5px] border-line bg-white soft-panel p-4">
       <p className="text-[12px] font-bold uppercase tracking-[0.06em] text-muted">Step in (only if needed)</p>
       <p className="mt-1 text-[14px] text-navy">
         Normally the supplier moves the order forward and the buyer confirms it. Use this only to fix a stuck order.
@@ -204,7 +204,7 @@ function Money({ order, money, onDone }: { order: AdminOrder; money: OrderMoney 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border-[1.5px] border-line bg-white p-4">
+        <div className="rounded-xl border-[1.5px] border-line bg-white soft-panel p-4">
           <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted">Buyer paid MPI</p>
           <p className="font-display text-[22px] font-bold text-navy">{rupees(paidIn)}</p>
           <p className="text-[12.5px] text-muted">of {rupees(money.amounts.buyer?.checkout_total ?? 0)}</p>
@@ -235,12 +235,12 @@ function Money({ order, money, onDone }: { order: AdminOrder; money: OrderMoney 
             <p className="text-[12.5px] text-white/70">Nothing to pay out right now</p>
           )}
         </div>
-        <div className="rounded-xl border-[1.5px] border-line bg-white p-4">
+        <div className="rounded-xl border-[1.5px] border-line bg-white soft-panel p-4">
           <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted">Paid out so far</p>
           <p className="font-display text-[22px] font-bold text-navy">{rupees(paidOut)}</p>
           <p className="text-[12.5px] text-muted">after commission</p>
         </div>
-        <div className="rounded-xl border-[1.5px] border-line bg-white p-4">
+        <div className="rounded-xl border-[1.5px] border-line bg-white soft-panel p-4">
           <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted">MPI revenue</p>
           <p className="font-display text-[22px] font-bold text-navy">{rupees(revenue)}</p>
           <p className="text-[12.5px] text-muted">fee + commission, before GST</p>
@@ -516,7 +516,7 @@ export default function OrdersAdminPage() {
             ]}
           />
           <div className="grid gap-5 lg:grid-cols-[23rem_minmax(0,1fr)]">
-            <aside className={`h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white shadow-[0_1px_3px_rgba(21,35,61,0.08)] lg:sticky lg:top-24 ${selected ? "hidden lg:block" : ""}`}>
+            <aside className={`h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white soft-panel shadow-[0_1px_3px_rgba(21,35,61,0.08)] lg:sticky lg:top-24 ${selected ? "hidden lg:block" : ""}`}>
               <div role="tablist" aria-label="Orders" className="flex gap-1 border-b border-line px-2">
                 {tabs.map((t) => (
                   <button

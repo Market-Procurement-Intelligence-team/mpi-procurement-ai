@@ -102,3 +102,9 @@
 @media (prefers-reduced-motion: reduce) {
   .rise-in, .pulse-border, .grow-x, .grow-y { animation: none; }
 }
+
+/* Light grey-to-peach panel background, like the order header (rivanah, 4 Nov).
+   Plain (unlayered) CSS so it wins over bg-white on the same element. */
+.soft-panel {
+  background: linear-gradient(to bottom right, #e8ecf3, rgba(232, 236, 243, 0.6), rgba(253, 235, 217, 0.5)), #ffffff;
+}

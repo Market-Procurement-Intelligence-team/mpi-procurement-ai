@@ -470,7 +470,7 @@ export default function VerificationPage() {
             ]}
           />
           <div className="grid gap-5 lg:grid-cols-[23rem_minmax(0,1fr)]">
-            <aside className={`h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white shadow-[0_1px_3px_rgba(21,35,61,0.08)] lg:sticky lg:top-24 ${selected ? "hidden lg:block" : ""}`}>
+            <aside className={`h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white soft-panel shadow-[0_1px_3px_rgba(21,35,61,0.08)] lg:sticky lg:top-24 ${selected ? "hidden lg:block" : ""}`}>
               <div role="tablist" aria-label="Suppliers" className="grid grid-cols-2 gap-1.5 border-b border-line p-3">
                 {TABS.map((t) => {
                   const on = listTab === t.id

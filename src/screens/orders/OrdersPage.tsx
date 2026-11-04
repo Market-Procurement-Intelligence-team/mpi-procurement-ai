@@ -344,7 +344,7 @@ export function InvoiceCard({ invoice, side, order }: { invoice: InvoiceSummary;
           ? "Supplier's invoice"
           : INVOICE_LABELS[invoice.kind]
   return (
-    <article className="rounded-xl border-[1.5px] border-line bg-white p-4">
+    <article className="rounded-xl border-[1.5px] border-line bg-white soft-panel p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-[15px] font-bold text-navy">{label}</p>
@@ -441,12 +441,12 @@ function Payments({ order, money, side, onDone }: { order: OrderSummary; money: 
             <p className="font-display text-[26px] font-bold text-orange">{rupees(s?.payout ?? 0)}</p>
             <p className="text-[12.5px] text-white/70">Invoice minus MPI commission</p>
           </div>
-          <div className="rounded-xl border-[1.5px] border-line bg-white p-4">
+          <div className="rounded-xl border-[1.5px] border-line bg-white soft-panel p-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted">MPI owes you now</p>
             <p className="font-display text-[22px] font-bold text-navy">{rupees(money.balances.mpi_owes_you ?? 0)}</p>
             <p className="text-[12.5px] text-muted">From what the buyer has paid</p>
           </div>
-          <div className="rounded-xl border-[1.5px] border-line bg-white p-4">
+          <div className="rounded-xl border-[1.5px] border-line bg-white soft-panel p-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted">Paid out so far</p>
             <p className="font-display text-[22px] font-bold text-navy">
               {rupees((money.payouts ?? []).reduce((n, p) => n + p.net, 0))}
@@ -790,7 +790,7 @@ export default function OrdersPage({ side }: { side: Side }) {
             items={side === "startup" ? startupCards() : vendorCards()}
           />
           <div className="grid gap-5 lg:grid-cols-[23rem_minmax(0,1fr)]">
-            <aside className={`h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white shadow-[0_1px_3px_rgba(21,35,61,0.08)] lg:sticky lg:top-24 ${selected ? "hidden lg:block" : ""}`}>
+            <aside className={`h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white soft-panel shadow-[0_1px_3px_rgba(21,35,61,0.08)] lg:sticky lg:top-24 ${selected ? "hidden lg:block" : ""}`}>
               <div role="tablist" aria-label="Orders" className="flex gap-1 border-b border-line px-2">
                 {(["active", "done"] as ListTab[]).map((t) => (
                   <button

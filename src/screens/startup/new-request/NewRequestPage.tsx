@@ -296,7 +296,7 @@ export default function NewRequestPage() {
   if (sent) {
     return (
       <div ref={top} className="mx-auto max-w-2xl py-6 sm:py-10">
-        <div className="overflow-hidden rounded-2xl border-[1.5px] border-line bg-white text-center shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
+        <div className="overflow-hidden rounded-2xl border-[1.5px] border-line bg-white soft-panel text-center shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
           <div className="accent-line h-1" />
           <div className="px-6 py-10 sm:px-10">
             <span className="mx-auto flex size-16 items-center justify-center rounded-full bg-orange-tint text-navy">
@@ -348,7 +348,7 @@ export default function NewRequestPage() {
         <p className="mt-1 text-muted">Tell MPI what you need. Nothing goes to suppliers until you press Send and MPI approves the matches.</p>
       </div>
 
-      <div className="mb-6 rounded-xl border-[1.5px] border-line bg-white px-5 py-4 shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
+      <div className="mb-6 rounded-xl border-[1.5px] border-line bg-white soft-panel px-5 py-4 shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
         <StepBar current={step} reached={reached} onGo={go} />
       </div>
 

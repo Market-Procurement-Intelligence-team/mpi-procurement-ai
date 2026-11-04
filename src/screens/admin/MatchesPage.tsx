@@ -685,7 +685,7 @@ function DetailsTab({ q }: { q: QueueRequest }) {
   )
   return (
     <div className="space-y-5">
-      <div className="overflow-x-auto rounded-xl border-[1.5px] border-line bg-white">
+      <div className="overflow-x-auto rounded-xl border-[1.5px] border-line bg-white soft-panel">
         <table className="w-full min-w-[26rem] text-left text-[14.5px]">
           <thead className="bg-navy text-[12px] uppercase tracking-wide text-white">
             <tr>
@@ -711,7 +711,7 @@ function DetailsTab({ q }: { q: QueueRequest }) {
           </tbody>
         </table>
       </div>
-      <dl className="overflow-hidden rounded-xl border-[1.5px] border-line bg-white">
+      <dl className="overflow-hidden rounded-xl border-[1.5px] border-line bg-white soft-panel">
         <Row label="Buyer">{cleanName(q.buyerName) || "Unknown"}</Row>
         <Row label="Category">{q.categoryName ?? "Not set"}</Row>
         <Row label="Needed by">

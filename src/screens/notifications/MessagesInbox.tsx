@@ -113,7 +113,7 @@ function Thread({ convo, role, onBack, onChanged }: { convo: Convo; role: Role; 
   const who = admin && isAdminOrder(o) ? (convo.side === "buyer" ? o.buyerRealName : o.supplierRealName) : "MPI team"
 
   return (
-    <section className="flex min-h-[32rem] flex-col overflow-hidden rounded-xl border-[1.5px] border-line bg-white" aria-label={`Conversation about ${o.po_number}`}>
+    <section className="flex min-h-[32rem] flex-col overflow-hidden rounded-xl border-[1.5px] border-line bg-white soft-panel" aria-label={`Conversation about ${o.po_number}`}>
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-line bg-gradient-to-br from-navy-tint via-navy-tint/50 to-orange-tint/40 px-5 py-3.5">
         <div className="min-w-0">
           <button type="button" onClick={onBack} className="mb-1 inline-flex items-center gap-1.5 text-[14px] font-semibold text-navy lg:hidden">
@@ -364,7 +364,7 @@ export default function MessagesInbox({ role, onCount }: { role: Role; onCount: 
 
   return (
     <div className="grid gap-5 lg:grid-cols-[23rem_minmax(0,1fr)]">
-      <aside className={`h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white lg:sticky lg:top-24 ${selected ? "hidden lg:block" : ""}`}>
+      <aside className={`h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white soft-panel lg:sticky lg:top-24 ${selected ? "hidden lg:block" : ""}`}>
         <div className="relative border-b border-line p-3">
           <Search size={16} className="pointer-events-none absolute left-6 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
           <input

@@ -253,7 +253,7 @@ export default function MyRequestsPage() {
               {query ? `No requests match "${query}".` : "Nothing in this tab yet."}
             </p>
           ) : (
-            <ul className="overflow-hidden rounded-xl border-[1.5px] border-line bg-white shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
+            <ul className="overflow-hidden rounded-xl border-[1.5px] border-line bg-white soft-panel shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
               <li className="hidden border-b border-line bg-navy px-5 py-2.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-white md:grid md:grid-cols-[minmax(0,1fr)_10rem_11rem]">
                 <span>Request</span>
                 <span className="text-right">Status</span>

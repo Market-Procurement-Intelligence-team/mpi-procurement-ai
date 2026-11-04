@@ -3,6 +3,7 @@ import { BadgeCheck, Lock, Pencil, Sparkles, Users } from "lucide-react"
 import type { Category } from "../../../services/data/catalogue"
 import { formatDate, formatRupees, toNumber, type StepIndex, type WizardDraft } from "./draft"
 import SchemePicker from "./SchemePicker"
+import { SOFT_BG } from "../../supplier/parts"
 
 function Section({ title, step, onEdit, children }: { title: string; step: StepIndex; onEdit: (step: StepIndex) => void; children: ReactNode }) {
   return (
@@ -65,7 +66,7 @@ export default function ReviewStep({
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)] lg:items-start">
       <div className="min-w-0 space-y-6">
-        <div className="overflow-hidden rounded-xl border-[1.5px] border-line bg-white shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
+        <div className="overflow-hidden rounded-xl border-[1.5px] border-line shadow-[0_1px_3px_rgba(21,35,61,0.08)]" style={{ background: SOFT_BG }}>
           <div className="accent-line h-1" />
           <div className="px-5 pt-5 sm:px-6">
             <p className="text-sm font-semibold text-muted">{category?.name ?? "No group chosen"}</p>
@@ -139,9 +140,10 @@ export default function ReviewStep({
             )}
           </div>
         </div>
-        <SchemePicker draft={draft} categories={categories} update={update} />
       </div>
 
+      <div className="min-w-0 space-y-6">
+      <SchemePicker draft={draft} categories={categories} update={update} />
       <aside className="relative overflow-hidden rounded-xl bg-ink p-6 text-white">
         <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-orange/20 blur-3xl" aria-hidden="true" />
         <h2 className="relative text-xl font-bold">What happens next</h2>
@@ -161,6 +163,7 @@ export default function ReviewStep({
           ))}
         </ol>
       </aside>
+      </div>
     </div>
   )
 }

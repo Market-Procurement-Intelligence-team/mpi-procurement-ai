@@ -86,10 +86,13 @@ export function termsText(terms: string | null | undefined): string {
 }
 
 /** A panel with the brand gradient border on all four sides. */
+/** Light grey-to-peach panel background (like the order header), used on panels app-wide. */
+export const SOFT_BG = "linear-gradient(to bottom right, #e8ecf3, rgba(232,236,243,0.6), rgba(253,235,217,0.5)), #ffffff"
+
 export const GRADIENT_PANEL = {
   border: "2.5px solid transparent",
   background:
-    "linear-gradient(#fff, #fff) padding-box, conic-gradient(from 0deg, #15233d, #f09a47, #ec8d49, #db4230, #f09a47, #15233d) border-box",
+    "linear-gradient(to bottom right, #e8ecf3, rgba(232,236,243,0.6), rgba(253,235,217,0.5)) padding-box, linear-gradient(#fff, #fff) padding-box, conic-gradient(from 0deg, #15233d, #f09a47, #ec8d49, #db4230, #f09a47, #15233d) border-box",
 } as const
 
 // ---------------------------------------------------------------- parts

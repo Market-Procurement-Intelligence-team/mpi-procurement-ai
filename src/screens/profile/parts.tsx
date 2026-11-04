@@ -23,7 +23,7 @@ export function ProfileSection({
   children: ReactNode
 }) {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-24 rounded-xl border-[1.5px] border-line bg-white shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
+    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-24 rounded-xl border-[1.5px] border-line bg-white soft-panel shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
         <div className="flex items-start gap-3">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-navy text-orange">
