@@ -26,7 +26,7 @@ import { Alert } from "../../ui/form"
 import { isDone, STEP_LABEL } from "../orders/OrdersPage"
 import { day, daysLeft, daysUntil, errorText, rupees, SummaryCards, timeLeftText } from "../supplier/parts"
 import { requestState } from "../supplier/requestState"
-import { AiSummary, Greeting, Panel, RecentActivity, TodoList, type TodoItem } from "./parts"
+import { AiSummary, Greeting, Panel, RecentsButton, TodoList, type TodoItem } from "./parts"
 import SalesPanel, { type SaleEntry } from "./SalesPanel"
 
 interface Data {
@@ -196,11 +196,14 @@ export default function SupplierOverview() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <Greeting name={me.profile.full_name || ""} line="Here's how your business is doing this month." />
+        <div className="flex flex-wrap items-center gap-2.5">
+          <RecentsButton role="vendor" />
         <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 20 }}>
           <Link to="/supplier/requests" className="btn-gradient inline-flex min-h-11 items-center gap-2 rounded-md px-5 font-bold text-navy shadow-[0_4px_14px_rgba(236,141,73,0.3)]">
             <Inbox size={18} aria-hidden="true" /> Requests for you
           </Link>
         </motion.div>
+        </div>
       </div>
       {error && (
         <div className="mb-4">
@@ -263,10 +266,10 @@ export default function SupplierOverview() {
             ]}
           />
 
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,2.3fr)_minmax(0,1fr)] lg:items-start">
-            {/* On a phone the two columns melt into one list, with Needs your attention first. */}
-            <div className="min-w-0 space-y-5 max-lg:contents">
+          <div className="space-y-5">
               <SalesPanel entries={view.sales} won={view.won} decided={view.decided} />
+            {/* Orders and Needs your attention side by side; on a phone Needs comes first. */}
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-start">
               <Panel
                 title="Orders to deliver"
                 icon={Truck}
@@ -308,8 +311,6 @@ export default function SupplierOverview() {
                   </ul>
                 )}
               </Panel>
-            </div>
-            <div className="min-w-0 space-y-5 max-lg:contents">
               <Panel
                 title={view.todo.length ? "Needs your attention" : "Getting started"}
                 icon={ListChecks}
@@ -331,7 +332,6 @@ export default function SupplierOverview() {
                   }
                 />
               </Panel>
-              <RecentActivity role="vendor" />
             </div>
           </div>
         </>

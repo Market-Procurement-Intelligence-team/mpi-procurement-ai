@@ -36,7 +36,7 @@ import { listMyRequestCards, type RequestCard } from "../../services/data/reques
 import { Alert } from "../../ui/form"
 import { dueNow, isDone, STEP_LABEL, stillToPay } from "../orders/OrdersPage"
 import { day, daysLeft, daysUntil, errorText, rupees, SummaryCards, timeLeftText } from "../supplier/parts"
-import { AiSummary, Greeting, Panel, RecentActivity, TodoList, type TodoItem } from "./parts"
+import { AiSummary, Greeting, Panel, RecentsButton, TodoList, type TodoItem } from "./parts"
 import SpendPanel, { type SpendEntry } from "./SpendPanel"
 
 interface Data {
@@ -173,11 +173,14 @@ export default function StartupOverview() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <Greeting name={me.profile.full_name || ""} line="Here's your procurement overview for this month." />
+        <div className="flex flex-wrap items-center gap-2.5">
+          <RecentsButton role="startup" />
         <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 20 }}>
           <Link to="/startup/requests/new" className="btn-gradient inline-flex min-h-11 items-center gap-2 rounded-md px-5 font-bold text-navy shadow-[0_4px_14px_rgba(236,141,73,0.3)]">
             <Plus size={18} aria-hidden="true" /> New request
           </Link>
         </motion.div>
+        </div>
       </div>
       {error && (
         <div className="mb-4">
@@ -241,10 +244,10 @@ export default function StartupOverview() {
             ]}
           />
 
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,2.3fr)_minmax(0,1fr)] lg:items-start">
-            {/* On a phone the two columns melt into one list, with Needs your attention first. */}
-            <div className="min-w-0 space-y-5 max-lg:contents">
+          <div className="space-y-5">
               <SpendPanel entries={view.spend} orderCount={view.placed.length} />
+            {/* Orders and Needs your attention side by side; on a phone Needs comes first. */}
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-start">
               <Panel
                 title="Orders on the way"
                 icon={Truck}
@@ -284,9 +287,6 @@ export default function StartupOverview() {
                   </ul>
                 )}
               </Panel>
-            </div>
-            <div className="min-w-0 space-y-5 max-lg:contents">
-              <RecentActivity role="startup" />
               <Panel title="Needs your attention" icon={ListChecks} className="flex flex-col max-lg:order-first" action={view.todo.length ? <span className="rounded-full bg-orange px-2 py-px text-[12px] font-bold text-navy">{view.todo.length}</span> : undefined}>
                 <TodoList
                   items={view.todo}
