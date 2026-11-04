@@ -311,6 +311,13 @@ export async function listAllOrders(): Promise<AdminOrder[]> {
   }))
 }
 
+/** The category of each request, for the admin Dashboard's charts. */
+export async function listRequestCategories(requestIds: string[]): Promise<Map<string, string | null>> {
+  if (!requestIds.length) return new Map()
+  const rows = unwrap(await db.from("requests").select("id, category_id").in("id", requestIds))
+  return new Map(rows.map((r) => [r.id, r.category_id]))
+}
+
 /** Every order message on MPI (both sides of every order), oldest first. */
 export async function listAllOrderMessages(): Promise<OrderMessage[]> {
   return unwrap(await db.from("order_messages").select("*").order("created_at"))

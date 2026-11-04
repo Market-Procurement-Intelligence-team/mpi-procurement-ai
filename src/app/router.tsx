@@ -13,6 +13,7 @@ import NotFound from "../screens/NotFound"
 import OrdersPage from "../screens/orders/OrdersPage"
 import NotificationsPage from "../screens/notifications/NotificationsPage"
 import StartupOverview from "../screens/overview/StartupOverview"
+import AdminOverview from "../screens/overview/AdminOverview"
 import SupplierOverview from "../screens/overview/SupplierOverview"
 import Placeholder from "../screens/Placeholder"
 import MatchesPage from "../screens/admin/MatchesPage"
@@ -59,6 +60,7 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
   ],
   // Not in the admin menu; opened from the account menu.
   admin: [
+    { index: true, element: <AdminOverview /> },
     { path: "matches", element: <MatchesPage /> },
     { path: "orders", element: <OrdersAdminPage /> },
     { path: "notifications", element: <NotificationsPage role="admin" /> },

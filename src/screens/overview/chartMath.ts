@@ -49,10 +49,10 @@ export function short(n: number): string {
   return `₹${Math.round(n)}`
 }
 
-/** Rounds up to a tidy axis value: 1, 2, 2.5 or 5 times a power of ten. */
+/** Rounds up to a tidy axis top whose quarters are tidy too (e.g. 2.4L gives 60k, 1.2L, 1.8L, 2.4L). */
 export function niceCeil(n: number): number {
   const p = 10 ** Math.floor(Math.log10(n))
-  return ([1, 2, 2.5, 5, 10].find((f) => f * p >= n) ?? 10) * p
+  return ([1, 1.2, 1.6, 2, 2.4, 3, 4, 6, 8, 10].find((f) => f * p >= n) ?? 10) * p
 }
 
 export const monthKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`
