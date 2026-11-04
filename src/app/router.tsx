@@ -13,6 +13,7 @@ import NotFound from "../screens/NotFound"
 import OrdersPage from "../screens/orders/OrdersPage"
 import NotificationsPage from "../screens/notifications/NotificationsPage"
 import StartupOverview from "../screens/overview/StartupOverview"
+import SupplierOverview from "../screens/overview/SupplierOverview"
 import Placeholder from "../screens/Placeholder"
 import MatchesPage from "../screens/admin/MatchesPage"
 import OrdersAdminPage from "../screens/admin/OrdersAdminPage"
@@ -49,6 +50,7 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
     { path: "profile", element: <StartupProfilePage /> },
   ],
   vendor: [
+    { index: true, element: <SupplierOverview /> },
     { path: "requests", element: <SupplierRequestsPage /> },
     { path: "requests/:invitationId", element: <QuotePage /> },
     { path: "orders", element: <OrdersPage side="vendor" /> },

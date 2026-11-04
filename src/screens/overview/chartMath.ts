@@ -1,4 +1,4 @@
-/** Shared helpers for the Dashboard spend charts. */
+/** Shared helpers for the Dashboard money charts. */
 
 export interface MonthPoint {
   key: string
@@ -40,3 +40,19 @@ export function smooth(ys: number[], samples: number): number[] {
     return Math.max(0, h00 * ys[k] + h10 * m[k] + h01 * ys[k + 1] + h11 * m[k + 1])
   })
 }
+
+/** ₹45k, ₹1.2L, ₹2.1Cr: short labels for chart axes. */
+export function short(n: number): string {
+  if (n >= 1e7) return `₹${parseFloat((n / 1e7).toFixed(2))}Cr`
+  if (n >= 1e5) return `₹${parseFloat((n / 1e5).toFixed(2))}L`
+  if (n >= 1e3) return `₹${Math.round(n / 1e3)}k`
+  return `₹${Math.round(n)}`
+}
+
+/** Rounds up to a tidy axis value: 1, 2, 2.5 or 5 times a power of ten. */
+export function niceCeil(n: number): number {
+  const p = 10 ** Math.floor(Math.log10(n))
+  return ([1, 2, 2.5, 5, 10].find((f) => f * p >= n) ?? 10) * p
+}
+
+export const monthKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`

@@ -24,7 +24,33 @@ const ORANGE = "#F09A47"
 const MINT = "#8BE3B8"
 const CHART_H = "clamp(200px, 22vw, 260px)"
 
-export default function SpendTrend({ months, max, short }: { months: MonthPoint[]; max: number; short: (n: number) => string }) {
+/** What the two lines and the gap between them mean. */
+export interface TrendWords {
+  low: string
+  high: string
+  gap: string
+  /** Colour of the upper line and its fill. */
+  highColor: string
+  /** Text colour for the gap amount in the tooltip. */
+  gapText: string
+  caption: string
+}
+
+const SPEND_WORDS: TrendWords = { low: "paid", high: "usual price", gap: "saved", highColor: MINT, gapText: "#047857", caption: "Monthly spend" }
+
+export default function SpendTrend({
+  months,
+  max,
+  short,
+  words = SPEND_WORDS,
+}: {
+  months: MonthPoint[]
+  max: number
+  short: (n: number) => string
+  words?: TrendWords
+}) {
+  const HIGH = words.highColor
+  const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
   const id = useId().replace(/:/g, "")
   const [active, setActive] = useState<number | null>(null)
   const last = months.length - 1
@@ -85,8 +111,8 @@ export default function SpendTrend({ months, max, short }: { months: MonthPoint[
                   <stop offset="100%" stopColor={ORANGE} stopOpacity="0.02" />
                 </linearGradient>
                 <linearGradient id={`${id}-usual`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={MINT} stopOpacity="0.38" />
-                  <stop offset="100%" stopColor={MINT} stopOpacity="0.04" />
+                  <stop offset="0%" stopColor={HIGH} stopOpacity="0.38" />
+                  <stop offset="100%" stopColor={HIGH} stopOpacity="0.04" />
                 </linearGradient>
                 <filter id={`${id}-glow`} x="-5%" y="-20%" width="110%" height="140%">
                   <feGaussianBlur stdDeviation="4" result="b" />
@@ -107,7 +133,7 @@ export default function SpendTrend({ months, max, short }: { months: MonthPoint[
               <motion.path
                 d={line(usual)}
                 fill="none"
-                stroke={MINT}
+                stroke={HIGH}
                 strokeWidth="3"
                 strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
@@ -155,7 +181,7 @@ export default function SpendTrend({ months, max, short }: { months: MonthPoint[
                   animate={{ opacity: 1 }}
                 />
                 {[
-                  { v: a.spent + a.saved, c: MINT },
+                  { v: a.spent + a.saved, c: HIGH },
                   { v: a.spent, c: ORANGE },
                 ].map((d) => (
                   <motion.span
@@ -182,14 +208,14 @@ export default function SpendTrend({ months, max, short }: { months: MonthPoint[
                   <span className="block font-bold">{a.long}</span>
                   <span className="flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full" style={{ background: ORANGE }} />
-                    {rupees(a.spent)} paid
+                    {rupees(a.spent)} {words.low}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full" style={{ background: MINT }} />
-                    {rupees(a.spent + a.saved)} usual price
+                    <span className="h-2 w-2 rounded-full" style={{ background: HIGH }} />
+                    {rupees(a.spent + a.saved)} {words.high}
                   </span>
-                  <span className="mt-0.5 block font-semibold text-[#047857]">
-                    {rupees(a.saved)} saved · {a.orders} order{a.orders === 1 ? "" : "s"}
+                  <span className="mt-0.5 block font-semibold" style={{ color: words.gapText }}>
+                    {rupees(a.saved)} {words.gap} · {a.orders} order{a.orders === 1 ? "" : "s"}
                   </span>
                 </motion.div>
               </>
@@ -212,13 +238,13 @@ export default function SpendTrend({ months, max, short }: { months: MonthPoint[
       </div>
 
       <table className="sr-only">
-        <caption>Monthly spend</caption>
+        <caption>{words.caption}</caption>
         <thead>
           <tr>
             <th>Month</th>
-            <th>Paid</th>
-            <th>Usual price</th>
-            <th>Saved</th>
+            <th>{cap(words.low)}</th>
+            <th>{cap(words.high)}</th>
+            <th>{cap(words.gap)}</th>
             <th>Orders</th>
           </tr>
         </thead>

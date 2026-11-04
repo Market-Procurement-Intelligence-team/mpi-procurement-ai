@@ -15,6 +15,7 @@ import { MotionConfig, animate, motion, useMotionValue, useReducedMotion, useTra
 import { BarChart3 } from "lucide-react"
 import { Chip, rupees } from "../supplier/parts"
 import CategoryDonut from "./CategoryDonut"
+import { monthKey, niceCeil, short } from "./chartMath"
 import { Panel } from "./parts"
 import SpendTrend from "./SpendTrend"
 
@@ -52,22 +53,6 @@ function sampleEntries(now: Date): SpendEntry[] {
     saved,
   }))
 }
-
-/** ₹45k, ₹1.2L, ₹2.1Cr: short labels for chart axes. */
-function short(n: number): string {
-  if (n >= 1e7) return `₹${parseFloat((n / 1e7).toFixed(2))}Cr`
-  if (n >= 1e5) return `₹${parseFloat((n / 1e5).toFixed(2))}L`
-  if (n >= 1e3) return `₹${Math.round(n / 1e3)}k`
-  return `₹${Math.round(n)}`
-}
-
-/** Rounds up to a tidy axis value: 1, 2, 2.5 or 5 times a power of ten. */
-function niceCeil(n: number): number {
-  const p = 10 ** Math.floor(Math.log10(n))
-  return ([1, 2, 2.5, 5, 10].find((f) => f * p >= n) ?? 10) * p
-}
-
-const monthKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`
 
 export default function SpendPanel({ entries, orderCount }: { entries: SpendEntry[]; orderCount: number }) {
   const [show, setShow] = useState<"chart" | "table">("chart")
@@ -228,7 +213,7 @@ export default function SpendPanel({ entries, orderCount }: { entries: SpendEntr
 }
 
 /** A rupee amount that counts up from 0 when it first shows. */
-function CountUp({ value }: { value: number }) {
+export function CountUp({ value }: { value: number }) {
   const reduce = useReducedMotion()
   const n = useMotionValue(reduce ? value : 0)
   const text = useTransform(n, (v) => rupees(Math.round(v)))
