@@ -5,7 +5,7 @@
  * - KPI cards: new requests, offers to answer, active orders, earned, each
  *   with a "this week" trend or a shortcut.
  * - Left column: Sales & earnings (monthly sales, by category), then Orders to
- *   deliver. Right column: Recent activity, then Needs your attention (buyer
+ *   deliver. Right column: Needs your attention, then Recent activity (buyer
  *   price offers, requests to quote, orders to move forward; urgent first).
  *   On a phone, Needs your attention is first.
  *
@@ -310,7 +310,6 @@ export default function SupplierOverview() {
               </Panel>
             </div>
             <div className="min-w-0 space-y-5 max-lg:contents">
-              <RecentActivity role="vendor" />
               <Panel
                 title={view.todo.length ? "Needs your attention" : "Getting started"}
                 icon={ListChecks}
@@ -332,6 +331,7 @@ export default function SupplierOverview() {
                   }
                 />
               </Panel>
+              <RecentActivity role="vendor" />
             </div>
           </div>
         </>
