@@ -26,6 +26,7 @@ export default defineConfig(({ mode }) => {
       figmaMakeKitPlugin({ storiesGlob: '/src/**/*.stories.{ts,tsx,js,jsx}' }),
       requestReaderDevPlugin(),
       priceEstimateDevPlugin(),
+      dashboardSummaryDevPlugin(),
     ],
     resolve: {
       alias: {
@@ -726,6 +727,44 @@ function priceEstimateDevPlugin(): Plugin {
             res.end(JSON.stringify(result.body))
           } catch (error) {
             console.error('price-estimate (dev):', error)
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: 'Something went wrong. Please try again.' }))
+          }
+        })
+      })
+    },
+  }
+}
+
+/**
+ * Dev-server route for the dashboards' AI summary (POST /api/dashboard-summary).
+ * Runs the same code as the Netlify function, like the request reader above.
+ */
+function dashboardSummaryDevPlugin(): Plugin {
+  let env: Record<string, string | undefined> = {}
+  return {
+    name: 'mpi-dashboard-summary-dev',
+    configResolved(config) {
+      env = { ...loadEnv(config.mode, process.cwd(), ''), ...process.env }
+    },
+    configureServer(server) {
+      server.middlewares.use('/api/dashboard-summary', (req, res) => {
+        let body = ''
+        req.on('data', (chunk: Buffer) => {
+          body += chunk.toString()
+        })
+        req.on('end', async () => {
+          res.setHeader('Content-Type', 'application/json')
+          try {
+            const { summarise } = await server.ssrLoadModule('/netlify/functions/dashboard-summary.ts')
+            const result = await summarise(
+              { method: req.method ?? 'GET', authorization: req.headers.authorization ?? null, body },
+              { env }
+            )
+            res.statusCode = result.status
+            res.end(JSON.stringify(result.body))
+          } catch (error) {
+            console.error('dashboard-summary (dev):', error)
             res.statusCode = 500
             res.end(JSON.stringify({ error: 'Something went wrong. Please try again.' }))
           }

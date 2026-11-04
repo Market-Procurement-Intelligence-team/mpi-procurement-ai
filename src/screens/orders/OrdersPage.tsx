@@ -10,15 +10,15 @@
  *   delivery). The startup pays what is due now; the supplier sees MPI's
  *   commission and its payout. Payments are SIMULATED and say so.
  * - Items: the lines of the approved quote.
- * - Messages: this side's conversation with MPI (Contact supplier/buyer and
- *   Need help open it). The other side never sees it.
+ * Contact supplier/buyer and Need help open this order's conversation with
+ * MPI on the Notifications screen (Messages tab).
  * Header actions also download the PO and invoices (print or save as PDF).
  *
  * Each side sees the other only as "MPI Verified Buyer/Supplier #…".
  */
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
-import { Link, useSearchParams } from "react-router"
+import { Link, useNavigate, useSearchParams } from "react-router"
 import {
   ArrowLeft,
   BadgeCheck,
@@ -37,7 +37,6 @@ import {
   Package,
   PackageCheck,
   ShieldCheck,
-  Send,
   Truck,
   Wallet,
 } from "lucide-react"
@@ -45,13 +44,9 @@ import { getOrderMoney, INVOICE_LABELS, payOrder, SIMULATED_NOTE, type InvoiceSu
 import {
   listMyOrders,
   listOrderHistory,
-  listOrderMessages,
   ORDER_STEPS,
-  sendOrderMessage,
   updateOrderStatus,
-  type MessageTopic,
   type OrderEvent,
-  type OrderMessage,
   type OrderStatus,
   type OrderSummary,
 } from "../../services/data/orders"
@@ -60,13 +55,13 @@ import Button from "../../ui/Button"
 import EmptyState from "../../ui/EmptyState"
 import { Alert, BOX, boxBorder } from "../../ui/form"
 import PageHeader from "../../ui/PageHeader"
-import VoiceTextArea from "../../ui/VoiceTextArea"
 import { Chip, day, daysLeft, daysUntil, errorText, GRADIENT_PANEL, rupees, SummaryCards, useToast } from "../supplier/parts"
+import { notificationsPath } from "../notifications/notify"
 import { printInvoice, printPurchaseOrder } from "./printDoc"
 
 type Side = "startup" | "vendor"
 type ListTab = "active" | "done"
-type DetailTab = "progress" | "payments" | "items" | "messages"
+type DetailTab = "progress" | "payments" | "items"
 
 export const STEP_LABEL: Record<OrderStatus, string> = {
   issued: "Order placed",
@@ -107,7 +102,7 @@ const isoIn = (days: number) => {
 }
 
 /** Installments the startup can pay right now (what the database's pay_order will take). */
-function dueNow(money: OrderMoney | undefined, status: OrderStatus): number {
+export function dueNow(money: OrderMoney | undefined, status: OrderStatus): number {
   if (!money) return 0
   const delivered = status === "delivered" || status === "completed"
   return money.invoices
@@ -118,7 +113,7 @@ function dueNow(money: OrderMoney | undefined, status: OrderStatus): number {
 }
 
 /** Everything the startup still has to pay on an order, now or later. */
-function stillToPay(money: OrderMoney | undefined): number {
+export function stillToPay(money: OrderMoney | undefined): number {
   if (!money) return 0
   return money.invoices
     .filter((i) => i.kind !== "mpi_commission_to_supplier" && i.status !== "cancelled")
@@ -473,132 +468,6 @@ function Payments({ order, money, side, onDone }: { order: OrderSummary; money: 
   )
 }
 
-// ---------------------------------------------------------------- messages
-
-function topicLabels(side: Side): Record<MessageTopic, string> {
-  return {
-    for_other_side: side === "startup" ? "For the supplier" : "For the buyer",
-    delivery: "Delivery",
-    quality: "Quality",
-    payment: "Payment",
-    other: "Something else",
-  }
-}
-
-function Messages({
-  order,
-  side,
-  messages,
-  initialTopic,
-  onSent,
-}: {
-  order: OrderSummary
-  side: Side
-  messages: OrderMessage[] | null
-  initialTopic: MessageTopic
-  onSent: () => Promise<void>
-}) {
-  const labels = topicLabels(side)
-  const [topic, setTopic] = useState<MessageTopic>(initialTopic)
-  const [body, setBody] = useState("")
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const other = side === "startup" ? "supplier" : "buyer"
-
-  return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="order-2 lg:order-1">
-        <h3 className="mb-3 text-[15px] font-bold text-navy">Your messages with MPI</h3>
-        {messages === null ? (
-          <p className="text-muted">Loading…</p>
-        ) : messages.length === 0 ? (
-          <p className="rounded-lg bg-page/70 px-4 py-6 text-center text-[14px] text-muted">
-            No messages yet. Ask MPI anything about this order.
-          </p>
-        ) : (
-          <ul className="space-y-3">
-            {messages.map((m) => (
-              <li key={m.id} className={`flex ${m.from_mpi ? "justify-start" : "justify-end"}`}>
-                <div
-                  className={`max-w-[85%] rounded-xl px-4 py-3 text-[14.5px] ${
-                    m.from_mpi ? "bg-navy text-white" : "border-[1.5px] border-orange/50 bg-orange-tint/50 text-navy"
-                  }`}
-                >
-                  <p className={`mb-1 text-[12px] font-semibold ${m.from_mpi ? "text-white/70" : "text-muted"}`}>
-                    {m.from_mpi ? "MPI team" : "You"}
-                    {!m.from_mpi && ` · ${labels[m.topic as MessageTopic] ?? labels.other}`} · {day(m.created_at)}{" "}
-                    {new Date(m.created_at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}
-                  </p>
-                  <p className="whitespace-pre-wrap">{m.body}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <form
-        className="order-1 h-fit rounded-xl border-[1.5px] border-line bg-white p-4 lg:order-2"
-        onSubmit={async (e) => {
-          e.preventDefault()
-          if (!body.trim()) return setError("Please write a message.")
-          setBusy(true)
-          setError(null)
-          try {
-            await sendOrderMessage(order.id, topic, body)
-            setBody("")
-            await onSent()
-          } catch (err) {
-            setError(errorText(err))
-          } finally {
-            setBusy(false)
-          }
-        }}
-      >
-        <p className="flex items-start gap-2 text-[13px] text-muted">
-          <ShieldCheck size={16} className="mt-0.5 shrink-0 text-orange" aria-hidden="true" />
-          Messages go to the MPI team, who reply here. Names stay private: MPI passes on anything meant for the {other}.
-        </p>
-        <fieldset className="mt-3">
-          <legend className="mb-1.5 text-sm font-semibold text-navy">What is it about?</legend>
-          <div className="flex flex-wrap gap-1.5">
-            {(Object.keys(labels) as MessageTopic[]).map((t) => (
-              <button
-                key={t}
-                type="button"
-                aria-pressed={topic === t}
-                onClick={() => setTopic(t)}
-                className={`rounded-full px-3 py-1 text-[13px] font-semibold transition-colors ${
-                  topic === t ? "bg-navy text-white" : "bg-page text-navy hover:bg-orange-tint"
-                }`}
-              >
-                {labels[t]}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-        <div className="mt-3">
-          <VoiceTextArea
-            label="Message"
-            value={body}
-            onChange={setBody}
-            rows={4}
-            placeholder={topic === "for_other_side" ? `What should MPI tell the ${other}?` : "How can MPI help?"}
-          />
-        </div>
-        {error && (
-          <div className="mt-2">
-            <Alert>{error}</Alert>
-          </div>
-        )}
-        <Button type="submit" className="mt-3 w-full" busy={busy}>
-          <Send size={16} aria-hidden="true" /> Send to MPI
-        </Button>
-      </form>
-    </div>
-  )
-}
-
 // ---------------------------------------------------------------- detail
 
 function OrderPanel({
@@ -623,18 +492,9 @@ function OrderPanel({
   }
   const [events, setEvents] = useState<OrderEvent[]>([])
   const [lines, setLines] = useState<QuoteLine[] | null>(null)
-  const [messages, setMessages] = useState<OrderMessage[] | null>(null)
-  const [topic, setTopic] = useState<MessageTopic>("other")
-  const loadMessages = useCallback(async () => {
-    setMessages(await listOrderMessages(order.id).catch(() => []))
-  }, [order.id])
-  useEffect(() => {
-    void loadMessages()
-  }, [loadMessages])
-  const openMessages = (t: MessageTopic) => {
-    setTopic(t)
-    setTab("messages")
-  }
+  const navigate = useNavigate()
+  const openMessages = (topic: string) =>
+    navigate(notificationsPath(side === "startup" ? "startup" : "vendor", { order: order.id, topic }))
 
   useEffect(() => {
     let alive = true
@@ -729,7 +589,6 @@ function OrderPanel({
               { id: "progress", label: "Progress" },
               { id: "payments", label: "Payments" },
               { id: "items", label: "Items", count: lines?.length },
-              { id: "messages", label: "Messages", count: messages?.length || undefined },
             ] as { id: DetailTab; label: string; count?: number }[]
           ).map((t) => {
             const active = tab === t.id
@@ -760,9 +619,6 @@ function OrderPanel({
             <Stepper status={order.status} events={events} />
             {side === "vendor" ? <SupplierUpdate order={order} onDone={onDone} /> : <StartupConfirm order={order} onDone={onDone} />}
           </div>
-        )}
-        {tab === "messages" && (
-          <Messages key={topic} order={order} side={side} messages={messages} initialTopic={topic} onSent={loadMessages} />
         )}
         {tab === "payments" && <Payments order={order} money={money} side={side} onDone={onDone} />}
         {tab === "items" && (

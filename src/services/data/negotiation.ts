@@ -75,3 +75,8 @@ export function offersLeft(offers: Offer[]): number {
 export async function listMyOffers(vendorOrgId: string): Promise<Offer[]> {
   return unwrap(await db.from("quote_negotiations").select("*").eq("vendor_org_id", vendorOrgId).order("created_at"))
 }
+
+/** Startup: all price offers on the signed-in startup's requests, oldest first. */
+export async function listMyBuyerOffers(buyerOrgId: string): Promise<Offer[]> {
+  return unwrap(await db.from("quote_negotiations").select("*").eq("buyer_org_id", buyerOrgId).order("created_at"))
+}

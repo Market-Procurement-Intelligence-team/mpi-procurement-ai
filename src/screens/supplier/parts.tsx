@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { CheckCircle2, type LucideIcon } from "lucide-react"
+import { motion } from "motion/react"
 import type { Json } from "../../lib/database.types"
 
 // ---------------------------------------------------------------- helpers
@@ -115,19 +116,36 @@ export interface SummaryItem {
   hint: string
   icon: LucideIcon
   dot?: boolean
+  /** A small change note, e.g. "+2 this week". */
+  trend?: string
+  /** A shortcut label shown at the bottom, e.g. "Review quotes". */
+  cta?: string
+  /** "good" shows the number in green (money saved). */
+  tone?: "good"
 }
 
 /** The navy summary cards on top of a screen. */
 export function SummaryCards({ items, selected, onPick }: { items: SummaryItem[]; selected: string | null; onPick: (id: string) => void }) {
   return (
-    <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+    <motion.div
+      className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4"
+      initial="hidden"
+      animate="show"
+      variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
+    >
       {items.map((i) => (
-        <button
+        <motion.button
           key={i.id}
           type="button"
           onClick={() => onPick(i.id)}
           aria-pressed={selected === i.id}
-          className="group relative flex flex-col overflow-hidden rounded-xl px-4 py-3 text-left shadow-[0_3px_10px_rgba(21,35,61,0.2)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(21,35,61,0.26)]"
+          variants={{
+            hidden: { opacity: 0, y: 18 },
+            show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 260, damping: 22 } },
+          }}
+          whileHover={{ y: -5, transition: { type: "spring", stiffness: 400, damping: 18 } }}
+          whileTap={{ scale: 0.97 }}
+          className="group relative flex flex-col overflow-hidden rounded-xl px-4 py-2.5 text-left shadow-[0_3px_10px_rgba(21,35,61,0.2)] transition-shadow duration-200 hover:shadow-[0_12px_26px_rgba(21,35,61,0.3)]"
           style={{
             border: "2.5px solid transparent",
             background: [
@@ -140,6 +158,11 @@ export function SummaryCards({ items, selected, onPick }: { items: SummaryItem[]
           }}
         >
           <span
+            className="pointer-events-none absolute inset-x-0 top-0 h-[3px]"
+            style={{ background: i.tone === "good" ? "linear-gradient(90deg, #10b981, #6ee7b7)" : "linear-gradient(90deg, #f09a47, #ec8d49, #db4230)" }}
+            aria-hidden="true"
+          />
+          <span
             className="pointer-events-none absolute -bottom-8 -right-8 h-20 w-20 rounded-full border-[8px] border-white/[0.04]"
             aria-hidden="true"
           />
@@ -149,14 +172,22 @@ export function SummaryCards({ items, selected, onPick }: { items: SummaryItem[]
               <i.icon size={14} strokeWidth={2.2} />
             </span>
           </span>
-          <span className="mt-0.5 font-display text-[26px] font-bold leading-none tracking-tight text-orange">{i.value}</span>
-          <span className="mt-1.5 flex items-center gap-1.5 text-[12.5px] text-white/70">
+          <span className="mt-0.5 flex flex-wrap items-baseline gap-x-2">
+            <span className={`font-display text-[23px] font-bold leading-none tracking-tight ${i.tone === "good" ? "text-[#6ee7b7]" : "text-orange"}`}>{i.value}</span>
+            {i.trend && <span className="rounded-full bg-white/10 px-1.5 py-px text-[11.5px] font-semibold text-white/85">{i.trend}</span>}
+          </span>
+          <span className="mt-1 flex items-center gap-1.5 text-[12.5px] text-white/70">
             {i.dot && <span className="h-1.5 w-1.5 rounded-full bg-orange" aria-hidden="true" />}
             {i.hint}
           </span>
-        </button>
+          {i.cta && (
+            <span className="mt-1 inline-flex items-center gap-1 text-[12.5px] font-bold text-orange group-hover:underline">
+              {i.cta} <span aria-hidden="true">→</span>
+            </span>
+          )}
+        </motion.button>
       ))}
-    </div>
+    </motion.div>
   )
 }
 
