@@ -33,7 +33,7 @@ export interface SaleEntry {
 
 const MONTHS = 6
 const BLUE = "#3A6BB5"
-const WORDS: TrendWords = { low: "you receive", high: "invoiced", gap: "MPI commission", highColor: BLUE, gapText: "#5f6b7c", caption: "Monthly sales" }
+const WORDS: TrendWords = { low: "you receive", high: "invoiced", gap: "MPI commission", highColor: BLUE, gapText: "#4b5567", caption: "Monthly sales" }
 
 function sampleEntries(now: Date): SaleEntry[] {
   const rows: [number, string, number][] = [

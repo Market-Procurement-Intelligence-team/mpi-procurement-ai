@@ -18,7 +18,7 @@
   --color-page: #eef1f5;
   --color-line: #cbd2dc;
   --color-input: #a3adba;
-  --color-muted: #5f6b7c;
+  --color-muted: #4b5567; /* one shade darker (4 Nov) so grey text reads on the grey-to-peach panels */
   --color-nav-muted: #a3adba;
 
   --color-navy-tint: #e8ecf3;
