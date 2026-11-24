@@ -16,36 +16,12 @@ import { countSchemePicks, listSchemes, setSchemeActive, type Scheme } from "../
 import { listCategories } from "../../services/data/catalogue"
 import { Alert, BOX, boxBorder } from "../../ui/form"
 import PageHeader from "../../ui/PageHeader"
+import Switch from "../../ui/Switch"
 import { Panel } from "../overview/parts"
 import { errorText, SummaryCards, useToast } from "../supplier/parts"
 import { SchemeDrawer } from "./SchemesPage"
 
 type Filter = "all" | "on" | "off"
-
-/** A small on/off switch. */
-function Switch({ on, busy, label, onChange }: { on: boolean; busy?: boolean; label: string; onChange: () => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      disabled={busy}
-      onClick={(e) => {
-        e.stopPropagation()
-        onChange()
-      }}
-      className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60"
-      style={{ background: on ? "linear-gradient(105deg, #f09a47, #ec8d49, #e5683a)" : "#cbd2dc" }}
-    >
-      <motion.span
-        className="block h-5 w-5 rounded-full bg-white shadow"
-        animate={{ x: on ? 22 : 2 }}
-        transition={{ type: "spring", stiffness: 500, damping: 32 }}
-      />
-    </button>
-  )
-}
 
 export default function AdminSchemesPage() {
   const [schemes, setSchemes] = useState<Scheme[] | null>(null)
