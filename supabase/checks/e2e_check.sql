@@ -7,6 +7,7 @@
 --   approves -> order and its history -> a remote service request ->
 --   government scheme suggestions -> the suppliers' price guide -> money:
 --   the spec's worked examples, invoices, payments, payouts and returns.
+--   Freelancers: sign-up, profile, MPI review and privacy.
 -- It also checks that each person sees only what they should.
 --
 -- NOTHING IS SAVED. Everything runs inside one block that is cancelled at the
@@ -14,7 +15,7 @@
 -- result appears as an "error" in the SQL Editor: read the message, which
 -- starts with "MPI END-TO-END CHECK".
 --
--- Needs: all migrations up to 20261102120000 run, and the demo workspace
+-- Needs: all migrations up to 20261124120000 run, and the demo workspace
 -- (mpi-demostartup@, mpi-demosupplier1-3@, mpi-demoservice@example.com).
 -- Safe to run as often as you like, e.g. on the morning of a demo.
 -- ============================================================================
@@ -47,6 +48,8 @@ declare
   v_json    jsonb;
   v_po2     uuid;
   v_ql      uuid;
+  u_fl      uuid;
+  o_fl      uuid;
 begin
   -- --------------------------------------------------------------------------
   -- Who is who
@@ -793,6 +796,175 @@ begin
      and created_at >= now() - interval '1 minute';
   v_ok := v_int = 5;
   v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Every key step is written to the audit log (' || v_int || ' of 5)');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- ==========================================================================
+  -- 9. Freelancers: sign-up, profile, review, and what each side can see
+  -- ==========================================================================
+  -- Sign-up is refused while freelancers are switched off.
+  v_total := v_total + 1;
+  update public.platform_settings set freelancers_enabled = false;
+  begin
+    insert into auth.users (id, email, raw_user_meta_data)
+    values (gen_random_uuid(), 'mpi-e2e-freelancer@example.com',
+            '{"account_type": "freelancer", "full_name": "E2E Freelancer"}');
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like '%not open yet%';
+  end;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Freelancer sign-up is refused while freelancers are switched off');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- Switched on: sign-up makes a one-person supplier with a draft profile.
+  update public.platform_settings set freelancers_enabled = true;
+  u_fl := gen_random_uuid();
+  insert into auth.users (id, email, raw_user_meta_data)
+  values (u_fl, 'mpi-e2e-freelancer@example.com',
+          '{"account_type": "freelancer", "full_name": "E2E Freelancer"}');
+  select org_id into o_fl from public.profiles where id = u_fl;
+  update public.organisations set is_demo = true where id = o_fl;  -- same world as the demo startup
+  v_total := v_total + 1;
+  select o.type::text || '/' || o.provider_type || '/' || o.verification_status::text || '/' || p.status || '/' || pr.role::text
+    into v_txt
+    from public.organisations o join public.provider_profiles p on p.org_id = o.id
+    join public.profiles pr on pr.org_id = o.id
+   where o.id = o_fl;
+  v_ok := v_txt = 'vendor/individual/not_required/draft/vendor';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Freelancer sign-up makes a one-person supplier with a draft profile (' || coalesce(v_txt, 'none') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- The freelancer builds their profile.
+  perform set_config('request.jwt.claim.sub', u_fl::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_fl, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+
+  v_total := v_total + 1;
+  begin
+    perform public.submit_provider_profile();
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like 'Before sending for review%';
+  end;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'An empty freelancer profile cannot be sent for review');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  update public.provider_profiles
+     set headline = 'Shopify stores and UI design for D2C startups',
+         bio = 'Five years building online stores and app screens for small consumer brands across India.',
+         years_experience = 5, languages = '[{"name": "English", "level": "fluent"}, {"name": "Hindi", "level": "native"}]',
+         tools = array['Figma', 'Shopify'], usual_delivery_days = 10
+   where org_id = o_fl;
+  insert into public.vendor_categories (vendor_org_id, category_id) values (o_fl, v_it);
+  insert into public.provider_skills (org_id, skill_id, level, years)
+  select o_fl, id, 'expert', 4 from public.skills where slug = 'shopify-woocommerce';
+  insert into public.provider_projects (org_id, title, category_id, role_and_work, client_kind, client_name, link, year)
+  values (o_fl, 'Store redesign for a snack brand', v_it, 'Designed and built the store', 'D2C food startup',
+          'Secret Snacks Pvt Ltd', 'https://example.com/secret-portfolio', 2025);
+  insert into public.provider_experience (org_id, role_title, company_kind, company_name, started_on)
+  values (o_fl, 'Frontend developer', 'E-commerce agency', 'Secret Agency LLP', date '2021-04-01');
+  insert into public.provider_packages (org_id, category_id, title, deliverables, price, revision_rounds, turnaround_days)
+  values (o_fl, v_it, 'Shopify store setup', array['Theme setup', '10 products'], 25000, 2, 10);
+
+  v_total := v_total + 1;
+  begin
+    update public.provider_profiles set status = 'active' where org_id = o_fl;
+    v_ok := false;
+  exception when others then
+    v_ok := true;
+  end;
+  select status into v_txt from public.provider_profiles where org_id = o_fl;
+  v_ok := v_ok and v_txt = 'draft';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'A freelancer cannot approve their own profile');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  begin
+    insert into public.vendor_categories (vendor_org_id, category_id)
+    select o_fl, id from public.catalogue_categories where slug = 'compliance-and-legal-support';
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like '%not open to freelancers%';
+  end;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'A freelancer can pick only categories open to freelancers');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  insert into public.provider_verifications (org_id, kind, evidence_ref) values (o_fl, 'bank', 'payment-partner-ref');
+  perform public.submit_provider_profile();
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select p.status || '/' || p.payout_status into v_txt from public.provider_profiles p where p.org_id = o_fl;
+  select count(*) into v_int from public.notifications n join public.profiles pr on pr.id = n.user_id
+   where pr.role = 'admin' and n.type = 'provider_review' and n.link like '%' || o_fl::text;
+  v_ok := v_txt = 'pending_review/pending' and v_int >= 1;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Freelancer sends the profile for review and MPI is told (' || coalesce(v_txt, '?') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- Not visible to the startup before MPI approves.
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_total := v_total + 1;
+  select count(*) into v_int from public.freelancer_directory where id = o_fl;
+  v_ok := v_int = 0;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Startup does not see a freelancer before MPI approves (sees ' || v_int || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+  perform set_config('role', v_me, true);
+
+  -- MPI approves and checks the bank details.
+  perform set_config('request.jwt.claim.sub', u_admin::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_admin, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  perform public.review_provider_profile(o_fl, 'approve', null);
+  perform public.review_provider_verification((select id from public.provider_verifications where org_id = o_fl and kind = 'bank'),
+                                              'verified', null, null);
+  perform set_config('role', v_me, true);
+
+  -- The startup now sees the work, but not who the freelancer is.
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_total := v_total + 1;
+  select d.display_name, jsonb_array_length(d.skills), d.starting_price, 'bank' = any (d.verified_checks)
+    into v_txt, v_int, v_num, v_ok
+    from public.freelancer_directory d where d.id = o_fl;
+  select v_ok and v_int = 1 and v_num = 25000 and v_txt like 'MPI Verified Supplier #%'
+         and (select count(*) from public.freelancer_projects where org_id = o_fl) = 1
+         and (select count(*) from public.freelancer_packages where org_id = o_fl) = 1
+    into v_ok;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Startup sees the approved freelancer as ' || coalesce(v_txt, 'nothing') || ' with skills, projects and packages');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  select count(*) into v_int from public.provider_profiles where org_id = o_fl;
+  select v_int + count(*) into v_int from public.provider_projects where org_id = o_fl;
+  select v_int + count(*) into v_int from public.provider_experience where org_id = o_fl;
+  select v_int + count(*) into v_int from public.organisations where id = o_fl;
+  select to_jsonb(d)::text || coalesce((select string_agg(to_jsonb(p)::text, '') from public.freelancer_projects p where p.org_id = o_fl), '')
+                           || coalesce((select string_agg(to_jsonb(x)::text, '') from public.freelancer_experience x where x.org_id = o_fl), '')
+    into v_txt from public.freelancer_directory d where d.id = o_fl;
+  v_ok := v_int = 0 and v_txt not like '%Secret%' and v_txt not like '%E2E Freelancer%'
+          and v_txt not like '%payment-partner%' and v_txt not like '%https://%';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Startup never sees the freelancer''s name, bank, client or company names, or links');
+  if v_ok then v_pass := v_pass + 1; end if;
+  perform set_config('role', v_me, true);
+
+  -- Other suppliers can't browse freelancers, and freelancers stay out of goods matching.
+  perform set_config('request.jwt.claim.sub', u_s1::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_s1, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_total := v_total + 1;
+  select count(*) into v_int from public.freelancer_directory;
+  select v_int + count(*) into v_int from public.provider_projects where org_id = o_fl;
+  v_ok := v_int = 0;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Suppliers cannot browse freelancer profiles (see ' || v_int || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select count(*) into v_int from public.request_matches where vendor_org_id = o_fl;
+  v_ok := v_int = 0;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Freelancers are kept out of goods supplier matching for now');
   if v_ok then v_pass := v_pass + 1; end if;
 
   -- ==========================================================================

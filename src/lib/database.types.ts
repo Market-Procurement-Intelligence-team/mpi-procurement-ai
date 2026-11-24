@@ -1,5 +1,5 @@
 // Database types for the MPI Supabase project (schema: public).
-// Generated from supabase/migrations up to 20261023120000, then extended by hand up to 20261102120000. To regenerate from
+// Generated from supabase/migrations up to 20261023120000, then extended by hand up to 20261124120000. To regenerate from
 // the live project: npx supabase gen types typescript --project-id <id> > src/lib/database.types.ts
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
@@ -54,6 +54,7 @@ export type Database = {
           is_active: boolean
           created_at: string
           payment_terms: string | null
+          freelancers_allowed: boolean
         }
         Insert: {
           id?: string
@@ -65,6 +66,7 @@ export type Database = {
           is_active?: boolean
           created_at?: string
           payment_terms?: string | null
+          freelancers_allowed?: boolean
         }
         Update: {
           id?: string
@@ -76,6 +78,7 @@ export type Database = {
           is_active?: boolean
           created_at?: string
           payment_terms?: string | null
+          freelancers_allowed?: boolean
         }
         Relationships: [
           {
@@ -358,6 +361,7 @@ export type Database = {
           verified_by: string | null
           display_name: string
           is_demo: boolean
+          provider_type: string
           created_at: string
           updated_at: string
         }
@@ -375,6 +379,7 @@ export type Database = {
           verified_by?: string | null
           display_name: string
           is_demo?: boolean
+          provider_type?: string
           created_at?: string
           updated_at?: string
         }
@@ -392,6 +397,7 @@ export type Database = {
           verified_by?: string | null
           display_name?: string
           is_demo?: boolean
+          provider_type?: string
           created_at?: string
           updated_at?: string
         }
@@ -404,6 +410,7 @@ export type Database = {
           updated_by: string | null
           updated_at: string
           offer_score_weights: Json
+          freelancers_enabled: boolean
         }
         Insert: {
           id?: boolean
@@ -411,6 +418,7 @@ export type Database = {
           updated_by?: string | null
           updated_at?: string
           offer_score_weights?: Json
+          freelancers_enabled?: boolean
         }
         Update: {
           id?: boolean
@@ -418,6 +426,7 @@ export type Database = {
           updated_by?: string | null
           updated_at?: string
           offer_score_weights?: Json
+          freelancers_enabled?: boolean
         }
         Relationships: [
           {
@@ -1622,6 +1631,352 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_profiles: {
+        Row: {
+          org_id: string
+          headline: string | null
+          bio: string | null
+          years_experience: number | null
+          languages: Json
+          tools: string[]
+          work_mode: string
+          service_area: string | null
+          availability: string
+          max_parallel_projects: number
+          usual_delivery_days: number | null
+          legal_name: string | null
+          payout_reference: string | null
+          status: string
+          status_note: string | null
+          submitted_at: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          payout_status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          org_id: string
+          headline?: string | null
+          bio?: string | null
+          years_experience?: number | null
+          languages?: Json
+          tools?: string[]
+          work_mode?: string
+          service_area?: string | null
+          availability?: string
+          max_parallel_projects?: number
+          usual_delivery_days?: number | null
+          legal_name?: string | null
+          payout_reference?: string | null
+          status?: string
+          status_note?: string | null
+          submitted_at?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          payout_status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          org_id?: string
+          headline?: string | null
+          bio?: string | null
+          years_experience?: number | null
+          languages?: Json
+          tools?: string[]
+          work_mode?: string
+          service_area?: string | null
+          availability?: string
+          max_parallel_projects?: number
+          usual_delivery_days?: number | null
+          legal_name?: string | null
+          payout_reference?: string | null
+          status?: string
+          status_note?: string | null
+          submitted_at?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          payout_status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skills: {
+        Row: {
+          id: string
+          category_id: string
+          slug: string
+          name: string
+          sort_order: number
+          is_active: boolean
+        }
+        Insert: {
+          id?: string
+          category_id: string
+          slug: string
+          name: string
+          sort_order?: number
+          is_active?: boolean
+        }
+        Update: {
+          id?: string
+          category_id?: string
+          slug?: string
+          name?: string
+          sort_order?: number
+          is_active?: boolean
+        }
+        Relationships: []
+      }
+      provider_skills: {
+        Row: {
+          org_id: string
+          skill_id: string
+          level: string
+          years: number | null
+        }
+        Insert: {
+          org_id: string
+          skill_id: string
+          level?: string
+          years?: number | null
+        }
+        Update: {
+          org_id?: string
+          skill_id?: string
+          level?: string
+          years?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_skills_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_projects: {
+        Row: {
+          id: string
+          org_id: string
+          title: string
+          category_id: string | null
+          role_and_work: string | null
+          tools: string[]
+          result: string | null
+          year: number | null
+          link: string | null
+          client_kind: string | null
+          client_name: string | null
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          title: string
+          category_id?: string | null
+          role_and_work?: string | null
+          tools?: string[]
+          result?: string | null
+          year?: number | null
+          link?: string | null
+          client_kind?: string | null
+          client_name?: string | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          title?: string
+          category_id?: string | null
+          role_and_work?: string | null
+          tools?: string[]
+          result?: string | null
+          year?: number | null
+          link?: string | null
+          client_kind?: string | null
+          client_name?: string | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      provider_experience: {
+        Row: {
+          id: string
+          org_id: string
+          role_title: string
+          company_kind: string | null
+          company_name: string | null
+          started_on: string
+          ended_on: string | null
+          description: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          role_title: string
+          company_kind?: string | null
+          company_name?: string | null
+          started_on: string
+          ended_on?: string | null
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          role_title?: string
+          company_kind?: string | null
+          company_name?: string | null
+          started_on?: string
+          ended_on?: string | null
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      provider_credentials: {
+        Row: {
+          id: string
+          org_id: string
+          kind: string
+          title: string
+          issuer: string | null
+          year: number | null
+          link: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          kind: string
+          title: string
+          issuer?: string | null
+          year?: number | null
+          link?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          kind?: string
+          title?: string
+          issuer?: string | null
+          year?: number | null
+          link?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      provider_packages: {
+        Row: {
+          id: string
+          org_id: string
+          category_id: string
+          title: string
+          deliverables: string[]
+          exclusions: string[]
+          price: number
+          revision_rounds: number
+          turnaround_days: number
+          is_active: boolean
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          category_id: string
+          title: string
+          deliverables?: string[]
+          exclusions?: string[]
+          price: number
+          revision_rounds?: number
+          turnaround_days: number
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          category_id?: string
+          title?: string
+          deliverables?: string[]
+          exclusions?: string[]
+          price?: number
+          revision_rounds?: number
+          turnaround_days?: number
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      provider_verifications: {
+        Row: {
+          id: string
+          org_id: string
+          kind: string
+          status: string
+          evidence_ref: string | null
+          note: string | null
+          reviewed_by: string | null
+          verified_at: string | null
+          expires_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          kind: string
+          status?: string
+          evidence_ref?: string | null
+          note?: string | null
+          reviewed_by?: string | null
+          verified_at?: string | null
+          expires_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          kind?: string
+          status?: string
+          evidence_ref?: string | null
+          note?: string | null
+          reviewed_by?: string | null
+          verified_at?: string | null
+          expires_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       request_private_details: {
@@ -1659,6 +2014,83 @@ export type Database = {
           pan_india_dispatch: boolean | null
           category_ids: string[] | null
           turnover_band: string | null
+        }
+        Relationships: []
+      }
+      freelancer_directory: {
+        Row: {
+          id: string | null
+          display_name: string | null
+          city: string | null
+          state: string | null
+          headline: string | null
+          bio: string | null
+          years_experience: number | null
+          languages: Json | null
+          tools: string[] | null
+          work_mode: string | null
+          service_area: string | null
+          availability: string | null
+          max_parallel_projects: number | null
+          usual_delivery_days: number | null
+          approved_at: string | null
+          category_ids: string[] | null
+          skills: Json | null
+          verified_checks: string[] | null
+          starting_price: number | null
+        }
+        Relationships: []
+      }
+      freelancer_projects: {
+        Row: {
+          id: string | null
+          org_id: string | null
+          title: string | null
+          category_id: string | null
+          role_and_work: string | null
+          tools: string[] | null
+          result: string | null
+          year: number | null
+          client_kind: string | null
+          sort_order: number | null
+        }
+        Relationships: []
+      }
+      freelancer_experience: {
+        Row: {
+          id: string | null
+          org_id: string | null
+          role_title: string | null
+          company_kind: string | null
+          started_on: string | null
+          ended_on: string | null
+          description: string | null
+        }
+        Relationships: []
+      }
+      freelancer_credentials: {
+        Row: {
+          id: string | null
+          org_id: string | null
+          kind: string | null
+          title: string | null
+          issuer: string | null
+          year: number | null
+        }
+        Relationships: []
+      }
+      freelancer_packages: {
+        Row: {
+          id: string | null
+          org_id: string | null
+          category_id: string | null
+          title: string | null
+          deliverables: string[] | null
+          exclusions: string[] | null
+          price: number | null
+          revision_rounds: number | null
+          turnaround_days: number | null
+          sort_order: number | null
         }
         Relationships: []
       }
@@ -1855,6 +2287,30 @@ export type Database = {
           p_status: Database["public"]["Enums"]["po_status"]
           p_expected_delivery?: string
         }
+        Returns: undefined
+      }
+      freelancers_open: {
+        Args: never
+        Returns: boolean
+      }
+      set_freelancers_enabled: {
+        Args: { p_on: boolean }
+        Returns: undefined
+      }
+      submit_provider_profile: {
+        Args: never
+        Returns: undefined
+      }
+      set_provider_paused: {
+        Args: { p_paused: boolean }
+        Returns: undefined
+      }
+      review_provider_profile: {
+        Args: { p_org_id: string; p_decision: string; p_note?: string }
+        Returns: undefined
+      }
+      review_provider_verification: {
+        Args: { p_id: string; p_status: string; p_note?: string; p_expires_at?: string }
         Returns: undefined
       }
     }
