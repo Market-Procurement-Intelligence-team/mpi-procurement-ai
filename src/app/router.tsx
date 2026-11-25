@@ -14,7 +14,6 @@ import OrdersPage from "../screens/orders/OrdersPage"
 import NotificationsPage from "../screens/notifications/NotificationsPage"
 import StartupOverview from "../screens/overview/StartupOverview"
 import AdminOverview from "../screens/overview/AdminOverview"
-import SupplierOverview from "../screens/overview/SupplierOverview"
 import Placeholder from "../screens/Placeholder"
 import MatchesPage from "../screens/admin/MatchesPage"
 import OrdersAdminPage from "../screens/admin/OrdersAdminPage"
@@ -25,7 +24,7 @@ import AdminSchemesPage from "../screens/schemes/AdminSchemesPage"
 import ActivityPage from "../screens/admin/ActivityPage"
 import AdminProfilePage from "../screens/profile/AdminProfilePage"
 import StartupProfilePage from "../screens/profile/StartupProfilePage"
-import SupplierProfilePage from "../screens/profile/SupplierProfilePage"
+import { SupplierHome, SupplierProfile } from "../screens/freelancer/VendorSwitch"
 import MyRequestsPage from "../screens/startup/MyRequestsPage"
 import QuotePage from "../screens/supplier/QuotePage"
 import SupplierRequestsPage from "../screens/supplier/RequestsPage"
@@ -57,13 +56,14 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
     { path: "profile", element: <StartupProfilePage /> },
   ],
   vendor: [
-    { index: true, element: <SupplierOverview /> },
+    // Freelancers are sent to their profile builder; businesses see their dashboard.
+    { index: true, element: <SupplierHome /> },
     { path: "requests", element: <SupplierRequestsPage /> },
     { path: "requests/:invitationId", element: <QuotePage /> },
     { path: "orders", element: <OrdersPage side="vendor" /> },
     { path: "notifications", element: <NotificationsPage role="vendor" /> },
     { path: "schemes", element: <SchemesPage audience="vendor" /> },
-    { path: "profile", element: <SupplierProfilePage /> },
+    { path: "profile", element: <SupplierProfile /> },
   ],
   // Not in the admin menu; opened from the account menu.
   admin: [

@@ -20,6 +20,17 @@ export interface MenuItem {
   icon: LucideIcon
 }
 
+/**
+ * Freelancers use the supplier area but have their own short menu. For now
+ * that is their profile builder; briefs, proposals and orders are added as
+ * those screens are built.
+ */
+export const FREELANCER_MENU: { area: string; title: string; items: MenuItem[] } = {
+  area: "/supplier",
+  title: "Freelancer",
+  items: [{ label: "Profile", to: "profile", icon: UserRound }],
+}
+
 /** Each role's menu in the top bar. Paths are relative to the role's area. */
 export const MENUS: Record<Role, { area: string; title: string; items: MenuItem[] }> = {
   startup: {
