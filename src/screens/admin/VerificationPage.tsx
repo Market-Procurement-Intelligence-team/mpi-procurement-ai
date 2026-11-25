@@ -10,6 +10,9 @@
  *   supplier sees. The database also refuses to verify without GSTIN + Udyam.
  *
  * The admin sees real company names next to the MPI alias.
+ *
+ * Two tabs: Businesses (above) and Freelancers (?who=freelancers, see
+ * freelancers/FreelancerReview), which have their own profile review.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -28,6 +31,7 @@ import {
   PauseCircle,
   Search,
   ShieldCheck,
+  UserRound,
   XCircle,
 } from "lucide-react"
 import { listSuppliers, setVerification, type SupplierForReview, type VerificationStatus } from "../../services/data/admin"
@@ -36,6 +40,7 @@ import Button from "../../ui/Button"
 import EmptyState from "../../ui/EmptyState"
 import { Alert, BOX, boxBorder } from "../../ui/form"
 import PageHeader from "../../ui/PageHeader"
+import FreelancerReview from "./freelancers/FreelancerReview"
 import { ago, Chip, day, errorText, GRADIENT_PANEL, SummaryCards, useToast } from "../supplier/parts"
 
 type ListTab = "review" | "needs_info" | "verified" | "closed"
@@ -379,7 +384,7 @@ function SupplierPanel({
 
 // ---------------------------------------------------------------- page
 
-export default function VerificationPage() {
+function BusinessVerification() {
   const [suppliers, setSuppliers] = useState<SupplierForReview[] | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -401,7 +406,6 @@ export default function VerificationPage() {
   }, [])
 
   useEffect(() => {
-    document.title = "Supplier verification · MPI admin"
     void reload()
   }, [reload])
 
@@ -444,7 +448,6 @@ export default function VerificationPage() {
 
   return (
     <div>
-      <PageHeader title="Supplier verification" description="Check each supplier's registration before they can receive requests from startups." />
       {error && (
         <div className="mb-4">
           <Alert>{error}</Alert>
@@ -528,6 +531,62 @@ export default function VerificationPage() {
         </>
       )}
       {toastNode}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- tabs
+
+type Who = "businesses" | "freelancers"
+
+export default function VerificationPage() {
+  const [params, setParams] = useSearchParams()
+  const who: Who = params.get("who") === "freelancers" ? "freelancers" : "businesses"
+
+  useEffect(() => {
+    document.title = `${who === "freelancers" ? "Freelancer review" : "Supplier verification"} · MPI admin`
+  }, [who])
+
+  function pick(next: Who) {
+    // Each tab keeps its own list and selection in the URL, so start clean.
+    setParams(next === "freelancers" ? { who: "freelancers" } : {}, { replace: true })
+  }
+
+  return (
+    <div>
+      <PageHeader
+        title="Supplier verification"
+        description={
+          who === "freelancers"
+            ? "Review freelancer profiles and checks before startups can see them."
+            : "Check each supplier's registration before they can receive requests from startups."
+        }
+      />
+      <div role="tablist" aria-label="Supplier type" className="mb-5 inline-flex rounded-xl border-[1.5px] border-line bg-white p-1">
+        {(
+          [
+            { id: "businesses", label: "Businesses", icon: Factory },
+            { id: "freelancers", label: "Freelancers", icon: UserRound },
+          ] as const
+        ).map((t) => {
+          const on = t.id === who
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              onClick={() => pick(t.id)}
+              className={`relative flex min-h-10 items-center gap-2 rounded-lg px-4 text-[14.5px] font-semibold transition-colors ${on ? "text-white" : "text-navy hover:bg-navy-tint"}`}
+            >
+              {on && <motion.span layoutId="who-tab" className="absolute inset-0 rounded-lg bg-navy" transition={{ type: "spring", stiffness: 480, damping: 36 }} />}
+              <t.icon size={16} className={`relative ${on ? "text-orange" : "text-muted"}`} aria-hidden="true" />
+              <span className="relative">{t.label}</span>
+            </button>
+          )
+        })}
+      </div>
+      {who === "freelancers" ? <FreelancerReview /> : <BusinessVerification />}
     </div>
   )
 }

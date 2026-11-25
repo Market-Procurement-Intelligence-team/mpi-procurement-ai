@@ -266,6 +266,51 @@ export async function reviewVerification(
   check(await db.rpc("review_provider_verification", { p_id: id, p_status: status, p_note: note, p_expires_at: expiresAt }))
 }
 
+/** Admin: the small facts the review queue shows on each row. */
+export interface ProviderQueueFacts {
+  categoryIds: string[]
+  checks: Pick<ProviderVerification, "kind" | "status">[]
+  skills: number
+  work: number
+  activePackages: number
+}
+
+export async function listProviderQueueFacts(orgIds: string[]): Promise<Map<string, ProviderQueueFacts>> {
+  const facts = new Map<string, ProviderQueueFacts>(
+    orgIds.map((id) => [id, { categoryIds: [], checks: [], skills: 0, work: 0, activePackages: 0 }]),
+  )
+  if (!orgIds.length) return facts
+  const [cats, checks, skills, projects, jobs, packages] = await Promise.all([
+    db.from("vendor_categories").select("vendor_org_id, category_id").in("vendor_org_id", orgIds),
+    db.from("provider_verifications").select("org_id, kind, status").in("org_id", orgIds).order("created_at", { ascending: false }),
+    db.from("provider_skills").select("org_id").in("org_id", orgIds),
+    db.from("provider_projects").select("org_id").in("org_id", orgIds),
+    db.from("provider_experience").select("org_id").in("org_id", orgIds),
+    db.from("provider_packages").select("org_id").in("org_id", orgIds).eq("is_active", true),
+  ])
+  for (const c of unwrap(cats)) facts.get(c.vendor_org_id)?.categoryIds.push(c.category_id)
+  for (const v of unwrap(checks)) facts.get(v.org_id)?.checks.push({ kind: v.kind, status: v.status })
+  const bump = (rows: { org_id: string }[], key: "skills" | "work" | "activePackages") => {
+    for (const r of rows) {
+      const f = facts.get(r.org_id)
+      if (f) f[key]++
+    }
+  }
+  bump(unwrap(skills), "skills")
+  bump([...unwrap(projects), ...unwrap(jobs)], "work")
+  bump(unwrap(packages), "activePackages")
+  return facts
+}
+
+/** Admin: the freelancer's PAN (from supplier details) and login email. */
+export async function getProviderPrivate(orgId: string): Promise<{ pan: string | null; email: string | null }> {
+  const [details, people] = await Promise.all([
+    db.from("vendor_details").select("pan_number").eq("org_id", orgId).maybeSingle(),
+    db.from("profiles").select("email").eq("org_id", orgId).limit(1),
+  ])
+  return { pan: unwrap(details)?.pan_number ?? null, email: unwrap(people)[0]?.email ?? null }
+}
+
 // ---------------------------------------------------------------------------
 // What startups see (anonymous)
 // ---------------------------------------------------------------------------

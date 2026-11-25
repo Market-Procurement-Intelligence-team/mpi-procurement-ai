@@ -41,7 +41,8 @@ export interface RequestForReview {
 
 /** Suppliers, optionally only those with one verification status, newest first. */
 export async function listSuppliers(status?: VerificationStatus): Promise<SupplierForReview[]> {
-  let query = db.from("organisations").select("*").eq("type", "vendor").order("created_at", { ascending: false })
+  // Freelancers (one-person suppliers) have their own review: see providers.ts.
+  let query = db.from("organisations").select("*").eq("type", "vendor").eq("provider_type", "business").order("created_at", { ascending: false })
   if (status) query = query.eq("verification_status", status)
   const orgs = unwrap(await query)
   if (!orgs.length) return []

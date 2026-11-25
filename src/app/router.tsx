@@ -4,7 +4,7 @@
  * Menu pages show a placeholder until their screen is built.
  */
 
-import { createBrowserRouter, Navigate, type RouteObject } from "react-router"
+import { createBrowserRouter, Navigate, useSearchParams, type RouteObject } from "react-router"
 import ForgotPasswordPage from "../screens/auth/ForgotPasswordPage"
 import LoginPage from "../screens/auth/LoginPage"
 import ResetPasswordPage from "../screens/auth/ResetPasswordPage"
@@ -43,6 +43,13 @@ function Home() {
   return <Navigate to="/login" replace />
 }
 
+/** The freelancer review notification opens /admin/freelancers?p=…: it lives in Supplier verification. */
+function FreelancerReviewLink() {
+  const [params] = useSearchParams()
+  const p = params.get("p")
+  return <Navigate to={`/admin/verification?who=freelancers${p ? `&p=${encodeURIComponent(p)}` : ""}`} replace />
+}
+
 /** Screens built so far, by area and path. Other menu pages show a placeholder. */
 const SCREENS: Partial<Record<Role, RouteObject[]>> = {
   startup: [
@@ -70,6 +77,7 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
     { index: true, element: <AdminOverview /> },
     { path: "matches", element: <MatchesPage /> },
     { path: "verification", element: <VerificationPage /> },
+    { path: "freelancers", element: <FreelancerReviewLink /> },
     { path: "payment-terms", element: <PaymentTermsPage /> },
     { path: "schemes", element: <AdminSchemesPage /> },
     { path: "activity", element: <ActivityPage /> },
