@@ -968,6 +968,56 @@ begin
   if v_ok then v_pass := v_pass + 1; end if;
 
   -- ==========================================================================
+  -- 10. Service brief (deliverables instead of items)
+  -- ==========================================================================
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  insert into public.requests (org_id, title, category_id, source, status, kind, provider_preference, proposals_wanted,
+                               revision_rounds, budget_min, budget_max)
+  values (o_startup, 'End-to-end check: Shopify store', v_it, 'ai_assisted', 'draft', 'service', 'any', 2, 2, 15000, 30000)
+  returning id into v_req2;
+
+  v_total := v_total + 1;
+  begin
+    update public.requests set status = 'open' where id = v_req2;
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like '%deliverable%';
+  end;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'A service brief cannot be sent without a deliverable');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  begin
+    update public.requests set category_id = v_pack where id = v_req2;
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like '%service category%';
+  end;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'A service brief cannot use a goods category');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  update public.requests
+     set deliverables = '[{"title": "Store live with 15 products", "done_when": "Orders can be placed"}]',
+         needed_by = current_date + 21, status = 'open'
+   where id = v_req2;
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select status::text, jsonb_array_length(deliverables) into v_txt, v_int from public.requests where id = v_req2;
+  select count(*) into v_num from public.request_matches where request_id = v_req2 and vendor_org_id = o_sv;
+  v_ok := v_txt = 'open' and v_int = 1 and v_num = 1;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Service brief sent with its deliverable, and the service supplier is matched');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  v_ok := has_column_privilege('authenticated', 'public.requests', 'deliverables', 'select')
+          and not has_column_privilege('authenticated', 'public.requests', 'budget_max', 'select');
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Suppliers can read a brief''s deliverables but still not its budget');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- ==========================================================================
   -- Report, then cancel everything
   -- ==========================================================================
   raise exception using

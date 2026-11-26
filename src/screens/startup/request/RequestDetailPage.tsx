@@ -49,10 +49,11 @@ import {
   type Offer,
 } from "../../../services/data/negotiation"
 import { listQuotesForRequest, type QuoteWithLines } from "../../../services/data/quotes"
-import { cancelRequest, getRequestDetail, type RequestDetail } from "../../../services/data/requests"
+import { cancelRequest, deliverablesOf, getRequestDetail, isServiceBrief, type RequestDetail } from "../../../services/data/requests"
 import { listCategories, type Category } from "../../../services/data/catalogue"
 import Button from "../../../ui/Button"
 import { RequestSchemeChips } from "../../schemes/parts"
+import BriefDetails from "../service-brief/BriefDetails"
 import EmptyState from "../../../ui/EmptyState"
 import { Alert, BOX, boxBorder } from "../../../ui/form"
 import VoiceTextArea from "../../../ui/VoiceTextArea"
@@ -664,6 +665,7 @@ function SuppliersTab({ detail, quotes }: { detail: RequestDetail; quotes: Quote
 function RequestTab({ detail, category }: { detail: RequestDetail; category: Category | undefined }) {
   const { request, lines } = detail
   const budget = budgetText(request.budget_min, request.budget_max)
+  if (isServiceBrief(request)) return <BriefDetails request={request} category={category} budget={budget} />
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="min-w-0 space-y-4">
@@ -827,7 +829,12 @@ export default function RequestDetailPage() {
   const best = views.reduce<QuoteView | null>((acc, v) => (v.score && (!acc?.score || v.score.score > acc.score.score) ? v : acc), null)
   const budget = budgetText(request.budget_min, request.budget_max)
   const where = place(request.delivery_city, request.delivery_state)
-  const itemsQty = detail.lines.length === 1 ? qty(detail.lines[0].quantity, detail.lines[0].unit) : `${detail.lines.length} items`
+  const brief = isServiceBrief(detail.request)
+  const itemsQty = brief
+    ? `Service brief · ${deliverablesOf(detail.request).length} deliverable${deliverablesOf(detail.request).length === 1 ? "" : "s"}`
+    : detail.lines.length === 1
+      ? qty(detail.lines[0].quantity, detail.lines[0].unit)
+      : `${detail.lines.length} items`
   const selected = panel ? views.find((v) => v.quote.id === panel.quoteId) : undefined
 
   async function done(message: string) {
@@ -954,7 +961,7 @@ export default function RequestDetailPage() {
         tabs={[
           { id: "quotes", label: "Compare quotes", count: views.length },
           { id: "suppliers", label: "Suppliers", count: detail.matches.length },
-          { id: "request", label: "Your request" },
+          { id: "request", label: brief ? "Your brief" : "Your request" },
         ]}
       />
 

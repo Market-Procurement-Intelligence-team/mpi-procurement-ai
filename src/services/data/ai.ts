@@ -68,6 +68,46 @@ export async function readRequirement(text: string): Promise<RequestDraft> {
   return body.draft
 }
 
+/** A service brief the AI wrote from the startup's own words. */
+export interface BriefDraft {
+  title: string
+  goal: string | null
+  categoryId: string | null
+  deliverables: { title: string; doneWhen: string | null }[]
+  skillIds: string[]
+  neededBy: string | null
+  remote: boolean
+  deliveryCity: string | null
+  deliveryState: string | null
+  budgetMin: number | null
+  budgetMax: number | null
+  revisionRounds: number | null
+  language: string
+  missing: string[]
+}
+
+/** Reads a service need (English, Hindi or Hinglish) and returns a draft brief. Startups only. */
+export async function readBrief(text: string): Promise<BriefDraft> {
+  const { data } = await db.auth.getSession()
+  const token = data.session?.access_token
+  if (!token) throw new DataError("Please log in first.")
+  let response: Response
+  try {
+    response = await fetch(READER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ text, kind: "service" }),
+    })
+  } catch {
+    throw new DataError("Couldn't reach the AI. Check your connection and try again.")
+  }
+  const body = (await response.json().catch(() => null)) as { brief?: BriefDraft; error?: string } | null
+  if (!response.ok || !body?.brief) {
+    throw new DataError(body?.error ?? "The AI couldn't write the brief right now. Please fill it in yourself.")
+  }
+  return body.brief
+}
+
 /**
  * Turns the checked (possibly edited) draft into the input for createRequest.
  * Pass the AI's untouched reading as `aiReading` so it is kept alongside the

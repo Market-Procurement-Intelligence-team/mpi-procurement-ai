@@ -976,6 +976,13 @@ export type Database = {
           required_certifications: string[]
           category_id: string | null
           scheme_ids: string[]
+          kind: string
+          deliverables: Json
+          skill_ids: string[]
+          revision_rounds: number | null
+          provider_preference: string
+          proposals_wanted: number
+          reference_links: string[]
           source: Database["public"]["Enums"]["request_source"]
           status: Database["public"]["Enums"]["request_status"]
           needed_by: string | null
@@ -999,6 +1006,13 @@ export type Database = {
           required_certifications?: string[]
           category_id?: string | null
           scheme_ids?: string[]
+          kind?: string
+          deliverables?: Json
+          skill_ids?: string[]
+          revision_rounds?: number | null
+          provider_preference?: string
+          proposals_wanted?: number
+          reference_links?: string[]
           source?: Database["public"]["Enums"]["request_source"]
           status?: Database["public"]["Enums"]["request_status"]
           needed_by?: string | null
@@ -1022,6 +1036,13 @@ export type Database = {
           required_certifications?: string[]
           category_id?: string | null
           scheme_ids?: string[]
+          kind?: string
+          deliverables?: Json
+          skill_ids?: string[]
+          revision_rounds?: number | null
+          provider_preference?: string
+          proposals_wanted?: number
+          reference_links?: string[]
           source?: Database["public"]["Enums"]["request_source"]
           status?: Database["public"]["Enums"]["request_status"]
           needed_by?: string | null
