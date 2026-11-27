@@ -9,7 +9,7 @@ import { Link, NavLink, Outlet, useLocation } from "react-router"
 import { ChevronDown, LogOut, Menu, UserRound, X } from "lucide-react"
 import { signOut } from "../services/data/auth"
 import MpiLogo from "../ui/brand/MpiLogo"
-import { MENUS } from "./menus"
+import { FREELANCER_MENU, MENUS } from "./menus"
 import NotificationBell from "./NotificationBell"
 import { useSession, type Role } from "./session"
 
@@ -24,7 +24,8 @@ export default function AppShell({ role }: { role: Role }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const accountRef = useRef<HTMLDivElement>(null)
-  const menu = MENUS[role]
+  const freelancer = role === "vendor" && state.status === "signedIn" && state.me.organisation.provider_type === "individual"
+  const menu = freelancer ? FREELANCER_MENU : MENUS[role]
 
   // Close the menus after moving to another page.
   useEffect(() => {

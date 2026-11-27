@@ -6,10 +6,14 @@
  *   4 Needed-by date, delivery place and the private budget
  *   5 Review, then Send to MPI
  * It can be saved as a draft from any step. Going back never loses anything.
+ *
+ * Services get a service brief instead (?kind=service, see service-brief/).
+ * Picking a service here, or the AI reading the text as a service, moves the
+ * startup's words across to the brief.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Link, useSearchParams } from "react-router"
+import { Link, useNavigate, useSearchParams } from "react-router"
 import { ArrowLeft, ArrowRight, BadgeCheck, CircleCheck, Save, Send, Sparkles } from "lucide-react"
 import { useMe } from "../../../app/session"
 import type { VoiceLanguage } from "../../../lib/voiceInput"
@@ -39,6 +43,9 @@ import {
 import ItemsStep from "./ItemsStep"
 import ReviewStep from "./ReviewStep"
 import StepBar from "./StepBar"
+import { handOffToBrief } from "../service-brief/brief"
+import KindSwitch from "../service-brief/KindSwitch"
+import ServiceBriefPage from "../service-brief/ServiceBriefPage"
 
 const MY_REQUESTS = "/startup/requests"
 
@@ -67,7 +74,13 @@ function toFields(input: RequestInput) {
 }
 
 export default function NewRequestPage() {
+  const [params] = useSearchParams()
+  return params.get("kind") === "service" ? <ServiceBriefPage /> : <GoodsRequestPage />
+}
+
+function GoodsRequestPage() {
   const me = useMe()
+  const navigate = useNavigate()
   const [params] = useSearchParams()
   const draftId = params.get("draft")
   const initial = useRef(loadSaved())
@@ -112,6 +125,10 @@ export default function NewRequestPage() {
           setLoadError("This request has already been sent, so it can't be changed here.")
           return
         }
+        if (request.kind === "service") {
+          navigate(`/startup/requests/new?kind=service&draft=${request.id}`, { replace: true })
+          return
+        }
         setDraft(fromRequest(request, lines))
         setRequestId(request.id)
         setStep(1)
@@ -122,7 +139,7 @@ export default function NewRequestPage() {
     return () => {
       alive = false
     }
-  }, [draftId])
+  }, [draftId, navigate])
 
   useEffect(() => {
     document.title = "New request · MPI"
@@ -188,6 +205,7 @@ export default function NewRequestPage() {
     setAiError(null)
     try {
       const reading = await readRequirement(text)
+      if (isServiceCategory(reading.categoryId)) return toBrief(text, reading.categoryId)
       const next = applyAiReading(draft, reading)
       setDraft(next)
       setAiFailedText(null)
@@ -200,7 +218,17 @@ export default function NewRequestPage() {
     }
   }
 
+  const isServiceCategory = (id: string | null) => !!id && categories?.find((c) => c.id === id)?.is_tangible === false
+
+  // A service needs a brief, not items: carry the startup's words across.
+  const toBrief = (text: string, categoryId: string | null) => {
+    clearSaved()
+    handOffToBrief(text, categoryId)
+    navigate("/startup/requests/new?kind=service")
+  }
+
   const pickCategory = (id: string) => {
+    if (isServiceCategory(id)) return toBrief(draft.text, id)
     const next = { ...draft, categoryId: id }
     setDraft(next)
     toItemsStep(next)
@@ -296,7 +324,7 @@ export default function NewRequestPage() {
   if (sent) {
     return (
       <div ref={top} className="mx-auto max-w-2xl py-6 sm:py-10">
-        <div className="overflow-hidden rounded-2xl border-[1.5px] border-line bg-white text-center shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
+        <div className="overflow-hidden rounded-2xl border-[1.5px] border-line bg-white soft-panel text-center shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
           <div className="accent-line h-1" />
           <div className="px-6 py-10 sm:px-10">
             <span className="mx-auto flex size-16 items-center justify-center rounded-full bg-orange-tint text-navy">
@@ -344,11 +372,16 @@ export default function NewRequestPage() {
           </span>
           <span className="font-semibold text-navy">New request</span>
         </nav>
-        <h1 className="mt-2 text-[28px] font-bold leading-tight text-navy sm:text-[32px]">New purchase request</h1>
-        <p className="mt-1 text-muted">Tell MPI what you need. Nothing goes to suppliers until you press Send and MPI approves the matches.</p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="mt-2 text-[28px] font-bold leading-tight text-navy sm:text-[32px]">New purchase request</h1>
+            <p className="mt-1 text-muted">Tell MPI what you need. Nothing goes to suppliers until you press Send and MPI approves the matches.</p>
+          </div>
+          <KindSwitch value="goods" />
+        </div>
       </div>
 
-      <div className="mb-6 rounded-xl border-[1.5px] border-line bg-white px-5 py-4 shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
+      <div className="mb-6 rounded-xl border-[1.5px] border-line bg-white soft-panel px-5 py-4 shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
         <StepBar current={step} reached={reached} onGo={go} />
       </div>
 

@@ -4,7 +4,7 @@
  * Menu pages show a placeholder until their screen is built.
  */
 
-import { createBrowserRouter, Navigate, type RouteObject } from "react-router"
+import { createBrowserRouter, Navigate, useSearchParams, type RouteObject } from "react-router"
 import ForgotPasswordPage from "../screens/auth/ForgotPasswordPage"
 import LoginPage from "../screens/auth/LoginPage"
 import ResetPasswordPage from "../screens/auth/ResetPasswordPage"
@@ -14,16 +14,17 @@ import OrdersPage from "../screens/orders/OrdersPage"
 import NotificationsPage from "../screens/notifications/NotificationsPage"
 import StartupOverview from "../screens/overview/StartupOverview"
 import AdminOverview from "../screens/overview/AdminOverview"
-import SupplierOverview from "../screens/overview/SupplierOverview"
 import Placeholder from "../screens/Placeholder"
 import MatchesPage from "../screens/admin/MatchesPage"
 import OrdersAdminPage from "../screens/admin/OrdersAdminPage"
 import VerificationPage from "../screens/admin/VerificationPage"
 import PaymentTermsPage from "../screens/admin/PaymentTermsPage"
 import SchemesPage from "../screens/schemes/SchemesPage"
+import AdminSchemesPage from "../screens/schemes/AdminSchemesPage"
+import ActivityPage from "../screens/admin/ActivityPage"
 import AdminProfilePage from "../screens/profile/AdminProfilePage"
 import StartupProfilePage from "../screens/profile/StartupProfilePage"
-import SupplierProfilePage from "../screens/profile/SupplierProfilePage"
+import { SupplierHome, SupplierProfile } from "../screens/freelancer/VendorSwitch"
 import MyRequestsPage from "../screens/startup/MyRequestsPage"
 import QuotePage from "../screens/supplier/QuotePage"
 import SupplierRequestsPage from "../screens/supplier/RequestsPage"
@@ -42,6 +43,13 @@ function Home() {
   return <Navigate to="/login" replace />
 }
 
+/** The freelancer review notification opens /admin/freelancers?p=…: it lives in Supplier verification. */
+function FreelancerReviewLink() {
+  const [params] = useSearchParams()
+  const p = params.get("p")
+  return <Navigate to={`/admin/verification?who=freelancers${p ? `&p=${encodeURIComponent(p)}` : ""}`} replace />
+}
+
 /** Screens built so far, by area and path. Other menu pages show a placeholder. */
 const SCREENS: Partial<Record<Role, RouteObject[]>> = {
   startup: [
@@ -55,20 +63,24 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
     { path: "profile", element: <StartupProfilePage /> },
   ],
   vendor: [
-    { index: true, element: <SupplierOverview /> },
+    // Freelancers are sent to their profile builder; businesses see their dashboard.
+    { index: true, element: <SupplierHome /> },
     { path: "requests", element: <SupplierRequestsPage /> },
     { path: "requests/:invitationId", element: <QuotePage /> },
     { path: "orders", element: <OrdersPage side="vendor" /> },
     { path: "notifications", element: <NotificationsPage role="vendor" /> },
     { path: "schemes", element: <SchemesPage audience="vendor" /> },
-    { path: "profile", element: <SupplierProfilePage /> },
+    { path: "profile", element: <SupplierProfile /> },
   ],
   // Not in the admin menu; opened from the account menu.
   admin: [
     { index: true, element: <AdminOverview /> },
     { path: "matches", element: <MatchesPage /> },
     { path: "verification", element: <VerificationPage /> },
+    { path: "freelancers", element: <FreelancerReviewLink /> },
     { path: "payment-terms", element: <PaymentTermsPage /> },
+    { path: "schemes", element: <AdminSchemesPage /> },
+    { path: "activity", element: <ActivityPage /> },
     { path: "orders", element: <OrdersAdminPage /> },
     { path: "notifications", element: <NotificationsPage role="admin" /> },
     { path: "profile", element: <AdminProfilePage /> },

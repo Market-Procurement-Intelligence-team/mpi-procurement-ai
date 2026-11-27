@@ -11,7 +11,7 @@
  * portal for current terms.
  */
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { useSearchParams } from "react-router"
 import { AnimatePresence, motion } from "motion/react"
@@ -51,7 +51,20 @@ function Section({ icon: Icon, title, items, numbered }: { icon: typeof Info; ti
 }
 
 /** The side panel with a scheme's full details. */
-function SchemeDrawer({ scheme, fit, catName, onClose }: { scheme: Scheme; fit?: SchemeSuggestion; catName: (id: string) => string | null; onClose: () => void }) {
+export function SchemeDrawer({
+  scheme,
+  fit,
+  catName,
+  onClose,
+  extra,
+}: {
+  scheme: Scheme
+  fit?: SchemeSuggestion
+  catName: (id: string) => string | null
+  onClose: () => void
+  /** Shown at the top of the panel, e.g. the admin on/off switch. */
+  extra?: ReactNode
+}) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose()
     window.addEventListener("keydown", onKey)
@@ -83,6 +96,7 @@ function SchemeDrawer({ scheme, fit, catName, onClose }: { scheme: Scheme; fit?:
           </button>
         </header>
         <div className="flex-1 overflow-y-auto px-5 pb-6 pt-4">
+          {extra}
           {fit && (
             <div className="rounded-xl border-[1.5px] border-orange bg-orange-tint/40 p-3.5">
               <p className="flex items-center gap-2 text-[14px] font-bold text-navy">

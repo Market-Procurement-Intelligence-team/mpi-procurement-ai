@@ -119,7 +119,7 @@ function NotificationList({ role, onUnread }: { role: Role; onUnread: (n: number
           {groups.map(([label, list]) => (
             <section key={label}>
               <h3 className="mb-2 text-[12px] font-bold uppercase tracking-[0.06em] text-muted">{label}</h3>
-              <ul className="overflow-hidden rounded-xl border-[1.5px] border-line bg-white">
+              <ul className="overflow-hidden rounded-xl border-[1.5px] border-line bg-white soft-panel">
                 {list.map((n) => {
                   const Icon = iconFor(n.type)
                   return (

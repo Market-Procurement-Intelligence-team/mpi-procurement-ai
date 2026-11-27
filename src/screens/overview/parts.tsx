@@ -4,9 +4,10 @@
  */
 
 import { useEffect, useState, type ReactNode } from "react"
+import { createPortal } from "react-dom"
 import { Link, useNavigate } from "react-router"
-import { ArrowRight, CheckCircle2, Sparkles, type LucideIcon } from "lucide-react"
-import { motion, useReducedMotion, type Variants } from "motion/react"
+import { ArrowRight, CheckCircle2, History, Sparkles, X, type LucideIcon } from "lucide-react"
+import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react"
 import type { Role } from "../../app/session"
 import { getDashboardSummary } from "../../services/data/ai"
 import { listNotifications, markRead, type Notification } from "../../services/data/notifications"
@@ -324,5 +325,151 @@ export function RecentActivity({ role, limit = 6 }: { role: Role; limit?: number
         </motion.ul>
       )}
     </Panel>
+  )
+}
+
+/**
+ * "Recents" button for the dashboard header. It opens the latest activity as
+ * floating tiles in one row (two or three per row on smaller screens) over a
+ * softly blurred page. A tile
+ * opens what it is about; Esc, the close button or a click outside closes it.
+ */
+export function RecentsButton({ role, limit = 6 }: { role: Role; limit?: number }) {
+  const [open, setOpen] = useState(false)
+  const [items, setItems] = useState<Notification[] | null>(null)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    listNotifications(limit)
+      .then(setItems)
+      .catch(() => setItems([]))
+  }, [limit])
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false)
+    window.addEventListener("keydown", onKey)
+    // Softly blur the page behind the tiles (the tiles live outside #root, in a portal).
+    const root = document.getElementById("root")
+    if (root) {
+      root.style.transition = "filter 0.2s"
+      root.style.filter = "blur(5px)"
+    }
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      if (root) root.style.filter = ""
+    }
+  }, [open])
+
+  const unread = items?.filter((n) => !n.read_at).length ?? 0
+
+  return (
+    <>
+      <motion.button
+        type="button"
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.97 }}
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        className="relative inline-flex min-h-11 items-center gap-2 rounded-md border-[1.5px] border-navy bg-white px-4 font-bold text-navy shadow-sm hover:bg-navy-tint"
+      >
+        <History size={18} aria-hidden="true" /> Recents
+        {unread > 0 && (
+          <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red px-1 text-[11px] font-bold text-white" aria-label={`${unread} new`}>
+            {unread}
+          </span>
+        )}
+      </motion.button>
+      {createPortal(
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              className="fixed inset-0 flex flex-col justify-center"
+              style={{ zIndex: 70, background: "rgba(21,35,61,0.28)" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Recent activity"
+            >
+              <div className="absolute inset-0" onClick={() => setOpen(false)} aria-hidden="true" />
+              <div className="relative mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-8">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h2 className="font-display text-[22px] font-bold text-white drop-shadow">Recent activity</h2>
+                  <span className="flex items-center gap-2">
+                    <Link
+                      to={notificationsPath(role)}
+                      onClick={() => setOpen(false)}
+                      className="rounded-md bg-white/90 px-3 py-1.5 text-[13.5px] font-semibold text-navy shadow-sm hover:bg-white"
+                    >
+                      See all
+                    </Link>
+                    <button type="button" onClick={() => setOpen(false)} className="rounded-md bg-white/90 p-1.5 text-navy shadow-sm hover:bg-white" aria-label="Close">
+                      <X size={18} />
+                    </button>
+                  </span>
+                </div>
+                {items === null ? (
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+                    {[0, 1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="h-36 animate-pulse rounded-2xl bg-white/60" />
+                    ))}
+                  </div>
+                ) : items.length === 0 ? (
+                  <p className="rounded-2xl bg-white px-5 py-4 text-[14px] text-navy shadow-xl">Nothing yet. Updates on your work show up here.</p>
+                ) : (
+                  <motion.ul
+                    className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6"
+                    initial="hidden"
+                    animate="show"
+                    variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05 } } }}
+                  >
+                    {items.map((n) => {
+                      const Icon = iconFor(n.type)
+                      return (
+                        <motion.li
+                          key={n.id}
+                          className="min-w-0"
+                          variants={{ hidden: { opacity: 0, y: 24, scale: 0.96 }, show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 24 } } }}
+                        >
+                          <motion.button
+                            type="button"
+                            whileHover={{ y: -6 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={async () => {
+                              if (!n.read_at) await markRead(n.id).catch(() => undefined)
+                              notifyChanged()
+                              setOpen(false)
+                              navigate(resolveLink(n.link, n.type, role))
+                            }}
+                            className="flex h-full min-h-36 w-full flex-col rounded-2xl p-4 text-left"
+                            style={{
+                              background: "linear-gradient(to bottom right, #ffffff, #f4f6fa 60%, #fdf1e6)",
+                              border: n.read_at ? "1.5px solid #dfe4eb" : "1.5px solid #f09a47",
+                              boxShadow: "0 18px 40px rgba(15,23,40,0.28)",
+                            }}
+                          >
+                            <span className="flex items-center justify-between gap-2">
+                              <span className={`flex h-9 w-9 items-center justify-center rounded-full ${n.read_at ? "bg-page text-muted" : "bg-navy text-orange"}`}>
+                                <Icon size={16} aria-hidden="true" />
+                              </span>
+                              {!n.read_at && <span className="rounded-full bg-orange px-2 py-px text-[11px] font-bold text-navy">New</span>}
+                            </span>
+                            <span className="mt-3 line-clamp-3 text-[14.5px] font-bold leading-snug text-navy">{n.title}</span>
+                            {n.body && <span className="mt-1 line-clamp-2 text-[12.5px] text-muted">{n.body}</span>}
+                            <span className="mt-auto pt-2 text-[12px] font-semibold text-muted">{ago(n.created_at)}</span>
+                          </motion.button>
+                        </motion.li>
+                      )
+                    })}
+                  </motion.ul>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
+    </>
   )
 }

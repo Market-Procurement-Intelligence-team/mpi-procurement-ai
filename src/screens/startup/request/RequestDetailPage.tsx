@@ -49,10 +49,11 @@ import {
   type Offer,
 } from "../../../services/data/negotiation"
 import { listQuotesForRequest, type QuoteWithLines } from "../../../services/data/quotes"
-import { cancelRequest, getRequestDetail, type RequestDetail } from "../../../services/data/requests"
+import { cancelRequest, deliverablesOf, getRequestDetail, isServiceBrief, type RequestDetail } from "../../../services/data/requests"
 import { listCategories, type Category } from "../../../services/data/catalogue"
 import Button from "../../../ui/Button"
 import { RequestSchemeChips } from "../../schemes/parts"
+import BriefDetails from "../service-brief/BriefDetails"
 import EmptyState from "../../../ui/EmptyState"
 import { Alert, BOX, boxBorder } from "../../../ui/form"
 import VoiceTextArea from "../../../ui/VoiceTextArea"
@@ -617,7 +618,7 @@ function SuppliersTab({ detail, quotes }: { detail: RequestDetail; quotes: Quote
               ? { label: "Looking at it", tone: "orange" as const }
               : { label: "Invited", tone: "orange" as const }
         return (
-          <article key={match.id} className="rounded-xl border-[1.5px] border-line bg-white p-4 shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
+          <article key={match.id} className="rounded-xl border-[1.5px] border-line bg-white soft-panel p-4 shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="flex items-center gap-1.5 truncate text-[15px] font-bold text-navy">
@@ -664,10 +665,11 @@ function SuppliersTab({ detail, quotes }: { detail: RequestDetail; quotes: Quote
 function RequestTab({ detail, category }: { detail: RequestDetail; category: Category | undefined }) {
   const { request, lines } = detail
   const budget = budgetText(request.budget_min, request.budget_max)
+  if (isServiceBrief(request)) return <BriefDetails request={request} category={category} budget={budget} />
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="min-w-0 space-y-4">
-        <div className="overflow-x-auto rounded-xl border-[1.5px] border-line bg-white">
+        <div className="overflow-x-auto rounded-xl border-[1.5px] border-line bg-white soft-panel">
           <table className="w-full min-w-[32rem] text-[14px]">
             <thead className="bg-navy text-left text-[12px] uppercase tracking-[0.05em] text-white">
               <tr>
@@ -692,13 +694,13 @@ function RequestTab({ detail, category }: { detail: RequestDetail; category: Cat
           </table>
         </div>
         {request.requirement_text && (
-          <div className="rounded-xl border-[1.5px] border-line bg-white p-4">
+          <div className="rounded-xl border-[1.5px] border-line bg-white soft-panel p-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted">In your words</p>
             <p className="mt-1 whitespace-pre-line text-[14.5px] text-navy">{request.requirement_text}</p>
           </div>
         )}
       </div>
-      <dl className="h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white text-[14px]">
+      <dl className="h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white soft-panel text-[14px]">
         {[
           ["Category", category?.name ?? "Not set"],
           ["Needed by", request.needed_by ? `${day(request.needed_by, true)} (${daysLeft(request.needed_by)})` : "Flexible"],
@@ -827,7 +829,12 @@ export default function RequestDetailPage() {
   const best = views.reduce<QuoteView | null>((acc, v) => (v.score && (!acc?.score || v.score.score > acc.score.score) ? v : acc), null)
   const budget = budgetText(request.budget_min, request.budget_max)
   const where = place(request.delivery_city, request.delivery_state)
-  const itemsQty = detail.lines.length === 1 ? qty(detail.lines[0].quantity, detail.lines[0].unit) : `${detail.lines.length} items`
+  const brief = isServiceBrief(detail.request)
+  const itemsQty = brief
+    ? `Service brief · ${deliverablesOf(detail.request).length} deliverable${deliverablesOf(detail.request).length === 1 ? "" : "s"}`
+    : detail.lines.length === 1
+      ? qty(detail.lines[0].quantity, detail.lines[0].unit)
+      : `${detail.lines.length} items`
   const selected = panel ? views.find((v) => v.quote.id === panel.quoteId) : undefined
 
   async function done(message: string) {
@@ -954,7 +961,7 @@ export default function RequestDetailPage() {
         tabs={[
           { id: "quotes", label: "Compare quotes", count: views.length },
           { id: "suppliers", label: "Suppliers", count: detail.matches.length },
-          { id: "request", label: "Your request" },
+          { id: "request", label: brief ? "Your brief" : "Your request" },
         ]}
       />
 

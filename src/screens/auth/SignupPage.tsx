@@ -1,17 +1,20 @@
 /**
- * Create an account: choose startup or supplier, then name, company, email
- * and password. The database creates the company and its anonymous code.
+ * Create an account: choose startup, supplier or (while MPI has freelancers
+ * switched on) freelancer, then name, company, email and password. Freelancers
+ * work on their own, so they don't give a company name. The database creates
+ * the company and its anonymous code.
  *
  * "Confirm email" is off in Supabase, so people are signed in straight away:
  * startups land on My requests, suppliers on their Profile to get verified.
  * If confirmation is ever switched on, the page says to check their inbox.
  */
 
-import { useState, type FormEvent } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { Link, Navigate } from "react-router"
-import { Building2, MailCheck, ShoppingBag, type LucideIcon } from "lucide-react"
+import { Building2, MailCheck, ShoppingBag, UserRound, type LucideIcon } from "lucide-react"
 import { homeFor, useSession, type Role } from "../../app/session"
 import { signUp, type AccountType } from "../../services/data/auth"
+import { freelancersOpen } from "../../services/data/providers"
 import Button from "../../ui/Button"
 import AuthLayout from "./AuthLayout"
 import { EMAIL_PATTERN, FormAlert, messageOf, MIN_PASSWORD, PasswordField, TextField } from "./fields"
@@ -21,6 +24,7 @@ const LINK = "font-semibold text-navy underline-offset-4 hover:underline"
 const ROLES: { value: AccountType; title: string; tag: string; body: string; icon: LucideIcon }[] = [
   { value: "startup", title: "Startup", tag: "Buyer", body: "I buy goods or services", icon: ShoppingBag },
   { value: "vendor", title: "Supplier", tag: "MSME", body: "I sell goods or services", icon: Building2 },
+  { value: "freelancer", title: "Freelancer", tag: "Individual", body: "I offer my own skills as a service, on my own", icon: UserRound },
 ]
 
 /** Where people land right after creating an account. */
@@ -44,6 +48,18 @@ export default function SignupPage() {
   const [busy, setBusy] = useState(false)
   const [created, setCreated] = useState(false)
   const [checkInbox, setCheckInbox] = useState(false)
+  const [freelancers, setFreelancers] = useState(false)
+  const isFreelancer = role === "freelancer"
+
+  useEffect(() => {
+    let live = true
+    freelancersOpen()
+      .then((open) => live && setFreelancers(open))
+      .catch(() => live && setFreelancers(false))
+    return () => {
+      live = false
+    }
+  }, [])
 
   if (state.status === "signedIn") {
     return <Navigate to={created ? landingFor(state.role) : homeFor(state.role)} replace />
@@ -72,7 +88,7 @@ export default function SignupPage() {
     const next: Errors = {}
     if (!role) next.role = "Please choose how you'll use MPI."
     if (!fullName.trim()) next.fullName = "Please enter your full name."
-    if (!orgName.trim()) next.orgName = "Please enter your company name."
+    if (!isFreelancer && !orgName.trim()) next.orgName = "Please enter your company name."
     if (!email.trim()) next.email = "Please enter your email."
     else if (!EMAIL_PATTERN.test(email.trim())) next.email = "Please enter a full email, like name@company.in."
     if (password.length < MIN_PASSWORD) next.password = `Please use at least ${MIN_PASSWORD} characters.`
@@ -91,7 +107,7 @@ export default function SignupPage() {
     }
     setBusy(true)
     try {
-      const { needsEmailConfirmation } = await signUp({ email, password, accountType: role!, orgName, fullName })
+      const { needsEmailConfirmation } = await signUp({ email, password, accountType: role!, orgName: isFreelancer ? "" : orgName, fullName })
       if (needsEmailConfirmation) setCheckInbox(true)
       else setCreated(true)
       setBusy(false)
@@ -125,11 +141,12 @@ export default function SignupPage() {
         <fieldset aria-describedby={errors.role ? "role-error" : undefined}>
           <legend className="text-xs font-bold tracking-wide text-navy uppercase">1. How will you use MPI?</legend>
           <div className="mt-2.5 grid grid-cols-2 gap-3">
-            {ROLES.map(({ value, title, tag, body, icon: Icon }) => {
+            {ROLES.filter((r) => r.value !== "freelancer" || freelancers).map(({ value, title, tag, body, icon: Icon }) => {
               const checked = role === value
               return (
                 <label
                   key={value}
+                  style={value === "freelancer" ? { gridColumn: "1 / -1" } : undefined}
                   className={`flex cursor-pointer items-start gap-2.5 rounded-lg border-[1.5px] p-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-orange ${
                     checked ? "border-orange bg-orange-tint/50" : errors.role ? "border-red bg-white" : "border-line bg-white hover:border-input"
                   }`}
@@ -167,12 +184,14 @@ export default function SignupPage() {
 
         <div className="mt-5 space-y-4 [@media(max-height:820px)]:mt-4 [@media(max-height:820px)]:space-y-3">
           <p className="text-xs font-bold tracking-wide text-navy uppercase">2. Your details</p>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className={isFreelancer ? "grid gap-4" : "grid gap-4 sm:grid-cols-2"}>
             <TextField label="Full name" autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} error={errors.fullName} />
-            <TextField label="Company name" autoComplete="organization" value={orgName} onChange={(e) => setOrgName(e.target.value)} error={errors.orgName} />
+            {!isFreelancer && (
+              <TextField label="Company name" autoComplete="organization" value={orgName} onChange={(e) => setOrgName(e.target.value)} error={errors.orgName} />
+            )}
           </div>
           <TextField
-            label="Work email"
+            label={isFreelancer ? "Email" : "Work email"}
             type="email"
             autoComplete="email"
             inputMode="email"
@@ -191,6 +210,11 @@ export default function SignupPage() {
           {role === "vendor" && (
             <p className="rounded-md bg-navy-tint px-3 py-2 text-sm text-navy">
               Next you'll add your Udyam and GST numbers. You get requests once MPI verifies you.
+            </p>
+          )}
+          {isFreelancer && (
+            <p className="rounded-md bg-navy-tint px-3 py-2 text-sm text-navy">
+              Next you'll build your profile: skills, past projects and service packages. MPI reviews it before startups can see it, and startups never see your name.
             </p>
           )}
           {error && <FormAlert>{error}</FormAlert>}

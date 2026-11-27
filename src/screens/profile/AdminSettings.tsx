@@ -1,13 +1,17 @@
 /**
  * Admin Settings tab: the usual settings (appearance, password, sign out),
- * then Demo workspace to reload the investor demo with fresh sample data.
+ * then the Freelancers switch (opens freelancer sign-up and lets startups see
+ * approved freelancers), then Demo workspace to reload the investor demo with
+ * fresh sample data.
  * It is kept here, not in the top menu, so it isn't clicked by accident.
  */
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import { AlertTriangle, CheckCircle2, Clock, RefreshCcw, ShieldCheck } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Clock, EyeOff, RefreshCcw, ShieldCheck, UserRound } from "lucide-react"
 import { resetDemoWorkspace } from "../../services/data/admin"
+import { freelancersOpen, setFreelancersEnabled } from "../../services/data/providers"
+import Switch from "../../ui/Switch"
 import Button from "../../ui/Button"
 import { Alert } from "../../ui/form"
 import { ProfileSection } from "./parts"
@@ -17,8 +21,121 @@ export default function AdminSettings({ email }: { email: string }) {
   return (
     <div className="space-y-6">
       <SettingsSection email={email} />
+      <Freelancers />
       <DemoWorkspace />
     </div>
+  )
+}
+
+/**
+ * Freelancers on/off. On: people can sign up as freelancers, and startups see
+ * freelancers MPI has approved. Off: sign-up is closed and startups see none
+ * (profiles stay saved). Switching off asks to confirm first.
+ */
+function Freelancers() {
+  const [on, setOn] = useState<boolean | null>(null)
+  const [confirmOff, setConfirmOff] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let live = true
+    freelancersOpen()
+      .then((open) => live && setOn(open))
+      .catch(() => live && setError("Couldn't load this setting. Please refresh the page."))
+    return () => {
+      live = false
+    }
+  }, [])
+
+  const save = async (next: boolean) => {
+    setBusy(true)
+    setError(null)
+    try {
+      await setFreelancersEnabled(next)
+      setOn(next)
+      setConfirmOff(false)
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : "Couldn't save. Please try again.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <ProfileSection
+      id="freelancers"
+      icon={UserRound}
+      title="Freelancers"
+      description="Individual service providers who work on their own, next to supplier businesses."
+      badge={
+        on === null ? undefined : (
+          <span
+            className="rounded-full px-2.5 py-1 text-xs font-bold"
+            style={on ? { background: "#fdebd9", color: "#15233D" } : { background: "#EEF1F5", color: "#5b6675" }}
+          >
+            {on ? "On" : "Off"}
+          </span>
+        )
+      }
+    >
+      <div className="flex flex-wrap items-start justify-between gap-5">
+        <div className="min-w-0 flex-1 basis-80">
+          <ul className="space-y-2 text-[14.5px] text-navy">
+            <li className="flex gap-2.5">
+              <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#047857]" aria-hidden="true" />
+              When on, the sign-up page offers "Freelancer" and freelancers can build their profile.
+            </li>
+            <li className="flex gap-2.5">
+              <ShieldCheck size={18} className="mt-0.5 shrink-0 text-[#047857]" aria-hidden="true" />
+              Startups only see freelancers MPI has approved, and never their name, contact details or past clients.
+            </li>
+            <li className="flex gap-2.5">
+              <EyeOff size={18} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />
+              When off, freelancer sign-up is closed and startups see no freelancers. Profiles stay saved.
+            </li>
+          </ul>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-semibold text-navy">{on === null ? "Loading…" : on ? "Freelancers are on" : "Freelancers are off"}</span>
+          <Switch
+            on={!!on}
+            busy={busy || on === null}
+            label="Freelancers"
+            onChange={() => (on ? setConfirmOff(true) : void save(true))}
+          />
+        </div>
+      </div>
+      <AnimatePresence initial={false}>
+        {confirmOff && (
+          <motion.div
+            key="confirm"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="mt-4 rounded-xl border-[1.5px] border-orange bg-orange-tint/50 p-4"
+          >
+            <p className="flex items-start gap-2 text-[14.5px] font-semibold text-navy">
+              <AlertTriangle size={18} className="mt-0.5 shrink-0 text-red-text" aria-hidden="true" />
+              Switch freelancers off? Sign-up closes and startups stop seeing freelancer profiles.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button busy={busy} onClick={() => void save(false)}>
+                {busy ? "Switching off…" : "Yes, switch off"}
+              </Button>
+              <Button variant="secondary" disabled={busy} onClick={() => setConfirmOff(false)}>
+                Cancel
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {error && (
+        <div className="mt-4">
+          <Alert>{error}</Alert>
+        </div>
+      )}
+    </ProfileSection>
   )
 }
 
@@ -59,6 +176,10 @@ function DemoWorkspace() {
             <li className="flex gap-2.5">
               <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#047857]" aria-hidden="true" />
               Adds sample orders with their invoices and simulated payments, plus sample rate cards.
+            </li>
+            <li className="flex gap-2.5">
+              <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#047857]" aria-hidden="true" />
+              Reloads the demo freelancer's approved profile (needs the mpi-demofreelancer@example.com login).
             </li>
             <li className="flex gap-2.5">
               <ShieldCheck size={18} className="mt-0.5 shrink-0 text-[#047857]" aria-hidden="true" />

@@ -11,7 +11,8 @@ import { db } from "../../lib/db"
 import type { Tables, TablesUpdate } from "../../lib/database.types"
 import { check, toDataError, unwrap, unwrapMaybe } from "./errors"
 
-export type AccountType = "startup" | "vendor"
+/** "freelancer" makes a one-person supplier; it works only while MPI has freelancers switched on. */
+export type AccountType = "startup" | "vendor" | "freelancer"
 
 export interface SignUpInput {
   email: string
@@ -38,7 +39,7 @@ export async function signUp(input: SignUpInput): Promise<{ needsEmailConfirmati
     options: {
       data: {
         account_type: input.accountType,
-        org_name: input.orgName.trim(),
+        org_name: input.orgName.trim() || input.fullName?.trim() || "",
         full_name: input.fullName?.trim() || null,
       },
     },

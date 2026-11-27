@@ -13,7 +13,7 @@ import { Link, useNavigate, useSearchParams } from "react-router"
 import { ArrowRight, CalendarClock, FileText, Handshake, Package, PenLine, Plus, Search, Send } from "lucide-react"
 import { useMe } from "../../app/session"
 import { listCategories, type Category } from "../../services/data/catalogue"
-import { listMyRequestCards, type RequestCard } from "../../services/data/requests"
+import { deliverablesOf, isServiceBrief, listMyRequestCards, type RequestCard } from "../../services/data/requests"
 import EmptyState from "../../ui/EmptyState"
 import { Alert, BOX, boxBorder } from "../../ui/form"
 import PageHeader from "../../ui/PageHeader"
@@ -43,7 +43,7 @@ function inTab(c: RequestCard, tab: Tab): boolean {
 
 function action(c: RequestCard): { to: string; label: string; primary: boolean; icon: typeof ArrowRight } {
   const { request: r } = c
-  if (r.status === "draft") return { to: `${NEW}?draft=${r.id}`, label: "Continue draft", primary: false, icon: PenLine }
+  if (r.status === "draft") return { to: `${NEW}?${isServiceBrief(r) ? "kind=service&" : ""}draft=${r.id}`, label: "Continue draft", primary: false, icon: PenLine }
   if (r.status === "ordered")
     return { to: c.orderId ? `/startup/orders?o=${c.orderId}` : `/startup/requests/${r.id}`, label: "Track order", primary: false, icon: Package }
   if (c.quoteCount > 0 && r.status !== "cancelled")
@@ -79,7 +79,15 @@ function Row({ c, category }: { c: RequestCard; category: Category | undefined }
   const st = STATUS[r.status]
   const a = action(c)
   const live = r.status === "open" || r.status === "comparing" || r.status === "draft"
-  const quantity = lines.length === 1 ? qty(lines[0].quantity, lines[0].unit) : lines.length ? `${lines.length} items` : null
+  const deliverables = isServiceBrief(r) ? deliverablesOf(r).length : null
+  const quantity =
+    deliverables !== null
+      ? `Service brief · ${deliverables} deliverable${deliverables === 1 ? "" : "s"}`
+      : lines.length === 1
+        ? qty(lines[0].quantity, lines[0].unit)
+        : lines.length
+          ? `${lines.length} items`
+          : null
   const urgent = live && r.status !== "draft" && (daysUntil(r.needed_by) ?? 99) <= 3
 
   return (
@@ -253,7 +261,7 @@ export default function MyRequestsPage() {
               {query ? `No requests match "${query}".` : "Nothing in this tab yet."}
             </p>
           ) : (
-            <ul className="overflow-hidden rounded-xl border-[1.5px] border-line bg-white shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
+            <ul className="overflow-hidden rounded-xl border-[1.5px] border-line bg-white soft-panel shadow-[0_1px_3px_rgba(21,35,61,0.08)]">
               <li className="hidden border-b border-line bg-navy px-5 py-2.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-white md:grid md:grid-cols-[minmax(0,1fr)_10rem_11rem]">
                 <span>Request</span>
                 <span className="text-right">Status</span>

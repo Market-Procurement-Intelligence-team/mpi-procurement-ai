@@ -685,7 +685,7 @@ function DetailsTab({ q }: { q: QueueRequest }) {
   )
   return (
     <div className="space-y-5">
-      <div className="overflow-x-auto rounded-xl border-[1.5px] border-line bg-white">
+      <div className="overflow-x-auto rounded-xl border-[1.5px] border-line bg-white soft-panel">
         <table className="w-full min-w-[26rem] text-left text-[14.5px]">
           <thead className="bg-navy text-[12px] uppercase tracking-wide text-white">
             <tr>
@@ -711,7 +711,7 @@ function DetailsTab({ q }: { q: QueueRequest }) {
           </tbody>
         </table>
       </div>
-      <dl className="overflow-hidden rounded-xl border-[1.5px] border-line bg-white">
+      <dl className="overflow-hidden rounded-xl border-[1.5px] border-line bg-white soft-panel">
         <Row label="Buyer">{cleanName(q.buyerName) || "Unknown"}</Row>
         <Row label="Category">{q.categoryName ?? "Not set"}</Row>
         <Row label="Needed by">
@@ -721,7 +721,7 @@ function DetailsTab({ q }: { q: QueueRequest }) {
         <Row label="Deliver to">{place(request.delivery_city, request.delivery_state) ?? "Remote, anywhere in India"}</Row>
         <Row label="Certifications">{request.required_certifications.length ? request.required_certifications.join(", ") : "None required"}</Row>
         <Row label="Schemes">
-          <RequestSchemeChips ids={request.scheme_ids ?? []} empty="None chosen" />
+          <RequestSchemeChips ids={request.scheme_ids ?? []} linkBase="/admin/schemes" empty="None chosen" />
           {(request.scheme_ids ?? []).length > 0 && (
             <span className="mt-1 block text-[12.5px] text-muted">The startup plans to use these. Prefer suppliers who can give the invoices and certificates they need.</span>
           )}

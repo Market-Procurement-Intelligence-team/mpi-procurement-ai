@@ -26,7 +26,7 @@ type PrivateField = "budget_min" | "budget_max" | "requirement_text" | "ai_extra
 
 /** Every request field anyone who can see the request may read. */
 export const REQUEST_FIELDS =
-  "id, org_id, created_by, title, description, input_language, required_certifications, scheme_ids, category_id, source, status, needed_by, delivery_city, delivery_state, currency, created_at, updated_at" as const
+  "id, org_id, created_by, title, description, input_language, required_certifications, scheme_ids, category_id, source, status, needed_by, delivery_city, delivery_state, currency, created_at, updated_at, kind, deliverables, skill_ids, revision_rounds, provider_preference, proposals_wanted, reference_links" as const
 
 /**
  * Adds the private fields (budget, original wording, AI reading) to requests
@@ -59,6 +59,58 @@ export interface RequestLineInput {
   specs?: Json
 }
 
+/** One thing a service brief delivers, and when it counts as done. */
+export interface Deliverable {
+  title: string
+  done_when: string | null
+}
+
+export type ProviderPreference = "any" | "business" | "freelancer"
+
+/** The extra parts of a service brief (kind "service"). */
+export interface ServiceBriefFields {
+  deliverables: Deliverable[]
+  skillIds: string[]
+  revisionRounds: number | null
+  providerPreference: ProviderPreference
+  /** 1 to 3. */
+  proposalsWanted: number
+  referenceLinks: string[]
+}
+
+export const isServiceBrief = (r: Pick<Request, "kind">) => r.kind === "service"
+
+/** A brief's deliverables, read safely from the saved JSON. */
+export function deliverablesOf(r: Pick<Request, "deliverables">): Deliverable[] {
+  if (!Array.isArray(r.deliverables)) return []
+  return r.deliverables.flatMap((d) => {
+    if (!d || typeof d !== "object" || Array.isArray(d)) return []
+    const o = d as Record<string, unknown>
+    const title = typeof o.title === "string" ? o.title.trim() : ""
+    return title ? [{ title, done_when: typeof o.done_when === "string" && o.done_when.trim() ? o.done_when.trim() : null }] : []
+  })
+}
+
+/** The request columns for a brief's extra parts. */
+export function briefColumns(b: ServiceBriefFields) {
+  return {
+    kind: "service",
+    deliverables: b.deliverables.map((d) => ({ title: d.title.trim(), done_when: d.done_when?.trim() || null })) as unknown as Json,
+    skill_ids: b.skillIds,
+    revision_rounds: b.revisionRounds,
+    provider_preference: b.providerPreference,
+    proposals_wanted: Math.min(3, Math.max(1, Math.round(b.proposalsWanted))),
+    reference_links: b.referenceLinks.map((l) => l.trim()).filter(Boolean).slice(0, 5),
+  }
+}
+
+/** Each deliverable as a request line, so service businesses can quote the current way. */
+export function deliverableLines(deliverables: Deliverable[]): RequestLineInput[] {
+  return deliverables
+    .filter((d) => d.title.trim())
+    .map((d) => ({ description: d.title.trim(), quantity: 1, unit: "deliverable", specs: d.done_when?.trim() ? { "Done when": d.done_when.trim() } : {} }))
+}
+
 export interface RequestInput {
   title: string
   description?: string | null
@@ -76,6 +128,8 @@ export interface RequestInput {
   budgetMin?: number | null
   budgetMax?: number | null
   lines: RequestLineInput[]
+  /** Set for a service brief; goods requests leave it out. */
+  brief?: ServiceBriefFields
 }
 
 export interface ApprovedMatch {
@@ -125,6 +179,7 @@ export async function createRequest(orgId: string, userId: string, input: Reques
         budget_min: input.budgetMin ?? null,
         budget_max: input.budgetMax ?? null,
         status: "draft",
+        ...(input.brief ? briefColumns(input.brief) : {}),
       }),
   )
 

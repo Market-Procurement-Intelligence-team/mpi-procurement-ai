@@ -134,7 +134,9 @@ export default function SpendPanel({ entries, orderCount }: { entries: SpendEntr
             </div>
           </div>
 
-          <div className="mt-6">
+          {/* Trend on the left, category donut beside it on wide screens. */}
+          <div className="mt-6 grid gap-6 @5xl:grid-cols-[minmax(0,1.85fr)_minmax(0,1fr)] @5xl:items-start">
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <h3 className="text-[14px] font-bold text-navy">Monthly spend</h3>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -215,9 +217,10 @@ export default function SpendPanel({ entries, orderCount }: { entries: SpendEntr
             </div>
           </div>
 
-          <div className="mt-8 border-t border-line pt-4">
+          <div className="@container min-w-0 border-t border-line pt-4 @5xl:border-l @5xl:border-t-0 @5xl:pl-6 @5xl:pt-0">
             <h3 className="text-[14px] font-bold text-navy">By category</h3>
             <CategoryDonut cats={cats} short={short} />
+          </div>
           </div>
         </div>
       </MotionConfig>
