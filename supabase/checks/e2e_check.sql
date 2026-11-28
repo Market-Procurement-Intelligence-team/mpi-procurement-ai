@@ -8,7 +8,8 @@
 --   government scheme suggestions -> the suppliers' price guide -> money:
 --   the spec's worked examples, invoices, payments, payouts and returns.
 --   Freelancers: sign-up, profile, MPI review and privacy; service briefs;
---   freelancer matching, shortlists and picks; proposals, changes and hiring.
+--   freelancer matching, shortlists and picks; proposals, changes and hiring;
+--   service orders paid, submitted, accepted and paid out milestone by milestone.
 -- It also checks that each person sees only what they should.
 --
 -- NOTHING IS SAVED. Everything runs inside one block that is cancelled at the
@@ -16,7 +17,7 @@
 -- result appears as an "error" in the SQL Editor: read the message, which
 -- starts with "MPI END-TO-END CHECK".
 --
--- Needs: all migrations up to 20261129120000 run, and the demo workspace
+-- Needs: all migrations up to 20261130120000 run, and the demo workspace
 -- (mpi-demostartup@, mpi-demosupplier1-3@, mpi-demoservice@example.com).
 -- Safe to run as often as you like, e.g. on the morning of a demo.
 -- ============================================================================
@@ -58,6 +59,8 @@ declare
   v_fq2     uuid;
   v_fpkg    uuid;
   v_inv_sv  uuid;
+  v_ms      uuid;
+  v_sub     uuid;
 begin
   -- --------------------------------------------------------------------------
   -- Who is who
@@ -1290,6 +1293,199 @@ begin
    where r.id = v_req3;
   v_ok := v_txt = 'ordered/accepted/true';
   v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'The startup hires the freelancer: order placed and the brief closed (' || coalesce(v_txt, '-') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- ==========================================================================
+  -- 13. Service order: milestones paid, submitted, accepted and paid out
+  -- ==========================================================================
+  v_total := v_total + 1;
+  select id into v_ms from public.service_milestones where po_id = v_po2 and seq = 1;
+  select count(*) || '/' || max(m.title) || '/' || max(m.changes_allowed) || '/'
+         || bool_and(m.amount = i.total)::text || '/' || max(po.status::text)
+    into v_txt
+    from public.service_milestones m
+    join public.invoices i on i.po_id = m.po_id and i.kind = 'supplier_to_buyer'
+    join public.purchase_orders po on po.id = m.po_id
+   where m.po_id = v_po2;
+  select v_txt || '/' || string_agg(ii.due_event, ',') into v_txt
+    from public.invoice_installments ii join public.invoices i on i.id = ii.invoice_id
+   where i.po_id = v_po2 and i.kind = 'supplier_to_buyer';
+  v_ok := v_txt = '1/12 app screens in Figma/2/true/issued/on_milestone';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Hiring makes the milestones from the proposal, with its price and rounds of changes (' || coalesce(v_txt, '-') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- The provider cannot submit before the milestone is paid; the startup
+  -- cannot pay the whole order at once.
+  perform set_config('request.jwt.claim.sub', u_fl::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_fl, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  begin
+    perform public.submit_milestone(v_ms, 'Early work', array['https://example.com/early'], '{}');
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like '%pays this milestone%';
+  end;
+  perform set_config('role', v_me, true);
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  begin
+    perform public.pay_order(v_po2, 'e2e-po2-whole-' || gen_random_uuid());
+    v_ok := false;
+  exception when others then
+    v_ok := v_ok and sqlerrm like '%one milestone at a time%';
+  end;
+
+  v_total := v_total + 1;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Work cannot be submitted before the milestone is paid, and the order is paid one milestone at a time');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- The startup pays milestone 1 (simulated), with MPI's fee if any.
+  select (elem->>'to_pay')::numeric into v_num
+    from jsonb_array_elements(public.order_milestones(v_po2)) elem where (elem->>'seq')::integer = 1;
+  v_json := public.pay_milestone(v_ms, 'e2e-ms1-' || gen_random_uuid());
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select m.status || '/' || po.status::text into v_txt
+    from public.service_milestones m join public.purchase_orders po on po.id = m.po_id where m.id = v_ms;
+  v_ok := (v_json->>'paid')::numeric = v_num and (v_json->>'simulated')::boolean and v_txt = 'in_progress/in_production'
+          and app.ledger_balance(v_po2, 'mpi_cash') = v_num;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'The startup pays milestone 1 (₹' || coalesce(v_num::text, '-')
+                         || ', simulated); MPI holds it and the order is in progress (' || coalesce(v_txt, '-') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- Money is never paid out before the startup accepts the work.
+  perform set_config('request.jwt.claim.sub', u_admin::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_admin, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  begin
+    perform public.pay_out_milestone(v_ms, 'e2e-early-payout-' || gen_random_uuid());
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like '%accepted can be paid out%';
+  end;
+  begin
+    perform public.settle_supplier(v_po2, 'e2e-early-settle-' || gen_random_uuid());
+    v_ok := false;
+  exception when others then
+    v_ok := v_ok and sqlerrm like '%one accepted milestone at a time%';
+  end;
+  perform set_config('role', v_me, true);
+
+  -- The provider submits; the startup asks for changes twice, then a third
+  -- time is refused (2 rounds agreed).
+  for v_int in 1..3 loop
+    perform set_config('request.jwt.claim.sub', u_fl::text, true);
+    perform set_config('request.jwt.claims', json_build_object('sub', u_fl, 'role', 'authenticated')::text, true);
+    perform set_config('role', 'authenticated', true);
+    v_sub := public.submit_milestone(v_ms, 'Version ' || v_int || ' of the screens', array['https://figma.com/file/e2e-' || v_int], '{0}');
+    perform set_config('role', v_me, true);
+    perform set_config('request.jwt.claim.sub', u_startup::text, true);
+    perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+    perform set_config('role', 'authenticated', true);
+    if v_int < 3 then
+      perform public.answer_submission(v_sub, false, 'Please make the buttons bigger.', '{}');
+    else
+      begin
+        perform public.answer_submission(v_sub, false, 'One more change.', '{}');
+        v_ok := false;
+      exception when others then
+        v_ok := v_ok and sqlerrm like '%used all 2 round%';
+      end;
+    end if;
+    perform set_config('role', v_me, true);
+  end loop;
+
+  v_total := v_total + 1;
+  select status || '/' || changes_used into v_txt from public.service_milestones where id = v_ms;
+  v_ok := v_ok and v_txt = 'submitted/2';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Nothing is paid out before acceptance; changes count against the 2 rounds agreed, then stop (' || coalesce(v_txt, '-') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- Others cannot see the work; the startup cannot see MPI's commission.
+  perform set_config('request.jwt.claim.sub', u_s1::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_s1, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  select count(*) into v_int from public.milestone_submissions where po_id = v_po2;
+  select v_int + count(*) into v_int from public.service_milestones where po_id = v_po2;
+  begin
+    perform public.order_milestones(v_po2);
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like '%Not allowed%';
+  end;
+  perform set_config('role', v_me, true);
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  select count(*) into v_got from public.milestone_submissions where po_id = v_po2;
+  v_json := public.order_milestones(v_po2);
+  begin
+    perform commission from public.service_milestones where po_id = v_po2;
+    v_ok := false;
+  exception when others then
+    v_ok := v_ok and sqlerrm like '%permission denied%';
+  end;
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  v_ok := v_ok and v_int = 0 and v_got = '3' and v_json->0->'commission' = 'null'::jsonb and v_json->0->'payout' = 'null'::jsonb;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Other providers cannot see the order''s work; the startup sees the 3 submissions but not MPI''s commission');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- The provider cannot move the order by hand; the startup accepts.
+  perform set_config('request.jwt.claim.sub', u_fl::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_fl, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  begin
+    perform public.update_order_status(v_po2, 'delivered', null);
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like '%moves with its milestones%';
+  end;
+  perform set_config('role', v_me, true);
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  perform public.answer_submission(v_sub, true, 'Looks great.', '{0}');
+  perform set_config('role', v_me, true);
+  perform set_config('request.jwt.claim.sub', u_admin::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_admin, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  select count(*) into v_int from public.payouts_to_send() p where p.milestone_id = v_ms;
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select m.status || '/' || po.status::text into v_txt
+    from public.service_milestones m join public.purchase_orders po on po.id = m.po_id where m.id = v_ms;
+  v_ok := v_ok and v_txt = 'accepted/delivered' and v_int = 1;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'The startup accepts: the order is delivered and the payout waits in MPI''s list; the provider cannot skip ahead (' || coalesce(v_txt, '-') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- MPI pays the milestone out, after its commission.
+  perform set_config('request.jwt.claim.sub', u_admin::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_admin, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_json := public.pay_out_milestone(v_ms, 'e2e-ms1-payout-' || gen_random_uuid());
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select m.status || '/' || po.status::text || '/' || ((v_json->>'net_paid')::numeric = m.payout)::text
+         || '/' || (app.ledger_balance(v_po2, 'supplier_payable') = 0)::text
+    into v_txt
+    from public.service_milestones m join public.purchase_orders po on po.id = m.po_id where m.id = v_ms;
+  select v_txt || '/' || string_agg(distinct i.status, ',') into v_txt from public.invoices i where i.po_id = v_po2;
+  v_ok := v_txt = 'paid_out/completed/true/true/paid';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'MPI pays the provider ₹' || coalesce(v_json->>'net_paid', '-')
+                         || ' after ₹' || coalesce(v_json->>'commission_deducted', '-') || ' commission; the order is completed and the books balance (' || coalesce(v_txt, '-') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  select count(*) into v_int from public.milestone_events where milestone_id = v_ms;
+  select string_agg(status::text, ',' order by created_at, status) into v_txt from public.order_events where po_id = v_po2;
+  v_ok := v_int = 9 and v_txt like 'issued%in_production%delivered%completed';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Every milestone step is in the history with who and why (' || v_int || ' steps)');
   if v_ok then v_pass := v_pass + 1; end if;
 
   -- ==========================================================================

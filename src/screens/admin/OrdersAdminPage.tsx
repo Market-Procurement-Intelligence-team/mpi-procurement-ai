@@ -6,6 +6,8 @@
  * - Progress: the 6 steps. The admin can step in and set the status.
  * - Money: what the buyer paid, what MPI owes the supplier (with a simulated
  *   payout), MPI's revenue, and all 3 invoices.
+ * Service orders show Milestones instead of Progress, and are paid out one
+ * accepted milestone at a time: "Payouts to send" on top lists them all.
  * "Message buyer / supplier" open that conversation on the Notifications
  * screen (Messages tab), where the admin replies and passes messages on.
  *
@@ -28,6 +30,7 @@ import {
   Wallet,
 } from "lucide-react"
 import { listAllOrderMessages, listAllOrders, type AdminOrder } from "../../services/data/admin"
+import { listOrderMilestones, listPayoutsToSend, payOutMilestone, type Milestone, type PayoutToSend } from "../../services/data/milestones"
 import { getOrderMoney, payOutSupplier, SIMULATED_NOTE, type OrderMoney } from "../../services/data/money"
 import {
   listOrderHistory,
@@ -42,7 +45,8 @@ import EmptyState from "../../ui/EmptyState"
 import { Alert, BOX, boxBorder } from "../../ui/form"
 import PageHeader from "../../ui/PageHeader"
 import { notificationsPath } from "../notifications/notify"
-import { InvoiceCard, isDone, STATUS_TONE, STEP_LABEL, Stepper } from "../orders/OrdersPage"
+import { InvoiceCard, isDone, serviceStatus, STATUS_TONE, STEP_LABEL, Stepper } from "../orders/OrdersPage"
+import ServiceOrderProgress from "../orders/ServiceOrder"
 import { Chip, day, daysLeft, daysUntil, errorText, GRADIENT_PANEL, rupees, SummaryCards, useToast } from "../supplier/parts"
 
 type ListTab = "reply" | "active" | "done"
@@ -57,6 +61,74 @@ function waiting(messages: OrderMessage[]): Set<string> {
 
 const owesSupplier = (m: OrderMoney | undefined) => Math.max(-(m?.balances.supplier_payable ?? 0), 0)
 
+/** What MPI should pay the supplier now. Service orders: accepted milestones only, never work still in review. */
+const toPayOut = (m: OrderMoney | undefined, ms: Milestone[] | undefined) =>
+  ms?.length ? ms.filter((x) => x.status === "accepted").reduce((n, x) => n + (x.payout ?? 0), 0) : owesSupplier(m)
+
+// ---------------------------------------------------------------- payouts to send
+
+function PayoutsToSend({ rows, onOpen, onDone }: { rows: PayoutToSend[]; onOpen: (poId: string) => void; onDone: (msg: string) => Promise<void> }) {
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  if (!rows.length) return null
+  const total = rows.reduce((n, r) => n + r.payout, 0)
+  return (
+    <section className="mb-5 overflow-hidden rounded-xl shadow-[0_1px_3px_rgba(21,35,61,0.08)]" style={GRADIENT_PANEL} aria-label="Payouts to send">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-[#EEF1F5] px-5 py-3">
+        <h2 className="flex items-center gap-2 text-[16px] font-bold text-navy">
+          <Banknote size={18} aria-hidden="true" /> Payouts to send
+          <span className="rounded-full bg-orange px-2 py-px text-[12px] font-bold text-navy">{rows.length}</span>
+        </h2>
+        <p className="text-[13px] text-muted">
+          Work the startup accepted · {rupees(total)} in total · simulated
+        </p>
+      </div>
+      <ul className="divide-y divide-line/70">
+        {rows.slice(0, 5).map((r) => (
+          <li key={r.milestone_id} className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center">
+            <button type="button" onClick={() => onOpen(r.po_id)} className="min-w-0 flex-1 text-left">
+              <span className="block truncate text-[14.5px] font-semibold text-navy" title={r.request_title}>
+                {r.vendor_name} · milestone {r.seq}: {r.title}
+              </span>
+              <span className="block text-[12.5px] text-muted">
+                {r.po_number} · {r.request_title} · accepted {day(r.accepted_at)}
+              </span>
+            </button>
+            <span className="text-[13px] text-muted sm:text-right">
+              {rupees(r.gross)} − {rupees(r.commission)} commission
+            </span>
+            <Button
+              className="sm:w-44"
+              disabled={busy !== null}
+              busy={busy === r.milestone_id}
+              onClick={async () => {
+                setBusy(r.milestone_id)
+                setError(null)
+                try {
+                  await payOutMilestone(r.milestone_id)
+                  await onDone(`Paid out ${rupees(r.payout)} to ${r.vendor_name} (simulated)`)
+                } catch (err) {
+                  setError(errorText(err))
+                } finally {
+                  setBusy(null)
+                }
+              }}
+            >
+              Pay out {rupees(r.payout)}
+            </Button>
+          </li>
+        ))}
+      </ul>
+      {rows.length > 5 && <p className="px-5 pb-3 text-[13px] text-muted">And {rows.length - 5} more. Pay these first.</p>}
+      {error && (
+        <div className="px-5 pb-3">
+          <Alert>{error}</Alert>
+        </div>
+      )}
+    </section>
+  )
+}
+
 // ---------------------------------------------------------------- list
 
 function OrderList({
@@ -64,12 +136,14 @@ function OrderList({
   selectedId,
   unanswered,
   money,
+  milestones,
   onSelect,
 }: {
   orders: AdminOrder[]
   selectedId: string | null
   unanswered: Set<string>
   money: Map<string, OrderMoney>
+  milestones: Map<string, Milestone[]>
   onSelect: (id: string) => void
 }) {
   if (!orders.length) return <p className="px-5 py-10 text-center text-muted">Nothing here right now.</p>
@@ -78,7 +152,8 @@ function OrderList({
       {orders.map((o) => {
         const selected = o.id === selectedId
         const replies = [o.buyer_org_id, o.vendor_org_id].filter((org) => unanswered.has(`${o.id}:${org}`)).length
-        const payout = owesSupplier(money.get(o.id))
+        const ms = milestones.get(o.id)
+        const payout = toPayOut(money.get(o.id), ms)
         return (
           <li key={o.id}>
             <button
@@ -114,7 +189,7 @@ function OrderList({
                 )}
               </span>
               <span className="shrink-0 rounded-full border border-line bg-white px-2 py-0.5 text-[11.5px] font-semibold text-muted">
-                {STEP_LABEL[o.status]}
+                {ms?.length ? serviceStatus(o, ms) : STEP_LABEL[o.status]}
               </span>
             </button>
           </li>
@@ -192,12 +267,25 @@ function StepIn({ order, onDone }: { order: AdminOrder; onDone: (msg: string) =>
 
 // ---------------------------------------------------------------- money
 
-function Money({ order, money, onDone }: { order: AdminOrder; money: OrderMoney | null; onDone: (msg: string) => Promise<void> }) {
+function Money({
+  order,
+  money,
+  milestones,
+  onDone,
+  onMilestones,
+}: {
+  order: AdminOrder
+  money: OrderMoney | null
+  milestones: Milestone[]
+  onDone: (msg: string) => Promise<void>
+  onMilestones: () => void
+}) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   if (!money) return <p className="text-muted">Loading the money…</p>
   const paidIn = money.payments.filter((p) => p.payee === "mpi").reduce((n, p) => n + p.amount, 0)
-  const owes = owesSupplier(money)
+  const service = milestones.length > 0
+  const owes = toPayOut(money, milestones)
   const paidOut = (money.payouts ?? []).reduce((n, p) => n + p.net, 0)
   const revenue = money.amounts.mpi?.revenue ?? 0
 
@@ -212,7 +300,11 @@ function Money({ order, money, onDone }: { order: AdminOrder; money: OrderMoney 
         <div className="rounded-xl bg-navy p-4 text-white sm:col-span-1">
           <p className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-white/75">MPI owes the supplier</p>
           <p className="font-display text-[24px] font-bold text-orange">{rupees(owes)}</p>
-          {owes > 0 ? (
+          {owes > 0 && service ? (
+            <Button className="mt-2 w-full" onClick={onMilestones}>
+              <Banknote size={16} aria-hidden="true" /> Pay out by milestone
+            </Button>
+          ) : owes > 0 ? (
             <Button
               className="mt-2 w-full"
               busy={busy}
@@ -232,7 +324,7 @@ function Money({ order, money, onDone }: { order: AdminOrder; money: OrderMoney 
               <Banknote size={16} aria-hidden="true" /> Pay out {rupees(owes)}
             </Button>
           ) : (
-            <p className="text-[12.5px] text-white/70">Nothing to pay out right now</p>
+            <p className="text-[12.5px] text-white/70">{service ? "Only accepted work is paid out" : "Nothing to pay out right now"}</p>
           )}
         </div>
         <div className="rounded-xl border-[1.5px] border-line bg-white soft-panel p-4">
@@ -264,6 +356,7 @@ function Money({ order, money, onDone }: { order: AdminOrder; money: OrderMoney 
 function OrderPanel({
   order,
   money,
+  milestones,
   messages,
   unanswered,
   onBack,
@@ -271,6 +364,7 @@ function OrderPanel({
 }: {
   order: AdminOrder
   money: OrderMoney | null
+  milestones: Milestone[]
   messages: OrderMessage[]
   unanswered: Set<string>
   onBack: () => void
@@ -297,6 +391,7 @@ function OrderPanel({
   const count = (org: string) => messages.filter((m) => m.po_id === order.id && m.org_id === org).length
   const eta = order.expected_delivery
   const arrived = order.status === "delivered" || isDone(order)
+  const service = milestones.length > 0
 
   return (
     <section className="@container overflow-hidden rounded-xl shadow-[0_1px_3px_rgba(21,35,61,0.08)]" style={GRADIENT_PANEL} aria-label={order.po_number}>
@@ -327,7 +422,7 @@ function OrderPanel({
               <p className="text-[12px] text-muted">buyer pays, all in</p>
             </div>
             <div className="@3xl:mt-1">
-              <Chip tone={STATUS_TONE[order.status]}>{STEP_LABEL[order.status]}</Chip>
+              <Chip tone={STATUS_TONE[order.status]}>{service ? serviceStatus(order, milestones) : STEP_LABEL[order.status]}</Chip>
               <p className={`mt-0.5 text-[12.5px] font-semibold ${eta && !arrived && (daysUntil(eta) ?? 1) < 0 ? "text-red-text" : "text-navy"}`}>
                 {arrived ? "" : eta ? `Delivery ${day(eta)} · ${daysLeft(eta)}` : "Delivery date not set"}
               </p>
@@ -362,7 +457,7 @@ function OrderPanel({
         <div role="tablist" aria-label="Order sections" className="grid w-full grid-cols-2 gap-1 rounded-lg bg-page p-1 ring-1 ring-inset ring-line">
           {(
             [
-              { id: "progress", label: "Progress" },
+              { id: "progress", label: service ? "Milestones" : "Progress", count: service ? milestones.length : undefined },
               { id: "money", label: "Money" },
             ] as { id: DetailTab; label: string; count?: number }[]
           ).map((t) => {
@@ -387,13 +482,14 @@ function OrderPanel({
       </div>
 
       <div className="bg-white p-5 sm:p-6">
-        {tab === "progress" && (
+        {tab === "progress" && service && <ServiceOrderProgress milestones={milestones} side="admin" onDone={onDone} />}
+        {tab === "progress" && !service && (
           <div className="space-y-5">
             {order.status === "cancelled" ? <Chip tone="red">Cancelled</Chip> : <Stepper status={order.status} events={events} />}
             <StepIn key={order.status} order={order} onDone={onDone} />
           </div>
         )}
-        {tab === "money" && <Money order={order} money={money} onDone={onDone} />}
+        {tab === "money" && <Money order={order} money={money} milestones={milestones} onDone={onDone} onMilestones={() => setTab("progress")} />}
       </div>
     </section>
   )
@@ -405,6 +501,8 @@ export default function OrdersAdminPage() {
   const [orders, setOrders] = useState<AdminOrder[] | null>(null)
   const [messages, setMessages] = useState<OrderMessage[]>([])
   const [money, setMoney] = useState<Map<string, OrderMoney>>(new Map())
+  const [milestones, setMilestones] = useState<Map<string, Milestone[]>>(new Map())
+  const [payouts, setPayouts] = useState<PayoutToSend[]>([])
   const [error, setError] = useState<string | null>(null)
   const [params, setParams] = useSearchParams()
   const [query, setQuery] = useState("")
@@ -418,8 +516,14 @@ export default function OrdersAdminPage() {
       const [fresh, msgs] = await Promise.all([listAllOrders(), listAllOrderMessages().catch(() => [])])
       setOrders(fresh)
       setMessages(msgs)
-      const sums = await Promise.all(fresh.map((o) => getOrderMoney(o.id).catch(() => null)))
+      const [sums, steps, toSend] = await Promise.all([
+        Promise.all(fresh.map((o) => getOrderMoney(o.id).catch(() => null))),
+        Promise.all(fresh.map((o) => listOrderMilestones(o.id).catch(() => [] as Milestone[]))),
+        listPayoutsToSend().catch(() => [] as PayoutToSend[]),
+      ])
       setMoney(new Map(fresh.flatMap((o, i) => (sums[i] ? [[o.id, sums[i]!] as const] : []))))
+      setMilestones(new Map(fresh.map((o, i) => [o.id, steps[i]] as const)))
+      setPayouts(toSend)
       setError(null)
     } catch (err) {
       setError(errorText(err))
@@ -472,7 +576,7 @@ export default function OrdersAdminPage() {
 
   const waitingCount = unanswered.size
   const activeCount = all.filter((o) => !isDone(o)).length
-  const toPayOut = all.reduce((n, o) => n + owesSupplier(money.get(o.id)), 0)
+  const payOutTotal = all.reduce((n, o) => n + toPayOut(money.get(o.id), milestones.get(o.id)), 0)
   const revenue = all.reduce((n, o) => n + (money.get(o.id)?.amounts.mpi?.revenue ?? 0), 0)
 
   const tabs: { id: ListTab; label: string }[] = [
@@ -511,10 +615,11 @@ export default function OrdersAdminPage() {
             items={[
               { id: "reply", label: "Messages to answer", value: waitingCount, hint: waitingCount ? "buyers and suppliers waiting" : "all answered", icon: MessageSquare, dot: waitingCount > 0 },
               { id: "active", label: "Active orders", value: activeCount, hint: `${all.length} in total`, icon: Package },
-              { id: "payout", label: "To pay out", value: rupees(toPayOut), hint: toPayOut ? "owed to suppliers now" : "nothing owed", icon: Wallet, dot: toPayOut > 0 },
+              { id: "payout", label: "To pay out", value: rupees(payOutTotal), hint: payOutTotal ? "owed to suppliers now" : "nothing owed", icon: Wallet, dot: payOutTotal > 0 },
               { id: "revenue", label: "MPI revenue", value: rupees(revenue), hint: "fees + commission, before GST", icon: CircleDollarSign },
             ]}
           />
+          <PayoutsToSend rows={payouts} onOpen={(id) => update({ o: id, list: "active", tab: "progress" })} onDone={done} />
           <div className="grid gap-5 lg:grid-cols-[23rem_minmax(0,1fr)]">
             <aside className={`h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white soft-panel shadow-[0_1px_3px_rgba(21,35,61,0.08)] lg:sticky lg:top-24 ${selected ? "hidden lg:block" : ""}`}>
               <div role="tablist" aria-label="Orders" className="flex gap-1 border-b border-line px-2">
@@ -547,7 +652,7 @@ export default function OrdersAdminPage() {
                   className={`${BOX} ${boxBorder()} min-h-10 pl-9 text-[14.5px]`}
                 />
               </div>
-              <OrderList orders={shown} selectedId={selectedId} unanswered={unanswered} money={money} onSelect={(id) => update({ o: id, tab: null })} />
+              <OrderList orders={shown} selectedId={selectedId} unanswered={unanswered} money={money} milestones={milestones} onSelect={(id) => update({ o: id, tab: null })} />
             </aside>
             <div className={`min-w-0 ${selected ? "" : "hidden lg:block"}`}>
               {selected ? (
@@ -555,6 +660,7 @@ export default function OrdersAdminPage() {
                   key={selected.id}
                   order={selected}
                   money={money.get(selected.id) ?? null}
+                  milestones={milestones.get(selected.id) ?? []}
                   messages={messages}
                   unanswered={unanswered}
                   onBack={() => update({ o: null, tab: null })}

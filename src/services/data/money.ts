@@ -129,7 +129,7 @@ export interface Installment {
   seq: number
   label: string
   amount: number
-  due: "on_order" | "on_delivery" | "on_settlement"
+  due: "on_order" | "on_delivery" | "on_settlement" | "on_milestone"
   status: "due" | "paid" | "waived"
   paid_at: string | null
 }

@@ -57,7 +57,7 @@ function nextStep(b: Brief, offer: Offer | undefined, now: Date) {
     const q = b.myQuotes.find((x) => x.status === "submitted")
     return { icon: Send, text: `Version ${q?.version ?? 1} sent${q?.total != null ? ` · ${rupees(q.total)}` : ""} · waiting for the startup`, urgent: false }
   }
-  if (b.tab === "won") return { icon: Trophy, text: "You were hired. The order is in My orders.", urgent: false }
+  if (b.tab === "won") return { icon: Trophy, text: "You were hired. The order is in Orders.", urgent: false }
   if (b.invitation.status === "declined") return { icon: XCircle, text: "You declined this brief", urgent: false }
   return { icon: XCircle, text: "The startup chose another provider", urgent: false }
 }

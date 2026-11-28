@@ -10,6 +10,9 @@
  *   delivery). The startup pays what is due now; the supplier sees MPI's
  *   commission and its payout. Payments are SIMULATED and say so.
  * - Items: the lines of the approved quote.
+ * Service orders (a hired service brief) show Milestones instead of
+ * Progress: the startup pays, reviews and accepts one milestone at a time;
+ * the provider submits the work (ServiceOrder.tsx).
  * Contact supplier/buyer and Need help open this order's conversation with
  * MPI on the Notifications screen (Messages tab).
  * Header actions also download the PO and invoices (print or save as PDF).
@@ -50,6 +53,7 @@ import {
   type OrderStatus,
   type OrderSummary,
 } from "../../services/data/orders"
+import { listOrderMilestones, providerTodo, startupTodo, type Milestone } from "../../services/data/milestones"
 import { listQuoteLines, type QuoteLine } from "../../services/data/quotes"
 import Button from "../../ui/Button"
 import EmptyState from "../../ui/EmptyState"
@@ -58,6 +62,8 @@ import PageHeader from "../../ui/PageHeader"
 import { Chip, day, daysLeft, daysUntil, errorText, GRADIENT_PANEL, rupees, SummaryCards, useToast } from "../supplier/parts"
 import { notificationsPath } from "../notifications/notify"
 import { printInvoice, printPurchaseOrder } from "./printDoc"
+import ServiceOrderProgress from "./ServiceOrder"
+import { useMe } from "../../app/session"
 
 type Side = "startup" | "vendor"
 type ListTab = "active" | "done"
@@ -101,9 +107,24 @@ const isoIn = (days: number) => {
   return d.toISOString().slice(0, 10)
 }
 
-/** Installments the startup can pay right now (what the database's pay_order will take). */
-export function dueNow(money: OrderMoney | undefined, status: OrderStatus): number {
+/**
+ * Installments the startup can pay right now (what the database's pay_order
+ * will take). For a service order, the next milestone (with MPI's fee on the
+ * first): pass its milestones; without them only the first payment counts.
+ */
+export function dueNow(money: OrderMoney | undefined, status: OrderStatus, milestones?: Milestone[]): number {
   if (!money) return 0
+  if (milestones?.length) {
+    const todo = startupTodo(milestones)
+    return todo?.kind === "pay" ? (todo.milestone.to_pay ?? 0) : 0
+  }
+  const parts = money.invoices.flatMap((i) => (i.status === "cancelled" ? [] : (i.installments ?? []).map((x) => ({ ...x, kind: i.kind }))))
+  if (parts.some((x) => x.due === "on_milestone")) {
+    if (status !== "issued") return 0
+    const first = parts.filter((x) => x.due === "on_milestone" && x.status === "due").sort((a, b) => a.seq - b.seq)[0]
+    const fee = parts.filter((x) => x.kind === "mpi_fee_to_buyer" && x.status === "due").reduce((n, x) => n + x.amount, 0)
+    return first ? first.amount + fee : 0
+  }
   const delivered = status === "delivered" || status === "completed"
   return money.invoices
     .filter((i) => i.kind !== "mpi_commission_to_supplier" && i.status !== "cancelled")
@@ -122,6 +143,14 @@ export function stillToPay(money: OrderMoney | undefined): number {
     .reduce((n, x) => n + x.amount, 0)
 }
 
+/** A service order's status in words: "Milestone 2 of 3 · in progress". */
+export function serviceStatus(o: OrderSummary, ms: Milestone[]): string {
+  if (o.status === "cancelled" || o.status === "completed") return STEP_LABEL[o.status]
+  if (ms.every((m) => m.status === "accepted" || m.status === "paid_out")) return "All work accepted"
+  const m = ms.find((x) => x.status !== "accepted" && x.status !== "paid_out") ?? ms[0]
+  return `Milestone ${m.seq} of ${ms.length}`
+}
+
 // ---------------------------------------------------------------- list
 
 function OrderList({
@@ -129,12 +158,14 @@ function OrderList({
   side,
   selectedId,
   money,
+  milestones,
   onSelect,
 }: {
   orders: OrderSummary[]
   side: Side
   selectedId: string | null
   money: Map<string, OrderMoney>
+  milestones: Map<string, Milestone[]>
   onSelect: (id: string) => void
 }) {
   if (!orders.length) return <p className="px-5 py-10 text-center text-muted">Nothing here right now.</p>
@@ -142,9 +173,18 @@ function OrderList({
     <ul className="space-y-2 p-3">
       {orders.map((o) => {
         const selected = o.id === selectedId
-        const due = side === "startup" ? dueNow(money.get(o.id), o.status) : 0
-        const needsYou =
-          side === "startup" ? due > 0 || o.status === "delivered" : !isDone(o) && o.status !== "delivered"
+        const ms = milestones.get(o.id) ?? []
+        const due = side === "startup" ? dueNow(money.get(o.id), o.status, ms) : 0
+        const review = ms.length > 0 && startupTodo(ms)?.kind === "review"
+        const needsYou = ms.length
+          ? side === "startup"
+            ? due > 0 || review
+            : providerTodo(ms) !== null
+          : side === "startup"
+            ? due > 0 || o.status === "delivered"
+            : !isDone(o) && o.status !== "delivered"
+        const statusText = ms.length ? serviceStatus(o, ms) : STEP_LABEL[o.status]
+        const badge = side === "startup" ? (due > 0 ? "Pay now" : review ? "Review" : "Confirm") : ms.length ? (providerTodo(ms)?.status === "changes_asked" ? "Changes" : "Submit") : "Update"
         return (
           <li key={o.id}>
             <button
@@ -167,10 +207,10 @@ function OrderList({
                 </span>
               </span>
               <span className="flex shrink-0 flex-col items-end gap-1.5 pt-0.5">
-                <span className={`text-[12px] font-semibold ${selected ? "text-navy" : "text-muted"}`}>{STEP_LABEL[o.status]}</span>
+                <span className={`text-[12px] font-semibold ${selected ? "text-navy" : "text-muted"}`}>{statusText}</span>
                 {needsYou && !isDone(o) && (
                   <span className="rounded-full bg-orange px-2 py-0.5 text-[11.5px] font-bold text-navy">
-                    {side === "startup" ? (due > 0 ? "Pay now" : "Confirm") : "Update"}
+                    {badge}
                   </span>
                 )}
               </span>
@@ -331,7 +371,7 @@ const INVOICE_TONE: Record<InvoiceSummary["status"], { label: string; tone: "nav
   cancelled: { label: "Cancelled", tone: "line" },
 }
 
-const DUE_TEXT = { on_order: "Before work starts", on_delivery: "On delivery", on_settlement: "When MPI settles" } as const
+const DUE_TEXT = { on_order: "Before work starts", on_delivery: "On delivery", on_settlement: "When MPI settles", on_milestone: "With its milestone" } as const
 
 export function InvoiceCard({ invoice, side, order }: { invoice: InvoiceSummary; side: Side | "admin"; order: OrderSummary }) {
   const st = INVOICE_TONE[invoice.status]
@@ -390,16 +430,35 @@ export function InvoiceCard({ invoice, side, order }: { invoice: InvoiceSummary;
   )
 }
 
-function Payments({ order, money, side, onDone }: { order: OrderSummary; money: OrderMoney | null; side: Side; onDone: (msg: string) => Promise<void> }) {
+function Payments({
+  order,
+  money,
+  side,
+  milestones,
+  onDone,
+  onMilestones,
+}: {
+  order: OrderSummary
+  money: OrderMoney | null
+  side: Side
+  milestones: Milestone[]
+  onDone: (msg: string) => Promise<void>
+  onMilestones: () => void
+}) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   if (!money) return <p className="text-muted">Loading the payments…</p>
   const invoices = money.invoices.filter((i) =>
     side === "startup" ? i.kind !== "mpi_commission_to_supplier" : i.kind !== "mpi_fee_to_buyer",
   )
-  const now = dueNow(money, order.status)
+  const service = milestones.length > 0
+  const now = dueNow(money, order.status, milestones)
   const later = stillToPay(money) - now
   const s = money.amounts.supplier
+  // Service orders: MPI owes the provider only for accepted work.
+  const owesYou = service
+    ? milestones.filter((m) => m.status === "accepted").reduce((n, m) => n + (m.payout ?? 0), 0)
+    : (money.balances.mpi_owes_you ?? 0)
 
   return (
     <div className="space-y-4">
@@ -409,10 +468,25 @@ function Payments({ order, money, side, onDone }: { order: OrderSummary; money: 
             <p className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-white/75">{now > 0 ? "Due now" : "Nothing due now"}</p>
             <p className="font-display text-[30px] font-bold leading-tight text-orange">{rupees(now)}</p>
             <p className="text-[13px] text-white/75">
-              {later > 0 ? `${rupees(later)} more on delivery.` : now > 0 ? "That's everything for this order." : "All paid for this order."}
+              {service
+                ? later > 0
+                  ? `${rupees(later)} more, one milestone at a time.`
+                  : now > 0
+                    ? "That's the last milestone."
+                    : "All milestones paid."
+                : later > 0
+                  ? `${rupees(later)} more on delivery.`
+                  : now > 0
+                    ? "That's everything for this order."
+                    : "All paid for this order."}
             </p>
           </div>
-          {now > 0 && (
+          {now > 0 && service && (
+            <Button onClick={onMilestones}>
+              <Wallet size={17} aria-hidden="true" /> Pay on the Milestones tab
+            </Button>
+          )}
+          {now > 0 && !service && (
             <div>
               <Button
                 busy={busy}
@@ -443,8 +517,8 @@ function Payments({ order, money, side, onDone }: { order: OrderSummary; money: 
           </div>
           <div className="rounded-xl border-[1.5px] border-line bg-white soft-panel p-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted">MPI owes you now</p>
-            <p className="font-display text-[22px] font-bold text-navy">{rupees(money.balances.mpi_owes_you ?? 0)}</p>
-            <p className="text-[12.5px] text-muted">From what the buyer has paid</p>
+            <p className="font-display text-[22px] font-bold text-navy">{rupees(owesYou)}</p>
+            <p className="text-[12.5px] text-muted">{service ? "For work the startup accepted" : "From what the buyer has paid"}</p>
           </div>
           <div className="rounded-xl border-[1.5px] border-line bg-white soft-panel p-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted">Paid out so far</p>
@@ -474,15 +548,18 @@ function OrderPanel({
   order,
   side,
   money,
+  milestones,
   onBack,
   onDone,
 }: {
   order: OrderSummary
   side: Side
   money: OrderMoney | null
+  milestones: Milestone[]
   onBack: () => void
   onDone: (msg: string) => Promise<void>
 }) {
+  const service = milestones.length > 0
   const [params, setParams] = useSearchParams()
   const tab = (params.get("tab") as DetailTab | null) ?? "progress"
   const setTab = (t: DetailTab) => {
@@ -511,8 +588,9 @@ function OrderPanel({
 
   const facts: [ReactNode, ReactNode][] = [
     ["Placed", day(order.approved_at, true)],
-    ["Expected delivery", eta ? `${day(eta, true)}${!isDone(order) ? ` (${daysLeft(eta)})` : ""}` : "Not set yet"],
+    [service ? "Finish by" : "Expected delivery", eta ? `${day(eta, true)}${!isDone(order) ? ` (${daysLeft(eta)})` : ""}` : "Not set yet"],
   ]
+  const due = dueNow(money ?? undefined, order.status, milestones)
 
   return (
     <section className="overflow-hidden rounded-xl shadow-[0_1px_3px_rgba(21,35,61,0.08)]" style={GRADIENT_PANEL} aria-label={order.po_number}>
@@ -528,7 +606,7 @@ function OrderPanel({
               onClick={() => openMessages("for_other_side")}
               className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-navy px-3 text-[13.5px] font-semibold text-white hover:bg-navy-2"
             >
-              <MessageSquare size={15} aria-hidden="true" /> Contact {side === "startup" ? "supplier" : "buyer"}
+              <MessageSquare size={15} aria-hidden="true" /> Contact {side === "startup" ? (service ? "provider" : "supplier") : service ? "startup" : "buyer"}
             </button>
             <button
               type="button"
@@ -562,7 +640,7 @@ function OrderPanel({
             </p>
           </div>
           <div className="sm:text-right">
-            <Chip tone={STATUS_TONE[order.status]}>{STEP_LABEL[order.status]}</Chip>
+            <Chip tone={STATUS_TONE[order.status]}>{service ? serviceStatus(order, milestones) : STEP_LABEL[order.status]}</Chip>
             {total !== undefined && (
               <p className="mt-1 font-display text-[22px] font-bold text-navy">{rupees(total)}</p>
             )}
@@ -575,9 +653,7 @@ function OrderPanel({
               <span className="text-muted">{k}:</span> <strong>{v}</strong>
             </li>
           ))}
-          {side === "startup" && money && dueNow(money, order.status) > 0 && (
-            <li className="rounded-full bg-orange px-3 py-1 font-bold text-navy">Due now {rupees(dueNow(money, order.status))}</li>
-          )}
+          {side === "startup" && due > 0 && <li className="rounded-full bg-orange px-3 py-1 font-bold text-navy">Due now {rupees(due)}</li>}
         </ul>
         <div className="h-4" />
       </div>
@@ -586,9 +662,9 @@ function OrderPanel({
         <div role="tablist" aria-label="Order sections" className="grid grid-cols-2 gap-1 rounded-2xl bg-page p-1 sm:inline-flex sm:rounded-full">
           {(
             [
-              { id: "progress", label: "Progress" },
+              { id: "progress", label: service ? "Milestones" : "Progress", count: service ? milestones.length : undefined },
               { id: "payments", label: "Payments" },
-              { id: "items", label: "Items", count: lines?.length },
+              { id: "items", label: service ? "Scope" : "Items", count: lines?.length },
             ] as { id: DetailTab; label: string; count?: number }[]
           ).map((t) => {
             const active = tab === t.id
@@ -614,19 +690,22 @@ function OrderPanel({
       </div>
 
       <div className="bg-white p-5 sm:p-6">
-        {tab === "progress" && (
+        {tab === "progress" && service && <ServiceOrderProgress milestones={milestones} side={side} onDone={onDone} />}
+        {tab === "progress" && !service && (
           <div className="space-y-5">
             <Stepper status={order.status} events={events} />
             {side === "vendor" ? <SupplierUpdate order={order} onDone={onDone} /> : <StartupConfirm order={order} onDone={onDone} />}
           </div>
         )}
-        {tab === "payments" && <Payments order={order} money={money} side={side} onDone={onDone} />}
+        {tab === "payments" && (
+          <Payments order={order} money={money} side={side} milestones={milestones} onDone={onDone} onMilestones={() => setTab("progress")} />
+        )}
         {tab === "items" && (
           <div className="overflow-x-auto rounded-xl border-[1.5px] border-line">
             <table className="w-full min-w-[32rem] text-[14px]">
               <thead className="bg-navy text-left text-[12px] uppercase tracking-[0.05em] text-white">
                 <tr>
-                  <th className="px-3 py-2.5 font-semibold">Item</th>
+                  <th className="px-3 py-2.5 font-semibold">{service ? "Deliverable" : "Item"}</th>
                   <th className="px-3 py-2.5 text-right font-semibold">Qty</th>
                   <th className="px-3 py-2.5 text-right font-semibold">Price</th>
                   <th className="px-3 py-2.5 text-right font-semibold">GST</th>
@@ -658,9 +737,13 @@ function OrderPanel({
 export default function OrdersPage({ side }: { side: Side }) {
   const [orders, setOrders] = useState<OrderSummary[] | null>(null)
   const [money, setMoney] = useState<Map<string, OrderMoney>>(new Map())
+  const [milestones, setMilestones] = useState<Map<string, Milestone[]>>(new Map())
   const [error, setError] = useState<string | null>(null)
   const [params, setParams] = useSearchParams()
   const [toast, toastNode] = useToast()
+  const me = useMe()
+  const freelancer = side === "vendor" && me.organisation.provider_type === "individual"
+  const pageTitle = side === "startup" || freelancer ? "Orders" : "My orders"
 
   const listTab = (params.get("list") as ListTab | null) ?? "active"
   const selectedId = params.get("o")
@@ -669,8 +752,12 @@ export default function OrdersPage({ side }: { side: Side }) {
     try {
       const fresh = await listMyOrders()
       setOrders(fresh)
-      const sums = await Promise.all(fresh.map((o) => getOrderMoney(o.id).catch(() => null)))
+      const [sums, steps] = await Promise.all([
+        Promise.all(fresh.map((o) => getOrderMoney(o.id).catch(() => null))),
+        Promise.all(fresh.map((o) => listOrderMilestones(o.id).catch(() => [] as Milestone[]))),
+      ])
       setMoney(new Map(fresh.flatMap((o, i) => (sums[i] ? [[o.id, sums[i]!] as const] : []))))
+      setMilestones(new Map(fresh.map((o, i) => [o.id, steps[i]] as const)))
       setError(null)
     } catch (err) {
       setError(errorText(err))
@@ -679,9 +766,9 @@ export default function OrdersPage({ side }: { side: Side }) {
   }, [])
 
   useEffect(() => {
-    document.title = `${side === "startup" ? "Orders" : "My orders"} · MPI`
+    document.title = `${pageTitle} · MPI`
     void reload()
-  }, [reload, side])
+  }, [reload, pageTitle])
 
   const sorted = useMemo(() => {
     const all = orders ?? []
@@ -718,25 +805,34 @@ export default function OrdersPage({ side }: { side: Side }) {
   const all = orders ?? []
   const active = sorted.active
   const startupCards = () => {
-    const payNow = active.reduce((n, o) => n + dueNow(money.get(o.id), o.status), 0)
-    const toConfirm = active.filter((o) => o.status === "delivered").length
+    const payNow = active.reduce((n, o) => n + dueNow(money.get(o.id), o.status, milestones.get(o.id)), 0)
+    const toConfirm = active.filter((o) => {
+      const ms = milestones.get(o.id) ?? []
+      return ms.length ? startupTodo(ms)?.kind === "review" : o.status === "delivered"
+    }).length
     const owed = all.reduce((n, o) => n + stillToPay(money.get(o.id)), 0)
     return [
       { id: "active", label: "Active orders", value: active.length, hint: active.length ? "in progress" : "none right now", icon: Package },
       { id: "pay", label: "Due now", value: rupees(payNow), hint: payNow ? "ready to pay" : "nothing to pay", icon: Wallet, dot: payNow > 0 },
-      { id: "confirm", label: "To confirm", value: toConfirm, hint: toConfirm ? "delivered, check and confirm" : "nothing waiting", icon: PackageCheck, dot: toConfirm > 0 },
+      { id: "confirm", label: "To confirm", value: toConfirm, hint: toConfirm ? "delivered or work to review" : "nothing waiting", icon: PackageCheck, dot: toConfirm > 0 },
       { id: "owed", label: "Still to pay", value: rupees(owed), hint: "across all orders", icon: CircleDollarSign },
     ]
   }
   const vendorCards = () => {
-    const toUpdate = active.filter((o) => o.status !== "delivered").length
+    const toUpdate = active.filter((o) => {
+      const ms = milestones.get(o.id) ?? []
+      return ms.length ? providerTodo(ms) !== null : o.status !== "delivered"
+    }).length
     const soon = active.filter((o) => (daysUntil(o.expected_delivery) ?? 99) <= 7 && o.status !== "delivered").length
-    const owed = all.reduce((n, o) => n + (money.get(o.id)?.balances.mpi_owes_you ?? 0), 0)
+    const owed = all.reduce((n, o) => {
+      const ms = milestones.get(o.id) ?? []
+      return n + (ms.length ? ms.filter((m) => m.status === "accepted").reduce((k, m) => k + (m.payout ?? 0), 0) : (money.get(o.id)?.balances.mpi_owes_you ?? 0))
+    }, 0)
     const payout = all.reduce((n, o) => n + (money.get(o.id)?.amounts.supplier?.payout ?? 0), 0)
     return [
-      { id: "active", label: "Active orders", value: active.length, hint: `${toUpdate} to move forward`, icon: Factory, dot: toUpdate > 0 },
+      { id: "active", label: "Active orders", value: active.length, hint: `${toUpdate} need${toUpdate === 1 ? "s" : ""} you`, icon: Factory, dot: toUpdate > 0 },
       { id: "soon", label: "Due within 7 days", value: soon, hint: soon ? "deliver first" : "nothing urgent", icon: CalendarClock, dot: soon > 0 },
-      { id: "owed", label: "MPI owes you", value: rupees(owed), hint: "from buyer payments", icon: Wallet },
+      { id: "owed", label: "MPI owes you", value: rupees(owed), hint: "ready to be paid to you", icon: Wallet },
       { id: "payouts", label: "Total payouts", value: rupees(payout), hint: "after MPI commission", icon: CircleDollarSign },
     ]
   }
@@ -744,11 +840,13 @@ export default function OrdersPage({ side }: { side: Side }) {
   return (
     <div>
       <PageHeader
-        title={side === "startup" ? "Orders" : "My orders"}
+        title={pageTitle}
         description={
           side === "startup"
             ? "Track each order, pay what's due and confirm delivery. Payments are simulated for now."
-            : "Move each order forward as you make and deliver it, and see what MPI pays you."
+            : freelancer
+              ? "Work through each hired brief one milestone at a time, and see what MPI pays you."
+              : "Move each order forward as you make and deliver it, and see what MPI pays you."
         }
       />
       {error && (
@@ -768,7 +866,9 @@ export default function OrdersPage({ side }: { side: Side }) {
           body={
             side === "startup"
               ? "When you approve a quote on one of your requests, the order shows up here."
-              : "When a buyer approves your quote, the order shows up here."
+              : freelancer
+                ? "When a startup hires you on a brief, the order shows up here."
+                : "When a buyer approves your quote, the order shows up here."
           }
           action={
             side === "startup" ? (
@@ -777,7 +877,7 @@ export default function OrdersPage({ side }: { side: Side }) {
               </Link>
             ) : (
               <Link to="/supplier/requests" className="btn-gradient inline-flex min-h-11 items-center rounded-md px-5 font-bold text-navy">
-                See requests for you
+                {freelancer ? "See your briefs" : "See requests for you"}
               </Link>
             )
           }
@@ -810,7 +910,7 @@ export default function OrdersPage({ side }: { side: Side }) {
                   </button>
                 ))}
               </div>
-              <OrderList orders={shown} side={side} selectedId={selectedId} money={money} onSelect={(id) => update({ o: id, tab: null })} />
+              <OrderList orders={shown} side={side} selectedId={selectedId} money={money} milestones={milestones} onSelect={(id) => update({ o: id, tab: null })} />
             </aside>
             <div className={`min-w-0 ${selected ? "" : "hidden lg:block"}`}>
               {selected ? (
@@ -819,6 +919,7 @@ export default function OrdersPage({ side }: { side: Side }) {
                   order={selected}
                   side={side}
                   money={money.get(selected.id) ?? null}
+                  milestones={milestones.get(selected.id) ?? []}
                   onBack={() => update({ o: null, tab: null })}
                   onDone={done}
                 />

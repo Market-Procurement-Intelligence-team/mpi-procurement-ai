@@ -1396,6 +1396,7 @@ export type Database = {
       }
       invoice_installments: {
         Row: {
+          milestone_id: string | null
           id: string
           invoice_id: string
           seq: number
@@ -1407,6 +1408,7 @@ export type Database = {
           paid_at: string | null
         }
         Insert: {
+          milestone_id?: string | null
           id?: string
           invoice_id?: string
           seq?: number
@@ -1418,6 +1420,7 @@ export type Database = {
           paid_at?: string | null
         }
         Update: {
+          milestone_id?: string | null
           id?: string
           invoice_id?: string
           seq?: number
@@ -1567,6 +1570,7 @@ export type Database = {
       }
       settlements: {
         Row: {
+          milestone_id: string | null
           id: string
           po_id: string
           vendor_org_id: string
@@ -1580,6 +1584,7 @@ export type Database = {
           created_at: string
         }
         Insert: {
+          milestone_id?: string | null
           id?: string
           po_id?: string
           vendor_org_id?: string
@@ -1593,6 +1598,7 @@ export type Database = {
           created_at?: string
         }
         Update: {
+          milestone_id?: string | null
           id?: string
           po_id?: string
           vendor_org_id?: string
@@ -1842,6 +1848,147 @@ export type Database = {
           answered_quote_id?: string | null
           answered_at?: string | null
           created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      service_milestones: {
+        Row: {
+          id: string
+          po_id: string
+          seq: number
+          title: string
+          done_when: string[]
+          quote_line_id: string | null
+          amount: number
+          commission: number
+          payout: number
+          status: "planned" | "in_progress" | "submitted" | "changes_asked" | "accepted" | "paid_out"
+          changes_allowed: number
+          changes_used: number
+          paid_at: string | null
+          submitted_at: string | null
+          accepted_at: string | null
+          paid_out_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          po_id: string
+          seq: number
+          title: string
+          done_when?: string[]
+          quote_line_id?: string | null
+          amount: number
+          commission?: number
+          payout?: number
+          status?: "planned" | "in_progress" | "submitted" | "changes_asked" | "accepted" | "paid_out"
+          changes_allowed?: number
+          changes_used?: number
+          paid_at?: string | null
+          submitted_at?: string | null
+          accepted_at?: string | null
+          paid_out_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          po_id?: string
+          seq?: number
+          title?: string
+          done_when?: string[]
+          quote_line_id?: string | null
+          amount?: number
+          commission?: number
+          payout?: number
+          status?: "planned" | "in_progress" | "submitted" | "changes_asked" | "accepted" | "paid_out"
+          changes_allowed?: number
+          changes_used?: number
+          paid_at?: string | null
+          submitted_at?: string | null
+          accepted_at?: string | null
+          paid_out_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      milestone_submissions: {
+        Row: {
+          id: string
+          milestone_id: string
+          po_id: string
+          version: number
+          note: string
+          links: string[]
+          points_done: number[]
+          submitted_by: string | null
+          submitted_at: string
+          answer: "accepted" | "changes" | null
+          answer_note: string | null
+          points_checked: number[]
+          answered_by: string | null
+          answered_at: string | null
+        }
+        Insert: {
+          id?: string
+          milestone_id: string
+          po_id: string
+          version: number
+          note: string
+          links?: string[]
+          points_done?: number[]
+          submitted_by?: string | null
+          submitted_at?: string
+          answer?: "accepted" | "changes" | null
+          answer_note?: string | null
+          points_checked?: number[]
+          answered_by?: string | null
+          answered_at?: string | null
+        }
+        Update: {
+          id?: string
+          milestone_id?: string
+          po_id?: string
+          version?: number
+          note?: string
+          links?: string[]
+          points_done?: number[]
+          submitted_by?: string | null
+          submitted_at?: string
+          answer?: "accepted" | "changes" | null
+          answer_note?: string | null
+          points_checked?: number[]
+          answered_by?: string | null
+          answered_at?: string | null
+        }
+        Relationships: []
+      }
+      milestone_events: {
+        Row: {
+          id: string
+          milestone_id: string
+          po_id: string
+          status: string
+          note: string | null
+          changed_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          milestone_id: string
+          po_id: string
+          status: string
+          note?: string | null
+          changed_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          milestone_id?: string
+          po_id?: string
+          status?: string
+          note?: string | null
+          changed_by?: string | null
           created_at?: string
         }
         Relationships: []
@@ -2426,6 +2573,42 @@ export type Database = {
       decline_invitation: {
         Args: { p_invitation_id: string; p_reason?: string }
         Returns: undefined
+      }
+      pay_milestone: {
+        Args: { p_milestone_id: string; p_idempotency_key: string }
+        Returns: Json
+      }
+      submit_milestone: {
+        Args: { p_milestone_id: string; p_note: string; p_links: string[]; p_points_done?: number[] }
+        Returns: string
+      }
+      answer_submission: {
+        Args: { p_submission_id: string; p_accept: boolean; p_note?: string | null; p_points_checked?: number[] }
+        Returns: undefined
+      }
+      pay_out_milestone: {
+        Args: { p_milestone_id: string; p_idempotency_key: string }
+        Returns: Json
+      }
+      order_milestones: {
+        Args: { p_po_id: string }
+        Returns: Json
+      }
+      payouts_to_send: {
+        Args: never
+        Returns: {
+          milestone_id: string
+          po_id: string
+          po_number: string
+          request_title: string
+          vendor_name: string
+          seq: number
+          title: string
+          accepted_at: string
+          gross: number
+          commission: number
+          payout: number
+        }[]
       }
       ask_for_change: {
         Args: { p_quote_id: string; p_message: string }

@@ -33,6 +33,7 @@ export const FREELANCER_MENU: { area: string; title: string; items: MenuItem[] }
   title: "Freelancer",
   items: [
     { label: "Briefs", to: "requests", icon: Inbox },
+    { label: "Orders", to: "orders", icon: Package },
     { label: "Profile", to: "profile", icon: UserRound },
   ],
 }
