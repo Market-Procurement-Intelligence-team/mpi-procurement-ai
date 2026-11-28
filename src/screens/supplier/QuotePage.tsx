@@ -854,7 +854,7 @@ function SentQuote({
 
 // ---------------------------------------------------------------- offers
 
-function OfferReply({
+export function OfferReply({
   offer,
   quoteTotal,
   used,

@@ -8,7 +8,7 @@
 --   government scheme suggestions -> the suppliers' price guide -> money:
 --   the spec's worked examples, invoices, payments, payouts and returns.
 --   Freelancers: sign-up, profile, MPI review and privacy; service briefs;
---   freelancer matching, shortlists and picks.
+--   freelancer matching, shortlists and picks; proposals, changes and hiring.
 -- It also checks that each person sees only what they should.
 --
 -- NOTHING IS SAVED. Everything runs inside one block that is cancelled at the
@@ -16,7 +16,7 @@
 -- result appears as an "error" in the SQL Editor: read the message, which
 -- starts with "MPI END-TO-END CHECK".
 --
--- Needs: all migrations up to 20261128120000 run, and the demo workspace
+-- Needs: all migrations up to 20261129120000 run, and the demo workspace
 -- (mpi-demostartup@, mpi-demosupplier1-3@, mpi-demoservice@example.com).
 -- Safe to run as often as you like, e.g. on the morning of a demo.
 -- ============================================================================
@@ -52,6 +52,12 @@ declare
   v_ql      uuid;
   u_fl      uuid;
   o_fl      uuid;
+  v_inv3    uuid;
+  v_rl3     uuid;
+  v_fq1     uuid;
+  v_fq2     uuid;
+  v_fpkg    uuid;
+  v_inv_sv  uuid;
 begin
   -- --------------------------------------------------------------------------
   -- Who is who
@@ -1108,6 +1114,182 @@ begin
   select count(*) into v_num from public.rfq_invitations where request_id = v_req3 and vendor_org_id = o_fl;
   v_ok := v_num = 1;
   v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'MPI approves the picked freelancer and they are invited to the brief');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- ==========================================================================
+  -- 12. Freelancer proposals: send, ask for a change, hire
+  -- ==========================================================================
+  -- The brief's deliverable is a request line (the app saves it that way).
+  insert into public.request_lines (request_id, description, quantity, unit, sort_order)
+  values (v_req3, '10 app screens in Figma', 1, 'deliverable', 0)
+  returning id into v_rl3;
+  select id into v_inv3 from public.rfq_invitations where request_id = v_req3 and vendor_org_id = o_fl;
+  select id into v_fpkg from public.provider_packages where org_id = o_fl and category_id = v_it order by sort_order, created_at limit 1;
+
+  v_int := (app.fee_rule_for(v_it)).version;
+  perform set_config('request.jwt.claim.sub', u_fl::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_fl, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+
+  v_total := v_total + 1;
+  v_json := public.proposal_preview(v_inv3, 18000, 0);
+  v_ok := (v_json->'supplier'->>'invoice_total')::numeric = 18000
+          and (v_json->'supplier'->>'payout')::numeric
+              = 18000 - (v_json->'supplier'->>'commission_invoice')::numeric
+          and (v_json->'fee_rule'->>'version')::integer = v_int;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'The freelancer sees what they receive before sending (₹'
+                         || coalesce(v_json->'supplier'->>'payout', '-') || ' of ₹18,000), from MPI''s fee rule');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  insert into public.quotes (invitation_id, request_id, vendor_org_id, version, status, lead_time_days, revision_rounds,
+                             package_id, notes)
+  values (v_inv3, v_req3, o_fl, 1, 'draft', 12, 2, v_fpkg, 'I design app screens for D2C brands.')
+  returning id into v_fq1;
+
+  v_total := v_total + 1;
+  begin
+    update public.quotes set status = 'submitted' where id = v_fq1;
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like '%every deliverable%';
+  end;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'A proposal cannot be sent without a price on every deliverable');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  insert into public.quote_lines (quote_id, request_line_id, description, quantity, unit_price, tax_rate)
+  values (v_fq1, v_rl3, '10 app screens in Figma', 1, 18000, 0);
+  update public.quotes set status = 'submitted' where id = v_fq1;
+
+  v_total := v_total + 1;
+  select count(*) into v_int from public.quotes where vendor_org_id <> o_fl;
+  select v_int + count(*) into v_int from public.proposal_changes where vendor_org_id <> o_fl;
+  v_ok := v_int = 0;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'A freelancer sees only their own proposals');
+  if v_ok then v_pass := v_pass + 1; end if;
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select status::text into v_txt from public.rfq_invitations where id = v_inv3;
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  select count(*), max(score), coalesce(string_agg(array_to_string(reasons, ' ') || ' ' || coalesce(budget_fit, ''), ' '), '')
+    into v_int, v_num, v_got
+    from public.compare_proposals(v_req3);
+  perform set_config('role', v_me, true);
+  v_ok := v_txt = 'quoted' and v_int = 1 and v_num between 1 and 100 and v_got like '%within%';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'The startup sees the proposal, scored ' || coalesce(v_num::text, '-')
+                         || ' out of 100 and marked within budget');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- Ask for a change, then a supplier tries to.
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  perform public.ask_for_change(v_fq1, 'Please add 2 more screens for the checkout.');
+  begin
+    perform public.ask_for_change(v_fq1, 'And one more thing.');
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like '%already asked%';
+  end;
+  perform set_config('role', v_me, true);
+  perform set_config('request.jwt.claim.sub', u_s1::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_s1, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  begin
+    perform public.ask_for_change(v_fq1, 'Not my brief.');
+    v_ok := false;
+  exception when others then
+    v_ok := v_ok and sqlerrm like '%Not allowed%';
+  end;
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select count(*) into v_int from public.notifications n join public.profiles p on p.id = n.user_id
+   where p.org_id = o_fl and n.type = 'proposal_change';
+  v_ok := v_ok and v_int >= 1;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'The startup can ask for a change (one at a time) and the freelancer is told; others cannot');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- The freelancer sends version 2.
+  perform set_config('request.jwt.claim.sub', u_fl::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_fl, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  insert into public.quotes (invitation_id, request_id, vendor_org_id, version, status, lead_time_days, revision_rounds, notes)
+  values (v_inv3, v_req3, o_fl, 2, 'draft', 14, 2, 'Added the 2 checkout screens.')
+  returning id into v_fq2;
+  insert into public.quote_lines (quote_id, request_line_id, description, quantity, unit_price, tax_rate)
+  values (v_fq2, v_rl3, '12 app screens in Figma', 1, 21000, 0);
+  update public.quotes set status = 'submitted' where id = v_fq2;
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select status::text into v_txt from public.quotes where id = v_fq1;
+  select status || '/' || (answered_quote_id = v_fq2)::text into v_got from public.proposal_changes where quote_id = v_fq1;
+  v_ok := v_txt = 'superseded' and v_got = 'answered/true';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Version 2 answers the change and replaces version 1 (' || coalesce(v_got, '-') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- A service business declines another brief, with a reason.
+  select id into v_match from public.request_matches where request_id = v_req2 and vendor_org_id = o_sv;
+  perform set_config('request.jwt.claim.sub', u_admin::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_admin, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  perform public.review_match(v_match, true, null);
+  perform set_config('role', v_me, true);
+  select id into v_inv_sv from public.rfq_invitations where request_id = v_req2 and vendor_org_id = o_sv;
+  perform set_config('request.jwt.claim.sub', u_sv::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_sv, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  perform public.decline_invitation(v_inv_sv, 'Fully booked this month');
+  perform set_config('role', v_me, true);
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  select count(*) into v_int from public.invitation_declines;
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select i.status::text || '/' || d.reason into v_txt
+    from public.rfq_invitations i join public.invitation_declines d on d.invitation_id = i.id where i.id = v_inv_sv;
+  v_ok := v_txt = 'declined/Fully booked this month' and v_int = 0;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'A provider can decline a brief; the reason goes to MPI, not the startup');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- A price offer on the proposal: the agreed version keeps its details.
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_offer := public.propose_price(v_fq2, 20000, null);
+  perform set_config('role', v_me, true);
+  perform set_config('request.jwt.claim.sub', u_fl::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_fl, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_fq2 := public.respond_to_price(v_offer, 'accept', null, null);
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select total || '/' || revision_rounds || '/' || lead_time_days || '/' || notes into v_txt from public.quotes where id = v_fq2;
+  v_ok := v_txt = '20000.00/2/14/Added the 2 checkout screens.';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'An agreed price offer keeps the proposal''s rounds of changes, days and note (' || coalesce(v_txt, '-') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- The startup hires the freelancer.
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_po2 := public.approve_quote(v_fq2, null);
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select r.status::text || '/' || q.status::text || '/' || (po.vendor_org_id = o_fl)::text into v_txt
+    from public.requests r
+    join public.quotes q on q.id = v_fq2
+    join public.purchase_orders po on po.id = v_po2
+   where r.id = v_req3;
+  v_ok := v_txt = 'ordered/accepted/true';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'The startup hires the freelancer: order placed and the brief closed (' || coalesce(v_txt, '-') || ')');
   if v_ok then v_pass := v_pass + 1; end if;
 
   -- ==========================================================================

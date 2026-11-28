@@ -11,7 +11,7 @@ import { ChevronDown, CircleCheck, CircleX, Lock, Minus, Plus, X, type LucideIco
 import { BOX, boxBorder } from "../../ui/form"
 import { GRADIENT_PANEL } from "../supplier/parts"
 
-/** One builder section: grey header with navy title, gradient body. */
+/** One builder section: grey header with navy title, gradient body. (overflow-clip, not hidden, so sticky bars inside still stick.) */
 export function SectionPanel({
   icon: Icon,
   title,
@@ -26,7 +26,7 @@ export function SectionPanel({
   children: ReactNode
 }) {
   return (
-    <section className="overflow-hidden rounded-xl shadow-[0_1px_3px_rgba(21,35,61,0.08)]" style={GRADIENT_PANEL} aria-label={title}>
+    <section className="overflow-clip rounded-xl shadow-[0_1px_3px_rgba(21,35,61,0.08)]" style={GRADIENT_PANEL} aria-label={title}>
       <header className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 sm:px-6" style={{ background: "#eef1f5", borderBottom: "1px solid #cbd2dc" }}>
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-navy text-orange">

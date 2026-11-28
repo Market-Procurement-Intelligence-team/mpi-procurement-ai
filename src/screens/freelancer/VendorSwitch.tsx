@@ -1,13 +1,18 @@
 /**
  * Freelancers and supplier businesses share the supplier area (/supplier).
  * These pick the right screen for each: freelancers land on their profile
- * builder; businesses keep their dashboard and business profile.
+ * builder and reply to briefs with proposals; businesses keep their
+ * dashboard, requests and business profile.
  */
 
 import { Navigate } from "react-router"
 import { useMe } from "../../app/session"
 import SupplierOverview from "../overview/SupplierOverview"
 import SupplierProfilePage from "../profile/SupplierProfilePage"
+import QuotePage from "../supplier/QuotePage"
+import SupplierRequestsPage from "../supplier/RequestsPage"
+import BriefPage from "./briefs/BriefPage"
+import BriefsPage from "./briefs/BriefsPage"
 import FreelancerProfilePage from "./FreelancerProfilePage"
 
 export const isFreelancer = (me: ReturnType<typeof useMe>) => me.organisation.provider_type === "individual"
@@ -20,4 +25,14 @@ export function SupplierHome() {
 export function SupplierProfile() {
   const me = useMe()
   return isFreelancer(me) ? <FreelancerProfilePage /> : <SupplierProfilePage />
+}
+
+export function SupplierRequests() {
+  const me = useMe()
+  return isFreelancer(me) ? <BriefsPage /> : <SupplierRequestsPage />
+}
+
+export function SupplierRequest() {
+  const me = useMe()
+  return isFreelancer(me) ? <BriefPage /> : <QuotePage />
 }

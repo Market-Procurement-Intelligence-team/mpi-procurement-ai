@@ -23,9 +23,10 @@ export default function ProfilePanel({
 }: {
   orgId: string
   categoryName: (id: string | null) => string | null
-  saved: boolean
-  busy: boolean
-  onToggle: () => void
+  /** Shortlist button; left out where the profile is opened from a proposal. */
+  saved?: boolean
+  busy?: boolean
+  onToggle?: () => void
   onClose: () => void
 }) {
   const [profile, setProfile] = useState<PublicFreelancer | null | undefined>(undefined)
@@ -54,7 +55,7 @@ export default function ProfilePanel({
       ) : profile === null ? (
         <Alert tone="info">This profile isn't available right now. The freelancer may have paused new work.</Alert>
       ) : (
-        <PublicProfile f={profile} actions={<ShortlistButton saved={saved} busy={busy} onToggle={onToggle} onDark />} />
+        <PublicProfile f={profile} actions={onToggle ? <ShortlistButton saved={!!saved} busy={!!busy} onToggle={onToggle} onDark /> : undefined} />
       )}
     </Panel>
   )

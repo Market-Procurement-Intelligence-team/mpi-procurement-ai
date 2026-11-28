@@ -753,6 +753,8 @@ export type Database = {
           pass_through_amount: number
           rcm_tax_amount: number
           price_terms_locked: boolean
+          revision_rounds: number | null
+          package_id: string | null
         }
         Insert: {
           id?: string
@@ -783,6 +785,8 @@ export type Database = {
           pass_through_amount?: number
           rcm_tax_amount?: number
           price_terms_locked?: boolean
+          revision_rounds?: number | null
+          package_id?: string | null
         }
         Update: {
           id?: string
@@ -813,6 +817,8 @@ export type Database = {
           pass_through_amount?: number
           rcm_tax_amount?: number
           price_terms_locked?: boolean
+          revision_rounds?: number | null
+          package_id?: string | null
         }
         Relationships: [
           {
@@ -1777,6 +1783,69 @@ export type Database = {
         }
         Relationships: []
       }
+      invitation_declines: {
+        Row: {
+          invitation_id: string
+          vendor_org_id: string
+          reason: string | null
+          created_at: string
+        }
+        Insert: {
+          invitation_id: string
+          vendor_org_id: string
+          reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          invitation_id?: string
+          vendor_org_id?: string
+          reason?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      proposal_changes: {
+        Row: {
+          id: string
+          quote_id: string
+          request_id: string
+          buyer_org_id: string
+          vendor_org_id: string
+          message: string
+          status: "open" | "answered" | "closed"
+          answered_quote_id: string | null
+          answered_at: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          quote_id: string
+          request_id: string
+          buyer_org_id: string
+          vendor_org_id: string
+          message: string
+          status?: "open" | "answered" | "closed"
+          answered_quote_id?: string | null
+          answered_at?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          quote_id?: string
+          request_id?: string
+          buyer_org_id?: string
+          vendor_org_id?: string
+          message?: string
+          status?: "open" | "answered" | "closed"
+          answered_quote_id?: string | null
+          answered_at?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       request_picks: {
         Row: {
           request_id: string
@@ -2353,6 +2422,38 @@ export type Database = {
       set_freelancers_enabled: {
         Args: { p_on: boolean }
         Returns: undefined
+      }
+      decline_invitation: {
+        Args: { p_invitation_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      ask_for_change: {
+        Args: { p_quote_id: string; p_message: string }
+        Returns: string
+      }
+      proposal_preview: {
+        Args: { p_invitation_id: string; p_price: number; p_tax_rate?: number }
+        Returns: Json
+      }
+      compare_proposals: {
+        Args: { p_request_id: string }
+        Returns: {
+          quote_id: string
+          provider_alias: string
+          is_freelancer: boolean
+          total_cost: number
+          checkout_total: number
+          days: number | null
+          revision_rounds: number | null
+          price_points: number
+          fit_points: number
+          time_points: number
+          revision_points: number
+          score: number
+          rank: number
+          budget_fit: "within" | "a_little_above" | "above" | null
+          reasons: string[]
+        }[]
       }
       set_request_picks: {
         Args: { p_request_id: string; p_org_ids: string[] }

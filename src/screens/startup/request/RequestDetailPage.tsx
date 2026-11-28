@@ -10,6 +10,9 @@
  *   they have quoted.
  * - Request: the items, budget (private), certificates and original words.
  *
+ * A service brief shows "Compare proposals" instead (ProposalsCompare):
+ * proposals side by side with Ask for a change, Price offer and Hire.
+ *
  * Suppliers appear as "MPI Verified Supplier #…". The budget is only shown
  * here, to the startup.
  */
@@ -54,6 +57,9 @@ import { listCategories, type Category } from "../../../services/data/catalogue"
 import Button from "../../../ui/Button"
 import { RequestSchemeChips } from "../../schemes/parts"
 import BriefDetails from "../service-brief/BriefDetails"
+import { compareProposals, listChangesForRequest, type ProposalChange, type ProposalScore } from "../../../services/data/proposals"
+import ProfilePanel from "../providers/ProfilePanel"
+import ProposalsCompare, { AskChangePanel } from "./ProposalsCompare"
 import EmptyState from "../../../ui/EmptyState"
 import { Alert, BOX, boxBorder } from "../../../ui/form"
 import VoiceTextArea from "../../../ui/VoiceTextArea"
@@ -305,7 +311,18 @@ function QuoteCard({
 
 // ---------------------------------------------------------------- approve
 
-function ApprovePanel({ view, onCancel, onDone }: { view: QuoteView; onCancel: () => void; onDone: (orderId: string) => Promise<void> }) {
+function ApprovePanel({
+  view,
+  hire = false,
+  onCancel,
+  onDone,
+}: {
+  view: Pick<QuoteView, "quote" | "breakdown">
+  /** Service brief: "Hire" wording. */
+  hire?: boolean
+  onCancel: () => void
+  onDone: (orderId: string) => Promise<void>
+}) {
   const b = view.breakdown?.buyer
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -328,15 +345,19 @@ function ApprovePanel({ view, onCancel, onDone }: { view: QuoteView; onCancel: (
   return (
     <section id="approve" className="scroll-mt-24 mt-5 overflow-hidden rounded-xl shadow-[0_6px_18px_rgba(21,35,61,0.12)]" style={GRADIENT_PANEL}>
       <div className="bg-gradient-to-br from-navy-tint via-navy-tint/60 to-orange-tint/50 px-5 py-4">
-        <h2 className="font-display text-[20px] font-bold text-navy">Approve {view.quote.supplierName}'s quote?</h2>
-        <p className="text-[14px] text-muted">This places the order. The other suppliers are told they weren't chosen this time.</p>
+        <h2 className="font-display text-[20px] font-bold text-navy">
+          {hire ? `Hire ${view.quote.supplierName}?` : `Approve ${view.quote.supplierName}'s quote?`}
+        </h2>
+        <p className="text-[14px] text-muted">
+          This places the order. The other {hire ? "providers" : "suppliers"} are told they weren't chosen this time.
+        </p>
       </div>
       <div className="grid gap-4 bg-white p-5 md:grid-cols-2">
         <div className="rounded-lg bg-navy p-4 text-white">
           <p className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-white/75">You pay at checkout</p>
           <p className="font-display text-[30px] font-bold text-orange">{rupees(b.checkout_total)}</p>
           <p className="text-[13px] text-white/75">
-            Supplier {rupees(b.supplier_invoice)} + MPI fee {rupees(b.mpi_fee_invoice)}
+            {hire ? "Provider" : "Supplier"} {rupees(b.supplier_invoice)} + MPI fee {rupees(b.mpi_fee_invoice)}
           </p>
         </div>
         <div>
@@ -347,7 +368,7 @@ function ApprovePanel({ view, onCancel, onDone }: { view: QuoteView; onCancel: (
                 <span className="text-navy">
                   <strong>{i === 0 ? "Before work starts" : "On delivery"}</strong>{" "}
                   <span className="text-muted">
-                    ({s.pct}% of the supplier's invoice{s.mpi_fee_part > 0 ? " + MPI fee" : ""})
+                    ({s.pct}% of the {hire ? "provider" : "supplier"}'s invoice{s.mpi_fee_part > 0 ? " + MPI fee" : ""})
                   </span>
                 </span>
                 <strong className="text-navy">{rupees(s.amount)}</strong>
@@ -364,7 +385,7 @@ function ApprovePanel({ view, onCancel, onDone }: { view: QuoteView; onCancel: (
       )}
       <div className="flex flex-wrap gap-2 border-t border-line bg-white px-5 py-4">
         <Button busy={busy} onClick={approve}>
-          <CheckCircle2 size={17} aria-hidden="true" /> Approve and place order
+          <CheckCircle2 size={17} aria-hidden="true" /> {hire ? "Hire and place order" : "Approve and place order"}
         </Button>
         <Button variant="ghost" onClick={onCancel}>
           Cancel
@@ -742,6 +763,10 @@ interface Loaded {
   breakdowns: Map<string, PriceBreakdown | null>
   offers: Offer[]
   category: Category | undefined
+  categories: Category[]
+  /** Service brief only. */
+  proposalScores: ProposalScore[]
+  changes: ProposalChange[]
 }
 
 export default function RequestDetailPage() {
@@ -749,7 +774,10 @@ export default function RequestDetailPage() {
   const [data, setData] = useState<Loaded | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [params, setParams] = useSearchParams()
-  const [panel, setPanel] = useState<{ kind: "negotiate" | "approve"; quoteId: string } | null>(null)
+  const [panel, setPanel] = useState<{ kind: "negotiate" | "approve" | "change"; quoteId: string } | null>(null)
+  const [profileId, setProfileId] = useState<string | null>(null)
+  const categories = data?.categories
+  const categoryName = useCallback((id: string | null) => categories?.find((c) => c.id === id)?.name ?? null, [categories])
   const [cancelAsk, setCancelAsk] = useState(false)
   const [toast, toastNode] = useToast()
   const now = useNow()
@@ -764,9 +792,13 @@ export default function RequestDetailPage() {
         listCategories(),
       ])
       const live = quotes.filter((q) => q.status === "submitted" || q.status === "accepted")
-      const [scores, breakdownList] = await Promise.all([
-        live.some((q) => q.status === "submitted") ? compareOffers(requestId).catch(() => []) : Promise.resolve([]),
+      const brief = isServiceBrief(detail.request)
+      const anyOpen = live.some((q) => q.status === "submitted")
+      const [scores, breakdownList, proposalScores, changes] = await Promise.all([
+        anyOpen && !brief ? compareOffers(requestId).catch(() => []) : Promise.resolve([]),
         Promise.all(live.map((q) => getPriceBreakdown(q.id).catch(() => null))),
+        anyOpen && brief ? compareProposals(requestId).catch(() => []) : Promise.resolve([]),
+        brief ? listChangesForRequest(requestId).catch(() => []) : Promise.resolve([]),
       ])
       setData({
         detail,
@@ -775,6 +807,9 @@ export default function RequestDetailPage() {
         breakdowns: new Map(live.map((q, i) => [q.id, breakdownList[i]])),
         offers,
         category: cats.find((c) => c.id === detail.request.category_id),
+        categories: cats,
+        proposalScores,
+        changes,
       })
       document.title = `${detail.request.title} · MPI`
       setError(null)
@@ -818,7 +853,10 @@ export default function RequestDetailPage() {
 
   const { detail, category } = data
   const { request } = detail
-  const st = STATUS[request.status]
+  const st =
+    isServiceBrief(request) && (request.status === "open" || request.status === "comparing")
+      ? { label: request.status === "open" ? "Finding providers" : "Proposals in", tone: "orange" as const }
+      : STATUS[request.status]
   const ordered = request.status === "ordered" || !!detail.order
   const canAct = !ordered && request.status !== "cancelled"
   const tab = (params.get("tab") as Tab | null) ?? "quotes"
@@ -827,6 +865,7 @@ export default function RequestDetailPage() {
   const costs = views.map((v) => v.breakdown?.buyer?.total_cost ?? v.quote.total ?? Infinity)
   const lowest = Math.min(...costs)
   const best = views.reduce<QuoteView | null>((acc, v) => (v.score && (!acc?.score || v.score.score > acc.score.score) ? v : acc), null)
+  const bestProposal = data.proposalScores.find((s) => s.rank === 1)
   const budget = budgetText(request.budget_min, request.budget_max)
   const where = place(request.delivery_city, request.delivery_state)
   const brief = isServiceBrief(detail.request)
@@ -936,9 +975,11 @@ export default function RequestDetailPage() {
         items={[
           {
             id: "quotes",
-            label: "Quotes in",
+            label: brief ? "Proposals in" : "Quotes in",
             value: views.length,
-            hint: detail.matches.length ? `from ${detail.matches.length} approved supplier${detail.matches.length === 1 ? "" : "s"}` : "waiting for MPI",
+            hint: detail.matches.length
+              ? `from ${detail.matches.length} approved ${brief ? "provider" : "supplier"}${detail.matches.length === 1 ? "" : "s"}`
+              : "waiting for MPI",
             icon: FileText,
             dot: views.length > 0 && canAct,
           },
@@ -946,8 +987,14 @@ export default function RequestDetailPage() {
           {
             id: "suppliers",
             label: "Best score",
-            value: best?.score ? `${best.score.score}/100` : "–",
-            hint: best ? best.quote.supplierName.replace("MPI Verified ", "") : "price, quality, delivery",
+            value: brief ? (bestProposal ? `${bestProposal.score}/100` : "–") : best?.score ? `${best.score.score}/100` : "–",
+            hint: brief
+              ? bestProposal
+                ? bestProposal.provider_alias.replace("MPI Verified ", "")
+                : "price, skills, time, changes"
+              : best
+                ? best.quote.supplierName.replace("MPI Verified ", "")
+                : "price, quality, delivery",
             icon: Award,
           },
           { id: "budget", label: "Your budget", value: request.budget_max ? rupees(request.budget_max) : "–", hint: "private to you and MPI", icon: Lock },
@@ -959,8 +1006,8 @@ export default function RequestDetailPage() {
         value={tab}
         onChange={setTab}
         tabs={[
-          { id: "quotes", label: "Compare quotes", count: views.length },
-          { id: "suppliers", label: "Suppliers", count: detail.matches.length },
+          { id: "quotes", label: brief ? "Compare proposals" : "Compare quotes", count: views.length },
+          { id: "suppliers", label: brief ? "Providers" : "Suppliers", count: detail.matches.length },
           { id: "request", label: brief ? "Your brief" : "Your request" },
         ]}
       />
@@ -970,20 +1017,36 @@ export default function RequestDetailPage() {
           (views.length === 0 ? (
             <EmptyState
               icon={Clock}
-              title={request.status === "cancelled" ? "This request was cancelled" : "No quotes yet"}
+              title={request.status === "cancelled" ? "This request was cancelled" : brief ? "No proposals yet" : "No quotes yet"}
               body={
                 detail.invitations.length
-                  ? `${detail.invitations.length} supplier${detail.invitations.length === 1 ? " is" : "s are"} preparing a quote. You'll get a message when one arrives.`
-                  : "MPI is choosing the right suppliers for this request. They'll be invited to quote once approved."
+                  ? brief
+                    ? `${detail.invitations.length} provider${detail.invitations.length === 1 ? " is" : "s are"} preparing a proposal. You'll get a message when one arrives.`
+                    : `${detail.invitations.length} supplier${detail.invitations.length === 1 ? " is" : "s are"} preparing a quote. You'll get a message when one arrives.`
+                  : brief
+                    ? "MPI is choosing the right providers for this brief. They'll be invited once approved."
+                    : "MPI is choosing the right suppliers for this request. They'll be invited to quote once approved."
               }
             />
           ) : (
             <>
               {budget && canAct && (
                 <p className="mb-4 flex items-center gap-2 text-[13.5px] text-muted">
-                  <Lock size={14} aria-hidden="true" /> Your budget ({budget}) is never shown to suppliers.
+                  <Lock size={14} aria-hidden="true" /> Your budget ({budget}) is never shown to {brief ? "providers" : "suppliers"}.
                 </p>
               )}
+              {brief ? (
+                <ProposalsCompare
+                  views={views}
+                  scores={data.proposalScores}
+                  changes={data.changes}
+                  request={request}
+                  selected={panel?.quoteId ?? null}
+                  canAct={canAct}
+                  onProfile={setProfileId}
+                  onAction={(kind, quoteId) => setPanel({ kind, quoteId })}
+                />
+              ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {views.map((v) => {
                   const badges: string[] = []
@@ -1002,16 +1065,29 @@ export default function RequestDetailPage() {
                   )
                 })}
               </div>
+              )}
+              {selected && canAct && panel?.kind === "change" && (
+                <AskChangePanel
+                  view={selected}
+                  used={data.changes.filter((c) => c.vendor_org_id === selected.quote.vendor_org_id).length}
+                  onClose={() => setPanel(null)}
+                  onDone={async (m) => {
+                    setPanel(null)
+                    await done(m)
+                  }}
+                />
+              )}
               {selected && canAct && panel?.kind === "negotiate" && (
                 <NegotiatePanel view={selected} now={now} onClose={() => setPanel(null)} onDone={done} />
               )}
               {selected && canAct && panel?.kind === "approve" && (
                 <ApprovePanel
                   view={selected}
+                  hire={brief}
                   onCancel={() => setPanel(null)}
                   onDone={async () => {
                     setPanel(null)
-                    await done("Order placed")
+                    await done(brief ? "Hired. Order placed." : "Order placed")
                     window.scrollTo({ top: 0, behavior: "smooth" })
                   }}
                 />
@@ -1021,6 +1097,9 @@ export default function RequestDetailPage() {
         {tab === "suppliers" && <SuppliersTab detail={detail} quotes={data.quotes} />}
         {tab === "request" && <RequestTab detail={detail} category={category} />}
       </div>
+      {profileId && (
+        <ProfilePanel orgId={profileId} categoryName={categoryName} onClose={() => setProfileId(null)} />
+      )}
       {toastNode}
     </div>
   )

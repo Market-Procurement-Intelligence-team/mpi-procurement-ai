@@ -245,6 +245,23 @@ function extraReasons(m: QueueMatch): string[] {
 
 // ---------------------------------------------------------------- supplier card
 
+/** What the invited provider has done so far, for the approved card's footer. */
+function replyText(item: QueueMatch, brief: boolean): ReactNode {
+  const r = item.reply
+  const invited = `Invited${item.match.reviewed_at ? ` ${day(item.match.reviewed_at)}` : ""}`
+  if (!r) return `Invitation to quote sent${item.match.reviewed_at ? ` ${day(item.match.reviewed_at)}` : ""}`
+  if (r.state === "quoted") return <span className="font-semibold text-navy">{brief ? "Proposal sent" : "Quote sent"}{r.at ? ` ${day(r.at)}` : ""}</span>
+  if (r.state === "declined")
+    return (
+      <span className="font-semibold text-red-text">
+        Declined{r.at ? ` ${day(r.at)}` : ""}
+        {r.reason ? <span className="font-normal">: "{r.reason}"</span> : ""}
+      </span>
+    )
+  if (r.state === "viewed") return `${invited} · opened${r.at ? ` ${day(r.at)}` : ""}, no reply yet`
+  return `${invited} · not opened yet`
+}
+
 interface CardProps {
   q: QueueRequest
   item: QueueMatch
@@ -381,7 +398,9 @@ function SupplierCard({ q, item, rank, slot, full, busy, focused, onApprove, onR
       {/* action bar */}
       {status === "approved" && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-navy-tint/50 px-4 py-2.5 sm:px-5">
-          <span className="text-[13px] text-muted">Invitation to quote sent{match.reviewed_at ? ` ${day(match.reviewed_at)}` : ""}</span>
+          <span className="text-[13px] text-muted">
+            {replyText(item, q.request.kind === "service")}
+          </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-navy px-3 py-1 text-[13px] font-semibold text-white">
             <Check size={14} aria-hidden="true" />
             Approved{slot ? ` · slot ${slot} of ${MAX_APPROVED}` : ""}

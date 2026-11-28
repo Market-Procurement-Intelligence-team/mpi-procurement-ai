@@ -24,10 +24,8 @@ import AdminSchemesPage from "../screens/schemes/AdminSchemesPage"
 import ActivityPage from "../screens/admin/ActivityPage"
 import AdminProfilePage from "../screens/profile/AdminProfilePage"
 import StartupProfilePage from "../screens/profile/StartupProfilePage"
-import { SupplierHome, SupplierProfile } from "../screens/freelancer/VendorSwitch"
+import { SupplierHome, SupplierProfile, SupplierRequest, SupplierRequests } from "../screens/freelancer/VendorSwitch"
 import MyRequestsPage from "../screens/startup/MyRequestsPage"
-import QuotePage from "../screens/supplier/QuotePage"
-import SupplierRequestsPage from "../screens/supplier/RequestsPage"
 import NewRequestPage from "../screens/startup/new-request/NewRequestPage"
 import RequestDetailPage from "../screens/startup/request/RequestDetailPage"
 import ProvidersPage from "../screens/startup/providers/ProvidersPage"
@@ -67,8 +65,9 @@ const SCREENS: Partial<Record<Role, RouteObject[]>> = {
   vendor: [
     // Freelancers are sent to their profile builder; businesses see their dashboard.
     { index: true, element: <SupplierHome /> },
-    { path: "requests", element: <SupplierRequestsPage /> },
-    { path: "requests/:invitationId", element: <QuotePage /> },
+    // Freelancers see Briefs and the proposal form; businesses their requests and quote form.
+    { path: "requests", element: <SupplierRequests /> },
+    { path: "requests/:invitationId", element: <SupplierRequest /> },
     { path: "orders", element: <OrdersPage side="vendor" /> },
     { path: "notifications", element: <NotificationsPage role="vendor" /> },
     { path: "schemes", element: <SchemesPage audience="vendor" /> },

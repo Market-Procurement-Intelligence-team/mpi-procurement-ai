@@ -282,11 +282,16 @@ export interface QueueSupplier {
   isFreelancer: boolean
 }
 
+/** How an invited supplier or freelancer has replied so far. */
+export type InviteReply = "invited" | "viewed" | "declined" | "quoted"
+
 export interface QueueMatch {
   match: Tables<"request_matches">
   supplier: QueueSupplier
   /** The estimated delivery is after the date the startup needs it by. */
   mayBeLate: boolean
+  /** Once invited: their reply, and the reason if they declined (only MPI sees it). */
+  reply: { state: InviteReply; at: string | null; reason: string | null } | null
 }
 
 export interface QueueRequest {
@@ -320,10 +325,14 @@ export async function listMatchQueue(): Promise<QueueRequest[]> {
   if (!requests.length) return []
   const requestIds = requests.map((r) => r.id)
 
-  const [matches, lines] = await Promise.all([
+  const [matches, lines, invitations] = await Promise.all([
     db.from("request_matches").select("*").in("request_id", requestIds).order("score", { ascending: false }).then(unwrap),
     db.from("request_lines").select("*").in("request_id", requestIds).order("sort_order").then(unwrap),
+    db.from("rfq_invitations").select("*").in("request_id", requestIds).then(unwrap),
   ])
+  const declines = invitations.some((i) => i.status === "declined")
+    ? unwrap(await db.from("invitation_declines").select("*").in("invitation_id", invitations.map((i) => i.id)))
+    : []
 
   const vendorIds = [...new Set(matches.map((m) => m.vendor_org_id))]
   const orgIds = [...new Set([...requests.map((r) => r.org_id), ...vendorIds])]
@@ -364,6 +373,15 @@ export async function listMatchQueue(): Promise<QueueRequest[]> {
           mayBeLate: Boolean(
             request.needed_by && match.estimated_delivery_date && match.estimated_delivery_date > request.needed_by,
           ),
+          reply: (() => {
+            const inv = invitations.find((i) => i.request_id === request.id && i.vendor_org_id === match.vendor_org_id)
+            if (!inv) return null
+            return {
+              state: inv.status,
+              at: inv.responded_at,
+              reason: declines.find((d) => d.invitation_id === inv.id)?.reason ?? null,
+            }
+          })(),
         }
       })
     return {
