@@ -11,10 +11,15 @@
  *   "Change 1 of 2".
  * - Admin: everything, plus Pay out on an accepted milestone.
  * Earlier versions of the work fold into "Earlier versions".
+ * Step 6b: "Raise a problem with MPI" on a paid milestone (both sides). An
+ * open problem shows in a red box and stops the milestone; the admin decides
+ * here (pay the provider, refund the startup, back to work). Submitted work
+ * says when it is accepted automatically.
  */
 
 import { useState, type ReactNode } from "react"
 import {
+  AlertTriangle,
   BadgeCheck,
   Banknote,
   Check,
@@ -34,14 +39,24 @@ import {
 } from "lucide-react"
 import {
   answerSubmission,
+  AUTO_ACCEPT_DAYS,
+  DECISION_LABEL,
+  isAccepted,
   latestSubmission,
   MILESTONE_LABEL,
+  openProblem,
   payMilestone,
   payOutMilestone,
+  PROBLEM_REASONS,
+  raiseProblem,
+  resolveProblem,
   startupTodo,
   submitMilestone,
   type Milestone,
   type MilestoneStatus,
+  type Problem,
+  type ProblemDecision,
+  type ProblemReason,
   type Submission,
 } from "../../services/data/milestones"
 import { SIMULATED_NOTE } from "../../services/data/money"
@@ -58,6 +73,8 @@ const TONE: Record<MilestoneStatus, "navy" | "orange" | "red" | "line"> = {
   changes_asked: "red",
   accepted: "navy",
   paid_out: "navy",
+  problem: "red",
+  refunded: "line",
 }
 
 /** Status words per side: the provider reads "Paid, start work", the startup "Waiting for your payment". */
@@ -65,6 +82,7 @@ function statusText(m: Milestone, side: ServiceSide): string {
   if (m.status === "planned") return side === "startup" ? "Waiting for your payment" : "Waiting for payment"
   if (m.status === "submitted") return side === "startup" ? "Work to review" : "Waiting for the startup"
   if (side === "startup" && (m.status === "accepted" || m.status === "paid_out")) return "Accepted"
+  if (m.status === "refunded") return side === "startup" ? "Refunded to you" : "Refunded to the startup"
   return MILESTONE_LABEL[m.status]
 }
 
@@ -88,7 +106,7 @@ export function MilestoneTracker({
       aria-label="Milestones"
     >
       {milestones.map((m) => {
-        const done = m.status === "accepted" || m.status === "paid_out"
+        const done = isAccepted(m)
         const active = m.status !== "planned" && !done
         const selected = m.id === selectedId
         return (
@@ -113,7 +131,7 @@ export function MilestoneTracker({
                 <span className="block truncate text-[14px] font-semibold text-navy" title={m.title}>
                   {m.title}
                 </span>
-                <span className={`block text-[12.5px] font-semibold ${m.status === "changes_asked" ? "text-red-text" : "text-muted"}`}>
+                <span className={`block text-[12.5px] font-semibold ${m.status === "changes_asked" || m.status === "problem" ? "text-red-text" : "text-muted"}`}>
                   {statusText(m, side)}
                 </span>
               </span>
@@ -281,6 +299,204 @@ function Note({ icon: Icon = Info, children }: { icon?: typeof Info; children: R
       <Icon size={17} className="mt-0.5 shrink-0" aria-hidden="true" />
       <span>{children}</span>
     </p>
+  )
+}
+
+// ---------------------------------------------------------------- problems
+
+const raisedByText = (p: Problem, side: ServiceSide) =>
+  (p.raised_by === "startup" && side === "startup") || (p.raised_by === "provider" && side === "vendor")
+    ? "You raised a problem"
+    : p.raised_by === "startup"
+      ? "The startup raised a problem"
+      : "The provider raised a problem"
+
+function ProblemBox({ p, side }: { p: Problem; side: ServiceSide }) {
+  return (
+    <div className="rounded-xl border-[1.5px] border-red/40 bg-red-tint p-4">
+      <p className="flex flex-wrap items-center justify-between gap-2 text-[13px] font-bold uppercase tracking-[0.05em] text-red-text">
+        <span className="inline-flex items-center gap-1.5">
+          <AlertTriangle size={16} aria-hidden="true" /> {raisedByText(p, side)}
+        </span>
+        <span>{PROBLEM_REASONS[p.reason]}</span>
+      </p>
+      <p className="mt-1.5 whitespace-pre-line text-[15px] text-navy">{p.description}</p>
+      {p.links.length > 0 && (
+        <div className="mt-2">
+          <Links links={p.links} />
+        </div>
+      )}
+      <p className="mt-2 text-[13px] font-semibold text-navy">
+        {side === "admin"
+          ? `Raised ${day(p.created_at, true)}. The milestone is on hold until you decide.`
+          : `Raised ${day(p.created_at, true)}. MPI is looking at it. Nothing on this milestone moves until MPI decides.`}
+      </p>
+    </div>
+  )
+}
+
+/** The last decision MPI made on this milestone, if any. */
+function DecisionNote({ m }: { m: Milestone }) {
+  const p = [...(m.problems ?? [])].reverse().find((x) => x.status === "resolved")
+  if (!p || !p.decision) return null
+  return (
+    <Note icon={BadgeCheck}>
+      <strong>MPI decided: {DECISION_LABEL[p.decision].toLowerCase()}</strong> ({day(p.decided_at)}). {p.decision_note}
+    </Note>
+  )
+}
+
+function RaiseProblem({ m, side, onDone }: { m: Milestone; side: ServiceSide; onDone: (msg: string) => Promise<void> }) {
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState<ProblemReason | "">("")
+  const [text, setText] = useState("")
+  const [link, setLink] = useState("")
+  const { busy, error, run } = useAction(onDone)
+  const badLink = link.trim() !== "" && !/^https?:\/\/\S+$/i.test(link.trim())
+  const ready = reason !== "" && text.trim().length >= 10 && !badLink
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-red-text underline-offset-2 hover:underline"
+      >
+        <AlertTriangle size={15} aria-hidden="true" /> Raise a problem with MPI
+      </button>
+    )
+  }
+  return (
+    <div className="rounded-xl border-[1.5px] border-red/40 bg-white p-4">
+      <p className="text-[12px] font-bold uppercase tracking-[0.06em] text-red-text">Raise a problem with MPI</p>
+      <p className="mt-1 text-[13.5px] text-muted">
+        MPI looks at it and decides. Until then this milestone is on hold: {side === "startup" ? "nothing is accepted or paid out" : "the startup can't accept it and nothing is paid out"}.
+      </p>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <div className="space-y-3">
+          <div>
+            <label htmlFor={`pr-${m.id}`} className="mb-1.5 block text-sm font-semibold text-navy">
+              What's wrong?
+            </label>
+            <select
+              id={`pr-${m.id}`}
+              value={reason}
+              onChange={(e) => setReason(e.target.value as ProblemReason)}
+              className={`${BOX} ${boxBorder()} min-h-11 text-[15px]`}
+            >
+              <option value="">Pick a reason</option>
+              {(Object.keys(PROBLEM_REASONS) as ProblemReason[])
+                .filter((r) => (side === "startup" ? r !== "payment" : r !== "quality" && r !== "not_as_agreed"))
+                .map((r) => (
+                  <option key={r} value={r}>
+                    {PROBLEM_REASONS[r]}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor={`pl-${m.id}`} className="mb-1.5 block text-sm font-semibold text-navy">
+              A link that shows it <span className="font-normal text-muted">(optional)</span>
+            </label>
+            <input
+              id={`pl-${m.id}`}
+              type="url"
+              value={link}
+              placeholder="https://"
+              onChange={(e) => setLink(e.target.value)}
+              className={`${BOX} ${boxBorder(badLink ? "bad" : null)} min-h-11`}
+            />
+          </div>
+        </div>
+        <div>
+          <label htmlFor={`pd-${m.id}`} className="mb-1.5 block text-sm font-semibold text-navy">
+            Describe it
+          </label>
+          <textarea
+            id={`pd-${m.id}`}
+            rows={4}
+            maxLength={2000}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="What happened, and what you expected"
+            className={`${BOX} ${boxBorder()} py-2.5`}
+          />
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button
+          variant="danger"
+          disabled={!ready || busy !== null}
+          busy={busy === "raise"}
+          onClick={() => run("raise", () => raiseProblem(m.id, reason as ProblemReason, text.trim(), link.trim() ? [link.trim()] : []), "Problem sent to MPI. Both sides are told.")}
+        >
+          Send to MPI
+        </Button>
+        <Button variant="ghost" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+      </div>
+      {error && (
+        <div className="mt-2">
+          <Alert>{error}</Alert>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Admin: decide an open problem. */
+function ResolveProblem({ p, m, onDone }: { p: Problem; m: Milestone; onDone: (msg: string) => Promise<void> }) {
+  const [decision, setDecision] = useState<ProblemDecision | null>(null)
+  const [note, setNote] = useState("")
+  const { busy, error, run } = useAction(onDone)
+  const options: { id: ProblemDecision; hint: string }[] = [
+    { id: "pay_provider", hint: `The work counts as accepted and ${rupees(m.payout ?? 0)} goes to Payouts to send.` },
+    { id: "refund_startup", hint: `${rupees(m.amount)} goes back to the startup (simulated). MPI's fee is kept.` },
+    { id: "back_to_work", hint: "The provider works on it again. No round of changes is used." },
+  ]
+  return (
+    <div className="rounded-xl border-[1.5px] border-orange bg-orange-tint/40 p-4">
+      <p className="text-[12px] font-bold uppercase tracking-[0.06em] text-red-text">Your decision</p>
+      <div className="mt-2 grid gap-2 md:grid-cols-3" role="radiogroup" aria-label="Decision">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            role="radio"
+            aria-checked={decision === o.id}
+            onClick={() => setDecision(o.id)}
+            className={`rounded-lg border-[1.5px] p-3 text-left ${decision === o.id ? "border-navy bg-white shadow-sm" : "border-line bg-white/70 hover:border-navy/50"}`}
+          >
+            <span className="block text-[14.5px] font-bold text-navy">{DECISION_LABEL[o.id]}</span>
+            <span className="block text-[12.5px] text-muted">{o.hint}</span>
+          </button>
+        ))}
+      </div>
+      <label htmlFor={`rn-${p.id}`} className="mt-3 mb-1.5 block text-sm font-semibold text-navy">
+        Why <span className="font-normal text-muted">(both sides see this)</span>
+      </label>
+      <textarea
+        id={`rn-${p.id}`}
+        rows={2}
+        maxLength={1000}
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        className={`${BOX} ${boxBorder()} py-2.5`}
+      />
+      <Button
+        className="mt-3"
+        disabled={!decision || note.trim().length < 3 || busy !== null}
+        busy={busy === "resolve"}
+        onClick={() => decision && run("resolve", () => resolveProblem(p.id, decision, note.trim()), `Decided: ${DECISION_LABEL[decision].toLowerCase()}`)}
+      >
+        Confirm decision
+      </Button>
+      {error && (
+        <div className="mt-2">
+          <Alert>{error}</Alert>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -467,7 +683,12 @@ function ReviewWork({ m, s, onDone }: { m: Milestone; s: Submission; onDone: (ms
               </Button>
             </div>
           )}
-          <p className="mt-2 text-[12.5px] text-muted">
+          {m.auto_accept_at && (
+            <p className="mt-2 text-[12.5px] font-semibold text-navy">
+              If you don't answer by {day(m.auto_accept_at, true)}, MPI accepts the work automatically ({AUTO_ACCEPT_DAYS} days).
+            </p>
+          )}
+          <p className="mt-1 text-[12.5px] text-muted">
             {left > 0
               ? `${left} of ${m.changes_allowed} round${m.changes_allowed === 1 ? "" : "s"} of changes left, as agreed in the proposal.`
               : `All ${m.changes_allowed} round${m.changes_allowed === 1 ? "" : "s"} of changes are used. Accept the work, or use Need help to talk to MPI.`}
@@ -496,7 +717,8 @@ export function MilestoneDetail({
   const pay = useAction(onDone)
   const todo = startupTodo(milestones)
   const canPay = side === "startup" && todo?.kind === "pay" && todo.milestone.id === m.id
-  const prevOpen = milestones.find((x) => x.seq < m.seq && x.status !== "accepted" && x.status !== "paid_out")
+  const prevOpen = milestones.find((x) => x.seq < m.seq && !isAccepted(x))
+  const canRaise = side !== "admin" && ["in_progress", "submitted", "changes_asked", "accepted"].includes(m.status)
 
   let body: ReactNode = null
   if (m.status === "planned") {
@@ -546,9 +768,29 @@ export function MilestoneDetail({
       ) : (
         <div className="space-y-3">
           <SubmissionView s={last} m={m} title={side === "vendor" ? "What you sent" : "The provider's work"} />
-          <Note icon={Hourglass}>Waiting for the startup to accept the work or ask for changes.</Note>
+          <Note icon={Hourglass}>
+            Waiting for the startup to accept the work or ask for changes.
+            {m.auto_accept_at ? ` If they don't answer by ${day(m.auto_accept_at, true)}, MPI accepts it automatically.` : ""}
+          </Note>
         </div>
       )
+  } else if (m.status === "problem") {
+    const p = openProblem(m)
+    body = (
+      <div className="space-y-3">
+        {p && <ProblemBox p={p} side={side} />}
+        {side === "admin" && p && <ResolveProblem p={p} m={m} onDone={onDone} />}
+        {last && <SubmissionView s={last} m={m} title={side === "vendor" ? "What you sent" : "The provider's work"} />}
+      </div>
+    )
+  } else if (m.status === "refunded") {
+    body = (
+      <Note icon={CheckCircle2}>
+        {side === "vendor"
+          ? `MPI refunded this milestone to the startup on ${day(m.refunded_at, true)}. Nothing is paid out for it.`
+          : `Refunded ${rupees(m.amount)} to ${side === "startup" ? "you" : "the startup"} on ${day(m.refunded_at, true)} (simulated).`}
+      </Note>
+    )
   } else if (m.status === "accepted" || m.status === "paid_out") {
     body = (
       <div className="space-y-3">
@@ -597,13 +839,19 @@ export function MilestoneDetail({
             <>
               <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted">You receive</p>
               <p className="font-display text-[22px] font-bold leading-tight text-navy">{rupees(m.payout ?? 0)}</p>
-              <p className="text-[12px] text-muted">{m.status === "paid_out" ? "Paid out" : m.status === "accepted" ? "Payout pending" : `after ${rupees(m.commission ?? 0)} MPI commission`}</p>
+              <p className="text-[12px] text-muted">{m.status === "paid_out" ? "Paid out" : m.status === "accepted" ? "Payout pending" : m.status === "refunded" ? "Refunded, not paid out" : m.status === "problem" ? "On hold with MPI" : `after ${rupees(m.commission ?? 0)} MPI commission`}</p>
             </>
           ) : (
             <>
               <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted">{side === "admin" ? "Startup pays" : "This milestone"}</p>
               <p className="font-display text-[22px] font-bold leading-tight text-navy">{rupees(m.amount)}</p>
-              <p className="text-[12px] text-muted">{m.paid_at ? `Paid ${day(m.paid_at)}, held by MPI` : "Not paid yet"}</p>
+              <p className="text-[12px] text-muted">{m.refunded_at
+                  ? `Refunded ${day(m.refunded_at)}`
+                  : m.paid_out_at
+                    ? `Paid ${day(m.paid_at ?? m.paid_out_at)}, sent to the provider`
+                    : m.paid_at
+                      ? `Paid ${day(m.paid_at)}, held by MPI`
+                      : "Not paid yet"}</p>
             </>
           )}
         </div>
@@ -613,13 +861,15 @@ export function MilestoneDetail({
       {!(m.status === "in_progress" && side === "vendor") && !(m.status === "changes_asked" && side === "vendor") && !(m.status === "submitted" && side === "startup") && (
         <Points
           points={m.done_when}
-          ticked={m.status === "accepted" || m.status === "paid_out" ? (last?.points_checked.length ? last.points_checked : m.done_when.map((_, i) => i)) : (last?.points_done ?? [])}
+          ticked={isAccepted(m) ? (last?.points_checked.length ? last.points_checked : m.done_when.map((_, i) => i)) : (last?.points_done ?? [])}
           label='Done when'
         />
       )}
 
       {pay.error && <Alert>{pay.error}</Alert>}
+      {m.status !== "problem" && <DecisionNote m={m} />}
       <Earlier m={m} />
+      {canRaise && <RaiseProblem key={m.status} m={m} side={side} onDone={onDone} />}
       <p className="flex items-center gap-2 text-[12.5px] font-medium text-muted">
         <Info size={14} aria-hidden="true" /> {SIMULATED_NOTE} Work is shared as links for now.
       </p>
@@ -643,10 +893,11 @@ export default function ServiceOrderProgress({
       ? startupTodo(milestones)?.milestone
       : side === "vendor"
         ? milestones.find((m) => m.status === "in_progress" || m.status === "changes_asked")
-        : milestones.find((m) => m.status === "accepted")
-  const fallback = milestones.find((m) => m.status !== "paid_out" && m.status !== "accepted") ?? milestones[milestones.length - 1]
+        : (milestones.find((m) => m.status === "problem") ?? milestones.find((m) => m.status === "accepted"))
+  const problem = milestones.find((m) => m.status === "problem")
+  const fallback = problem ?? milestones.find((m) => !isAccepted(m)) ?? milestones[milestones.length - 1]
   const [picked, setPicked] = useState<string | null>(null)
-  const m = milestones.find((x) => x.id === picked) ?? todo ?? fallback
+  const m = milestones.find((x) => x.id === picked) ?? (side !== "admin" ? problem : undefined) ?? todo ?? fallback
   const received = milestones.filter((x) => x.status === "paid_out").reduce((n, x) => n + (x.payout ?? 0), 0)
   const accepted = milestones.filter((x) => x.status === "accepted" || x.status === "paid_out").length
 

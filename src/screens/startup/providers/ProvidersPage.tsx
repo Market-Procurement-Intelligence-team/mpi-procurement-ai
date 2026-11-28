@@ -26,6 +26,7 @@ import {
   type FreelancerCard,
   type Skill,
 } from "../../../services/data/providers"
+import { listRatings, type Rating } from "../../../services/data/milestones"
 import { isServiceBrief, listMyRequestCards } from "../../../services/data/requests"
 import EmptyState from "../../../ui/EmptyState"
 import { Alert, BOX, boxBorder } from "../../../ui/form"
@@ -64,6 +65,7 @@ export default function ProvidersPage() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [f, setF] = useState<Filters>(NO_FILTERS)
+  const [ratings, setRatings] = useState<Map<string, Rating>>(new Map())
 
   useEffect(() => {
     let live = true
@@ -73,15 +75,17 @@ export default function ProvidersPage() {
         if (!live) return
         setOpen(on)
         if (!on) return
-        const [list, cats, sk, mine, reqs] = await Promise.all([
+        const [list, cats, sk, mine, reqs, stars] = await Promise.all([
           listFreelancers(),
           listCategories(),
           listSkills(),
           listMyShortlist(),
           listMyRequestCards(orgId).catch(() => []),
+          listRatings().catch(() => new Map<string, Rating>()),
         ])
         if (!live) return
         setCards(list)
+        setRatings(stars)
         setCategories(cats.filter((c) => c.freelancers_allowed))
         setSkills(sk)
         setSaved(mine)
@@ -289,6 +293,7 @@ export default function ProvidersPage() {
                 <ProviderRow
                   key={c.id}
                   c={c}
+                  rating={ratings.get(c.id ?? "") ?? null}
                   categoryName={categoryName}
                   saved={saved.includes(c.id ?? "")}
                   busy={busyId === c.id}
@@ -336,6 +341,7 @@ export default function ProvidersPage() {
 
 function ProviderRow({
   c,
+  rating,
   categoryName,
   saved,
   busy,
@@ -343,6 +349,7 @@ function ProviderRow({
   onOpen,
 }: {
   c: FreelancerCard
+  rating: Rating | null
   categoryName: (id: string | null) => string | null
   saved: boolean
   busy: boolean
@@ -422,9 +429,18 @@ function ProviderRow({
             <p className="font-display text-[22px] font-bold leading-tight text-navy">
               {c.starting_price !== null ? rupees(Number(c.starting_price)) : "—"}
             </p>
-            <p className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-muted">
-              <Star size={13} aria-hidden="true" /> New on MPI
-            </p>
+            {rating && rating.reviews > 0 ? (
+              <p className="mt-0.5 inline-flex items-center gap-1 text-[13px] font-semibold text-navy">
+                <Star size={13} className="fill-orange text-orange" aria-hidden="true" /> {rating.rating.toFixed(1)}
+                <span className="font-normal text-muted">
+                  ({rating.reviews} review{rating.reviews === 1 ? "" : "s"})
+                </span>
+              </p>
+            ) : (
+              <p className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-muted">
+                <Star size={13} aria-hidden="true" /> New on MPI
+              </p>
+            )}
           </div>
           <div className="flex gap-2 md:justify-end">
             <button

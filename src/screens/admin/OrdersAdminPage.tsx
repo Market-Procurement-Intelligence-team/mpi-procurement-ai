@@ -8,6 +8,8 @@
  *   payout), MPI's revenue, and all 3 invoices.
  * Service orders show Milestones instead of Progress, and are paid out one
  * accepted milestone at a time: "Payouts to send" on top lists them all.
+ * "Problems to resolve" lists milestones a side raised with MPI; the admin
+ * decides on the order's Milestones tab.
  * "Message buyer / supplier" open that conversation on the Notifications
  * screen (Messages tab), where the admin replies and passes messages on.
  *
@@ -17,6 +19,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router"
 import {
+  AlertTriangle,
   ArrowLeft,
   Banknote,
   Building2,
@@ -30,7 +33,16 @@ import {
   Wallet,
 } from "lucide-react"
 import { listAllOrderMessages, listAllOrders, type AdminOrder } from "../../services/data/admin"
-import { listOrderMilestones, listPayoutsToSend, payOutMilestone, type Milestone, type PayoutToSend } from "../../services/data/milestones"
+import {
+  listOrderMilestones,
+  listPayoutsToSend,
+  listProblemsToResolve,
+  payOutMilestone,
+  PROBLEM_REASONS,
+  type Milestone,
+  type PayoutToSend,
+  type ProblemToResolve,
+} from "../../services/data/milestones"
 import { getOrderMoney, payOutSupplier, SIMULATED_NOTE, type OrderMoney } from "../../services/data/money"
 import {
   listOrderHistory,
@@ -64,6 +76,42 @@ const owesSupplier = (m: OrderMoney | undefined) => Math.max(-(m?.balances.suppl
 /** What MPI should pay the supplier now. Service orders: accepted milestones only, never work still in review. */
 const toPayOut = (m: OrderMoney | undefined, ms: Milestone[] | undefined) =>
   ms?.length ? ms.filter((x) => x.status === "accepted").reduce((n, x) => n + (x.payout ?? 0), 0) : owesSupplier(m)
+
+// ---------------------------------------------------------------- problems to resolve
+
+function ProblemsToResolve({ rows, onOpen }: { rows: ProblemToResolve[]; onOpen: (poId: string) => void }) {
+  if (!rows.length) return null
+  return (
+    <section className="mb-4 overflow-hidden rounded-xl border-[1.5px] border-red/40 bg-red-tint" aria-label="Problems to resolve">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
+        <h2 className="flex items-center gap-2 text-[16px] font-bold text-red-text">
+          <AlertTriangle size={18} aria-hidden="true" /> Problems to resolve
+          <span className="rounded-full bg-red px-2 py-px text-[12px] font-bold text-white">{rows.length}</span>
+        </h2>
+        <p className="text-[13px] text-navy">The milestone is on hold until you decide</p>
+      </div>
+      <ul className="divide-y divide-red/20 bg-white/70">
+        {rows.slice(0, 5).map((r) => (
+          <li key={r.problem_id}>
+            <button type="button" onClick={() => onOpen(r.po_id)} className="flex w-full flex-col gap-1 px-5 py-3 text-left hover:bg-white sm:flex-row sm:items-center sm:gap-4">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14.5px] font-semibold text-navy">
+                  {r.po_number} · milestone {r.seq}: {r.title}
+                </span>
+                <span className="block truncate text-[12.5px] text-muted" title={r.description}>
+                  {r.raised_by_side === "startup" ? r.buyer_name : r.vendor_name} ({r.raised_by_side}) · {PROBLEM_REASONS[r.reason]} · {r.description}
+                </span>
+              </span>
+              <span className="shrink-0 text-[13px] font-semibold text-navy">
+                {rupees(r.amount)} · raised {day(r.created_at)} · Decide →
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
 
 // ---------------------------------------------------------------- payouts to send
 
@@ -154,6 +202,7 @@ function OrderList({
         const replies = [o.buyer_org_id, o.vendor_org_id].filter((org) => unanswered.has(`${o.id}:${org}`)).length
         const ms = milestones.get(o.id)
         const payout = toPayOut(money.get(o.id), ms)
+        const problem = ms?.some((m) => m.status === "problem") ?? false
         return (
           <li key={o.id}>
             <button
@@ -172,12 +221,17 @@ function OrderList({
                 <span className="block text-[12.5px] text-muted">
                   {o.buyerRealName} → {o.supplierRealName}
                 </span>
-                {(replies > 0 || payout > 0) && (
+                {(replies > 0 || payout > 0 || problem) && (
                   <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[12.5px] font-semibold">
                     {replies > 0 && (
                       <span className="inline-flex items-center gap-1.5 text-red-text">
                         <span className="h-2 w-2 rounded-full bg-red" aria-hidden="true" />
                         {replies === 2 ? "2 sides waiting" : "Waiting for reply"}
+                      </span>
+                    )}
+                    {problem && (
+                      <span className="inline-flex items-center gap-1 text-red-text">
+                        <AlertTriangle size={13} aria-hidden="true" /> Problem to resolve
                       </span>
                     )}
                     {payout > 0 && (
@@ -503,6 +557,7 @@ export default function OrdersAdminPage() {
   const [money, setMoney] = useState<Map<string, OrderMoney>>(new Map())
   const [milestones, setMilestones] = useState<Map<string, Milestone[]>>(new Map())
   const [payouts, setPayouts] = useState<PayoutToSend[]>([])
+  const [problems, setProblems] = useState<ProblemToResolve[]>([])
   const [error, setError] = useState<string | null>(null)
   const [params, setParams] = useSearchParams()
   const [query, setQuery] = useState("")
@@ -516,14 +571,16 @@ export default function OrdersAdminPage() {
       const [fresh, msgs] = await Promise.all([listAllOrders(), listAllOrderMessages().catch(() => [])])
       setOrders(fresh)
       setMessages(msgs)
-      const [sums, steps, toSend] = await Promise.all([
+      const [sums, steps, toSend, open] = await Promise.all([
         Promise.all(fresh.map((o) => getOrderMoney(o.id).catch(() => null))),
         Promise.all(fresh.map((o) => listOrderMilestones(o.id).catch(() => [] as Milestone[]))),
         listPayoutsToSend().catch(() => [] as PayoutToSend[]),
+        listProblemsToResolve().catch(() => [] as ProblemToResolve[]),
       ])
       setMoney(new Map(fresh.flatMap((o, i) => (sums[i] ? [[o.id, sums[i]!] as const] : []))))
       setMilestones(new Map(fresh.map((o, i) => [o.id, steps[i]] as const)))
       setPayouts(toSend)
+      setProblems(open)
       setError(null)
     } catch (err) {
       setError(errorText(err))
@@ -619,6 +676,7 @@ export default function OrdersAdminPage() {
               { id: "revenue", label: "MPI revenue", value: rupees(revenue), hint: "fees + commission, before GST", icon: CircleDollarSign },
             ]}
           />
+          <ProblemsToResolve rows={problems} onOpen={(id) => update({ o: id, list: "active", tab: "progress" })} />
           <PayoutsToSend rows={payouts} onOpen={(id) => update({ o: id, list: "active", tab: "progress" })} onDone={done} />
           <div className="grid gap-5 lg:grid-cols-[23rem_minmax(0,1fr)]">
             <aside className={`h-fit overflow-hidden rounded-xl border-[1.5px] border-line bg-white soft-panel shadow-[0_1px_3px_rgba(21,35,61,0.08)] lg:sticky lg:top-24 ${selected ? "hidden lg:block" : ""}`}>

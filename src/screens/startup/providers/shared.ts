@@ -63,6 +63,8 @@ export function toPublic(d: FreelancerDetail, categoryName: (id: string | null) 
       included: k.deliverables ?? [],
       excluded: k.exclusions ?? [],
     })),
+    rating: d.rating,
+    reviews: d.reviews,
   }
 }
 

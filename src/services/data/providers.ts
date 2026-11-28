@@ -17,6 +17,7 @@
 import { db } from "../../lib/db"
 import type { Json, Tables, TablesInsert, TablesUpdate, Views } from "../../lib/database.types"
 import { check, unwrap } from "./errors"
+import { listRatings, listReviewNotes, type Rating, type ReviewNote } from "./milestones"
 
 export type ProviderProfile = Tables<"provider_profiles">
 export type Skill = Tables<"skills">
@@ -339,17 +340,21 @@ export interface FreelancerDetail {
   experience: Views<"freelancer_experience">[]
   credentials: Views<"freelancer_credentials">[]
   packages: Views<"freelancer_packages">[]
+  rating: Rating | null
+  reviews: ReviewNote[]
 }
 
 /** One approved freelancer's anonymous profile, or null if not visible. */
 export async function getFreelancer(orgId: string): Promise<FreelancerDetail | null> {
   const card = unwrap(await db.from("freelancer_directory").select("*").eq("id", orgId).maybeSingle())
   if (!card) return null
-  const [projects, experience, credentials, packages] = await Promise.all([
+  const [projects, experience, credentials, packages, ratings, reviews] = await Promise.all([
     db.from("freelancer_projects").select("*").eq("org_id", orgId).order("sort_order").order("year", { ascending: false }),
     db.from("freelancer_experience").select("*").eq("org_id", orgId).order("started_on", { ascending: false }),
     db.from("freelancer_credentials").select("*").eq("org_id", orgId).order("year", { ascending: false }),
     db.from("freelancer_packages").select("*").eq("org_id", orgId).order("sort_order").order("price"),
+    listRatings([orgId]).catch(() => new Map<string, Rating>()),
+    listReviewNotes(orgId).catch(() => [] as ReviewNote[]),
   ])
   return {
     card,
@@ -358,6 +363,8 @@ export async function getFreelancer(orgId: string): Promise<FreelancerDetail | n
     experience: unwrap(experience),
     credentials: unwrap(credentials),
     packages: unwrap(packages),
+    rating: ratings.get(orgId) ?? null,
+    reviews,
   }
 }
 

@@ -1863,13 +1863,14 @@ export type Database = {
           amount: number
           commission: number
           payout: number
-          status: "planned" | "in_progress" | "submitted" | "changes_asked" | "accepted" | "paid_out"
+          status: "planned" | "in_progress" | "submitted" | "changes_asked" | "accepted" | "paid_out" | "problem" | "refunded"
           changes_allowed: number
           changes_used: number
           paid_at: string | null
           submitted_at: string | null
           accepted_at: string | null
           paid_out_at: string | null
+          refunded_at: string | null
           created_at: string
         }
         Insert: {
@@ -1882,13 +1883,14 @@ export type Database = {
           amount: number
           commission?: number
           payout?: number
-          status?: "planned" | "in_progress" | "submitted" | "changes_asked" | "accepted" | "paid_out"
+          status?: "planned" | "in_progress" | "submitted" | "changes_asked" | "accepted" | "paid_out" | "problem" | "refunded"
           changes_allowed?: number
           changes_used?: number
           paid_at?: string | null
           submitted_at?: string | null
           accepted_at?: string | null
           paid_out_at?: string | null
+          refunded_at?: string | null
           created_at?: string
         }
         Update: {
@@ -1901,13 +1903,14 @@ export type Database = {
           amount?: number
           commission?: number
           payout?: number
-          status?: "planned" | "in_progress" | "submitted" | "changes_asked" | "accepted" | "paid_out"
+          status?: "planned" | "in_progress" | "submitted" | "changes_asked" | "accepted" | "paid_out" | "problem" | "refunded"
           changes_allowed?: number
           changes_used?: number
           paid_at?: string | null
           submitted_at?: string | null
           accepted_at?: string | null
           paid_out_at?: string | null
+          refunded_at?: string | null
           created_at?: string
         }
         Relationships: []
@@ -1989,6 +1992,96 @@ export type Database = {
           status?: string
           note?: string | null
           changed_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      milestone_problems: {
+        Row: {
+          id: string
+          milestone_id: string
+          po_id: string
+          raised_by_side: "startup" | "provider"
+          raised_by: string | null
+          reason: string
+          description: string
+          links: string[]
+          prev_status: string
+          status: "open" | "resolved"
+          decision: "pay_provider" | "refund_startup" | "back_to_work" | null
+          decision_note: string | null
+          decided_by: string | null
+          decided_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          milestone_id: string
+          po_id: string
+          raised_by_side: "startup" | "provider"
+          raised_by?: string | null
+          reason: string
+          description: string
+          links?: string[]
+          prev_status: string
+          status?: "open" | "resolved"
+          decision?: "pay_provider" | "refund_startup" | "back_to_work" | null
+          decision_note?: string | null
+          decided_by?: string | null
+          decided_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          milestone_id?: string
+          po_id?: string
+          raised_by_side?: "startup" | "provider"
+          raised_by?: string | null
+          reason?: string
+          description?: string
+          links?: string[]
+          prev_status?: string
+          status?: "open" | "resolved"
+          decision?: "pay_provider" | "refund_startup" | "back_to_work" | null
+          decision_note?: string | null
+          decided_by?: string | null
+          decided_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      provider_reviews: {
+        Row: {
+          id: string
+          po_id: string
+          vendor_org_id: string
+          buyer_org_id: string
+          rating: number
+          tags: string[]
+          note: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          po_id: string
+          vendor_org_id: string
+          buyer_org_id: string
+          rating: number
+          tags?: string[]
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          po_id?: string
+          vendor_org_id?: string
+          buyer_org_id?: string
+          rating?: number
+          tags?: string[]
+          note?: string | null
+          created_by?: string | null
           created_at?: string
         }
         Relationships: []
@@ -2367,6 +2460,25 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_ratings: {
+        Row: {
+          org_id: string | null
+          rating: number | null
+          reviews: number | null
+        }
+        Relationships: []
+      }
+      provider_review_notes: {
+        Row: {
+          id: string | null
+          org_id: string | null
+          rating: number | null
+          tags: string[] | null
+          note: string | null
+          created_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       approve_quote: {
@@ -2573,6 +2685,37 @@ export type Database = {
       decline_invitation: {
         Args: { p_invitation_id: string; p_reason?: string }
         Returns: undefined
+      }
+      raise_problem: {
+        Args: { p_milestone_id: string; p_reason: string; p_description: string; p_links?: string[] }
+        Returns: string
+      }
+      resolve_problem: {
+        Args: { p_problem_id: string; p_decision: string; p_note: string }
+        Returns: undefined
+      }
+      problems_to_resolve: {
+        Args: never
+        Returns: {
+          problem_id: string
+          milestone_id: string
+          po_id: string
+          po_number: string
+          request_title: string
+          buyer_name: string
+          vendor_name: string
+          seq: number
+          title: string
+          raised_by_side: string
+          reason: string
+          description: string
+          amount: number
+          created_at: string
+        }[]
+      }
+      leave_review: {
+        Args: { p_po_id: string; p_rating: number; p_tags?: string[]; p_note?: string | null }
+        Returns: string
       }
       pay_milestone: {
         Args: { p_milestone_id: string; p_idempotency_key: string }

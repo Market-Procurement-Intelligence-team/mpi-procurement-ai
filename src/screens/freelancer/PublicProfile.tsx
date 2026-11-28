@@ -33,7 +33,12 @@ export interface PublicFreelancer {
   experience: { id: string; role: string; companyKind: string | null; from: string; to: string | null; description: string | null }[]
   credentials: { id: string; kind: string; title: string; issuer: string | null; year: number | null }[]
   packages: { id: string; title: string; category: string | null; price: number; days: number; revisions: number; included: string[]; excluded: string[] }[]
+  /** Reviews from completed service orders (never who wrote them). */
+  rating?: { rating: number; reviews: number } | null
+  reviews?: { id: string; rating: number; tags: string[]; note: string | null; created_at: string }[]
 }
+
+const TAG_LABEL: Record<string, string> = { on_time: "On time", good_quality: "Good quality", easy_to_work_with: "Easy to work with" }
 
 /** The public view of the signed-in freelancer's own profile (private fields left out). */
 export function fromOwnProfile(d: MyProviderProfile, code: string, city: string | null, state: string | null, categoryName: (id: string | null) => string | null): PublicFreelancer {
@@ -142,7 +147,7 @@ export default function PublicProfile({ f, actions, banner }: { f: PublicFreelan
     { id: "projects", label: "Projects", icon: FolderKanban, count: f.projects.length },
     { id: "experience", label: "Experience", icon: BriefcaseBusiness, count: f.experience.length },
     { id: "credentials", label: "Certificates & education", icon: GraduationCap, count: f.credentials.length },
-    { id: "reviews", label: "Reviews", icon: Star },
+    { id: "reviews", label: "Reviews", icon: Star, count: f.rating?.reviews || undefined },
   ]
   const where = [f.city, f.state].filter(Boolean).join(", ")
   return (
@@ -179,6 +184,11 @@ export default function PublicProfile({ f, actions, banner }: { f: PublicFreelan
                   {label(AVAILABILITY, f.availability)} · up to {f.maxParallel} project{f.maxParallel === 1 ? "" : "s"} at a time
                 </span>
                 {f.since && <span>On MPI since {monthYear(f.since)}</span>}
+                {f.rating && f.rating.reviews > 0 && (
+                  <span className="inline-flex items-center gap-1.5 font-semibold text-white">
+                    <Star size={15} className="fill-orange text-orange" aria-hidden="true" /> {f.rating.rating.toFixed(1)} ({f.rating.reviews} review{f.rating.reviews === 1 ? "" : "s"})
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -285,7 +295,35 @@ export default function PublicProfile({ f, actions, banner }: { f: PublicFreelan
                   ) : (
                     <Empty>No certificates or education added.</Empty>
                   ))}
-                {tab === "reviews" && <Empty>New on MPI. Reviews appear here after finished orders.</Empty>}
+                {tab === "reviews" &&
+                  (f.reviews && f.reviews.length ? (
+                    <ul className="space-y-3">
+                      {f.reviews.map((r) => (
+                        <li key={r.id} className="rounded-lg border border-line/70 p-3.5">
+                          <p className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
+                            <span className="inline-flex gap-0.5" aria-label={`${r.rating} out of 5 stars`}>
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <Star key={n} size={15} className={n <= r.rating ? "fill-orange text-orange" : "text-line"} aria-hidden="true" />
+                              ))}
+                            </span>
+                            A startup on MPI · {monthYear(r.created_at)}
+                          </p>
+                          {r.tags.length > 0 && (
+                            <p className="mt-1.5 flex flex-wrap gap-1.5">
+                              {r.tags.map((t) => (
+                                <span key={t} className="rounded-full bg-navy-tint px-2.5 py-0.5 text-[12.5px] font-semibold text-navy">
+                                  {TAG_LABEL[t] ?? t}
+                                </span>
+                              ))}
+                            </p>
+                          )}
+                          {r.note && <p className="mt-1.5 text-[14.5px] text-ink">"{r.note}"</p>}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <Empty>New on MPI. Reviews appear here after finished orders.</Empty>
+                  ))}
               </motion.div>
             </AnimatePresence>
           </section>

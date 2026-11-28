@@ -9,7 +9,8 @@
 --   the spec's worked examples, invoices, payments, payouts and returns.
 --   Freelancers: sign-up, profile, MPI review and privacy; service briefs;
 --   freelancer matching, shortlists and picks; proposals, changes and hiring;
---   service orders paid, submitted, accepted and paid out milestone by milestone.
+--   service orders paid, submitted, accepted and paid out milestone by milestone;
+--   problems raised with MPI, auto-accept, refunds and reviews.
 -- It also checks that each person sees only what they should.
 --
 -- NOTHING IS SAVED. Everything runs inside one block that is cancelled at the
@@ -17,7 +18,7 @@
 -- result appears as an "error" in the SQL Editor: read the message, which
 -- starts with "MPI END-TO-END CHECK".
 --
--- Needs: all migrations up to 20261130120000 run, and the demo workspace
+-- Needs: all migrations up to 20261201120000 run, and the demo workspace
 -- (mpi-demostartup@, mpi-demosupplier1-3@, mpi-demoservice@example.com).
 -- Safe to run as often as you like, e.g. on the morning of a demo.
 -- ============================================================================
@@ -61,6 +62,12 @@ declare
   v_inv_sv  uuid;
   v_ms      uuid;
   v_sub     uuid;
+  v_req4    uuid;
+  v_inv4    uuid;
+  v_fq3     uuid;
+  v_po3     uuid;
+  v_ms2     uuid;
+  v_prob    uuid;
 begin
   -- --------------------------------------------------------------------------
   -- Who is who
@@ -1486,6 +1493,200 @@ begin
   select string_agg(status::text, ',' order by created_at, status) into v_txt from public.order_events where po_id = v_po2;
   v_ok := v_int = 9 and v_txt like 'issued%in_production%delivered%completed';
   v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Every milestone step is in the history with who and why (' || v_int || ' steps)');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- ==========================================================================
+  -- 14. Service order: a problem raised with MPI, auto-accept, refund, review
+  -- ==========================================================================
+  -- A second hired brief with 2 deliverables (set up directly, as the steps
+  -- before hiring are checked above).
+  insert into public.requests (org_id, title, category_id, source, status, needed_by, kind, deliverables, revision_rounds)
+  values (o_startup, 'End-to-end check: landing page', v_it, 'catalogue', 'draft', current_date + 20, 'service',
+          '[{"title": "Landing page design", "done_when": "We approve the design"}, {"title": "Page built and live", "done_when": "It loads on mobile; the form sends to our email"}]',
+          1)
+  returning id into v_req4;
+  insert into public.request_lines (request_id, description, quantity, unit, sort_order, specs)
+  values (v_req4, 'Landing page design', 1, 'deliverable', 0, '{"Done when": "We approve the design"}'),
+         (v_req4, 'Page built and live', 1, 'deliverable', 1, '{"Done when": "It loads on mobile; the form sends to our email"}');
+  update public.requests set status = 'open' where id = v_req4;
+  insert into public.request_matches (request_id, vendor_org_id, status, score, reasons)
+  values (v_req4, o_fl, 'approved', 90, array['End-to-end check'])
+  on conflict (request_id, vendor_org_id) do update set status = 'approved';
+  insert into public.rfq_invitations (request_id, vendor_org_id, status) values (v_req4, o_fl, 'quoted')
+  on conflict (request_id, vendor_org_id) do update set status = 'quoted'
+  returning id into v_inv4;
+  insert into public.quotes (invitation_id, request_id, vendor_org_id, version, status, lead_time_days, revision_rounds, notes)
+  values (v_inv4, v_req4, o_fl, 1, 'draft', 10, 1, 'Landing page in 10 days.')
+  returning id into v_fq3;
+  insert into public.quote_lines (quote_id, request_line_id, description, quantity, unit_price, tax_rate, sort_order)
+  select v_fq3, rl.id, rl.description, 1, case when rl.sort_order = 0 then 10000 else 6000 end, 0, rl.sort_order
+    from public.request_lines rl where rl.request_id = v_req4;
+  update public.quotes set status = 'submitted' where id = v_fq3;
+
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_po3 := public.approve_quote(v_fq3, null);
+  begin
+    perform public.leave_review(v_po3, 5, '{}', null);
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like '%once the order is completed%';
+  end;
+  select id into v_ms from public.service_milestones where po_id = v_po3 and seq = 1;
+  select id into v_ms2 from public.service_milestones where po_id = v_po3 and seq = 2;
+  perform public.pay_milestone(v_ms, 'e2e-po3-ms1-' || gen_random_uuid());
+  perform set_config('role', v_me, true);
+  perform set_config('request.jwt.claim.sub', u_fl::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_fl, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_sub := public.submit_milestone(v_ms, 'First design', array['https://figma.com/file/e2e-landing'], '{0}');
+  perform set_config('role', v_me, true);
+
+  -- The startup raises a problem. While it is open nothing moves.
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_prob := public.raise_problem(v_ms, 'quality', 'The design does not use our brand fonts at all.', array['https://example.com/brand-guide']);
+  begin
+    perform public.answer_submission(v_sub, true, null, '{}');
+    v_ok := false;
+  exception when others then
+    v_ok := v_ok and sqlerrm like '%already answered%';
+  end;
+  perform set_config('role', v_me, true);
+  update public.service_milestones set submitted_at = now() - interval '6 days' where id = v_ms;
+  perform app.auto_accept_milestones();
+  perform set_config('request.jwt.claim.sub', u_admin::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_admin, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  begin
+    perform public.pay_out_milestone(v_ms, 'e2e-po3-early-' || gen_random_uuid());
+    v_ok := false;
+  exception when others then
+    v_ok := v_ok and sqlerrm like '%accepted can be paid out%';
+  end;
+  select count(*) into v_int from public.problems_to_resolve() p where p.problem_id = v_prob;
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select status into v_txt from public.service_milestones where id = v_ms;
+  select count(*) into v_num from public.notifications n join public.profiles p on p.id = n.user_id
+   where n.type = 'milestone_problem' and (p.role = 'admin' or p.org_id = o_fl);
+  v_ok := v_ok and v_txt = 'problem' and v_int = 1 and v_num >= 2;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'A problem raised with MPI stops the milestone: no accepting, no automatic accept, no payout until MPI decides (' || coalesce(v_txt, '-') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- Others cannot see the problem; the provider can.
+  perform set_config('request.jwt.claim.sub', u_s1::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_s1, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  select count(*) into v_int from public.milestone_problems where po_id = v_po3;
+  begin
+    perform public.resolve_problem(v_prob, 'pay_provider', 'Not mine to decide');
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like '%Not allowed%';
+  end;
+  perform set_config('role', v_me, true);
+  perform set_config('request.jwt.claim.sub', u_fl::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_fl, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  select count(*) into v_num from public.milestone_problems where po_id = v_po3;
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  v_ok := v_ok and v_int = 0 and v_num = 1;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Both sides see the problem; other suppliers do not, and only MPI can decide');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- MPI sends it back to work; the provider sends again; no answer for 5 days.
+  perform set_config('request.jwt.claim.sub', u_admin::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_admin, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  perform public.resolve_problem(v_prob, 'back_to_work', 'Please redo the design with the brand fonts.');
+  perform set_config('role', v_me, true);
+  select status || '/' || changes_used into v_txt from public.service_milestones where id = v_ms;
+  perform set_config('request.jwt.claim.sub', u_fl::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_fl, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_sub := public.submit_milestone(v_ms, 'Redone with the brand fonts', array['https://figma.com/file/e2e-landing-2'], '{0}');
+  perform set_config('role', v_me, true);
+  update public.service_milestones set submitted_at = now() - interval '6 days' where id = v_ms;
+  v_int := app.auto_accept_milestones();
+
+  v_total := v_total + 1;
+  select v_txt || '/' || m.status || '/' || coalesce(s.answer_note, '-') into v_txt
+    from public.service_milestones m join public.milestone_submissions s on s.id = v_sub where m.id = v_ms;
+  select decision into v_got from public.milestone_problems where id = v_prob;
+  v_ok := v_got = 'back_to_work' and v_int >= 1 and v_txt like 'in_progress/0/accepted/Accepted automatically%';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'MPI sends the work back (no change round used); new work with no answer for 5 days is accepted automatically (' || coalesce(left(v_txt, 40), '-') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- Milestone 2: paid, submitted, problem, and MPI refunds the startup.
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  perform public.pay_milestone(v_ms2, 'e2e-po3-ms2-' || gen_random_uuid());
+  perform set_config('role', v_me, true);
+  perform set_config('request.jwt.claim.sub', u_fl::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_fl, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_sub := public.submit_milestone(v_ms2, 'Page is live', array['https://example.com/e2e-landing'], '{0}');
+  perform set_config('role', v_me, true);
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  v_prob := public.raise_problem(v_ms2, 'not_as_agreed', 'The form does not send anything and the page breaks on mobile.', '{}');
+  perform set_config('role', v_me, true);
+  select amount, commission into v_num, v_int from public.service_milestones where id = v_ms2;
+  perform set_config('request.jwt.claim.sub', u_admin::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_admin, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  perform public.resolve_problem(v_prob, 'refund_startup', 'The page was not delivered as agreed.');
+  perform public.pay_out_milestone(v_ms, 'e2e-po3-ms1-payout-' || gen_random_uuid());
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select m.status || '/' || po.status::text || '/' || (select coalesce(sum(amount), 0) from public.refunds where po_id = v_po3)::text
+         || '/' || (app.ledger_balance(v_po3, 'supplier_payable') = 0)::text
+         || '/' || (select count(*) from public.credit_notes where po_id = v_po3)::text
+    into v_txt
+    from public.service_milestones m join public.purchase_orders po on po.id = m.po_id where m.id = v_ms2;
+  v_ok := v_txt = 'refunded/completed/' || v_num::text || '/true/' || case when v_int > 0 then '2' else '1' end
+          and (select coalesce(sum(amount), 0) from public.ledger_entries where po_id = v_po3) = 0;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'MPI can refund the startup for a milestone (₹' || coalesce(v_num::text, '-')
+                         || ', simulated, commission reversed); the rest is paid out and the books balance (' || coalesce(v_txt, '-') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- The startup reviews the completed order, once.
+  perform set_config('request.jwt.claim.sub', u_s1::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_s1, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  begin
+    perform public.leave_review(v_po3, 1, '{}', 'Not my order');
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like '%Not allowed%';
+  end;
+  perform set_config('role', v_me, true);
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  perform public.leave_review(v_po2, 5, array['on_time', 'good_quality'], 'Great screens, on time.');
+  perform public.leave_review(v_po3, 3, array['easy_to_work_with'], null);
+  begin
+    perform public.leave_review(v_po2, 4, '{}', null);
+    v_ok := false;
+  exception when others then
+    v_ok := v_ok and sqlerrm like '%already reviewed%';
+  end;
+  select rating::text || '/' || reviews into v_txt from public.provider_ratings where org_id = o_fl;
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  v_ok := v_ok and v_txt = '4.0/2';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Only a completed order can be reviewed, once, by its startup; the rating shows on the profile (' || coalesce(v_txt, '-') || ' stars/reviews)');
   if v_ok then v_pass := v_pass + 1; end if;
 
   -- ==========================================================================

@@ -53,7 +53,7 @@ import {
   type OrderStatus,
   type OrderSummary,
 } from "../../services/data/orders"
-import { listOrderMilestones, providerTodo, startupTodo, type Milestone } from "../../services/data/milestones"
+import { isAccepted, listOrderMilestones, providerTodo, startupTodo, type Milestone } from "../../services/data/milestones"
 import { listQuoteLines, type QuoteLine } from "../../services/data/quotes"
 import Button from "../../ui/Button"
 import EmptyState from "../../ui/EmptyState"
@@ -63,6 +63,7 @@ import { Chip, day, daysLeft, daysUntil, errorText, GRADIENT_PANEL, rupees, Summ
 import { notificationsPath } from "../notifications/notify"
 import { printInvoice, printPurchaseOrder } from "./printDoc"
 import ServiceOrderProgress from "./ServiceOrder"
+import ReviewPanel from "./ReviewPanel"
 import { useMe } from "../../app/session"
 
 type Side = "startup" | "vendor"
@@ -146,8 +147,9 @@ export function stillToPay(money: OrderMoney | undefined): number {
 /** A service order's status in words: "Milestone 2 of 3 · in progress". */
 export function serviceStatus(o: OrderSummary, ms: Milestone[]): string {
   if (o.status === "cancelled" || o.status === "completed") return STEP_LABEL[o.status]
-  if (ms.every((m) => m.status === "accepted" || m.status === "paid_out")) return "All work accepted"
-  const m = ms.find((x) => x.status !== "accepted" && x.status !== "paid_out") ?? ms[0]
+  if (ms.some((m) => m.status === "problem")) return "Problem with MPI"
+  if (ms.every(isAccepted)) return "All work accepted"
+  const m = ms.find((x) => !isAccepted(x)) ?? ms[0]
   return `Milestone ${m.seq} of ${ms.length}`
 }
 
@@ -690,7 +692,12 @@ function OrderPanel({
       </div>
 
       <div className="bg-white p-5 sm:p-6">
-        {tab === "progress" && service && <ServiceOrderProgress milestones={milestones} side={side} onDone={onDone} />}
+        {tab === "progress" && service && (
+          <div className="space-y-4">
+            {order.status === "completed" && <ReviewPanel orderId={order.id} vendorOrgId={order.vendor_org_id} side={side} onDone={onDone} />}
+            <ServiceOrderProgress milestones={milestones} side={side} onDone={onDone} />
+          </div>
+        )}
         {tab === "progress" && !service && (
           <div className="space-y-5">
             <Stepper status={order.status} events={events} />
