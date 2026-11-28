@@ -44,6 +44,8 @@ export interface ServiceDraft {
   proposalsWanted: number
   schemeIds: string[]
   missing: string[]
+  /** Shortlisted freelancers to send with the brief (up to 3). */
+  picks: string[]
 }
 
 export const BRIEF_STEPS = [
@@ -82,6 +84,7 @@ export function emptyServiceDraft(): ServiceDraft {
     proposalsWanted: 3,
     schemeIds: [],
     missing: [],
+    picks: [],
   }
 }
 
@@ -250,6 +253,14 @@ export function clearBrief(): void {
 export function handOffToBrief(text: string, categoryId: string | null): void {
   storeBrief({ draft: { ...emptyServiceDraft(), text, categoryId }, step: 0, requestId: null })
 }
+
+/** The picks that go with the brief: none when it asks for businesses only, or freelancers are off. */
+export function effectivePicks(d: ServiceDraft, freelancersOn: boolean): string[] {
+  return freelancersOn && d.providerPreference !== "business" ? [...new Set(d.picks)].slice(0, 3) : []
+}
+
+/** Adds picks (from the shortlist screen) without going over 3. */
+export const mergePicks = (current: string[], extra: string[]): string[] => [...new Set([...current, ...extra])].slice(0, 3)
 
 export const PROVIDER_LABEL: Record<ProviderPreference, string> = {
   any: "Any provider",

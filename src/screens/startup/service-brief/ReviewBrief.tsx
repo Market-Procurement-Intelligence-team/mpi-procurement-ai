@@ -49,12 +49,15 @@ export default function ReviewBrief({
   skills,
   onEdit,
   update,
+  pickedCodes = [],
 }: {
   draft: ServiceDraft
   categories: Category[] | null
   skills: Skill[]
   onEdit: (s: BriefStep) => void
   update: (patch: Partial<ServiceDraft>) => void
+  /** Anonymous codes of the shortlisted freelancers sent with the brief. */
+  pickedCodes?: string[]
 }) {
   const category = categories?.find((c) => c.id === draft.categoryId)
   const deliverables = draft.deliverables.filter((d) => d.title.trim())
@@ -149,6 +152,15 @@ export default function ReviewBrief({
                 <dt className="text-sm text-muted">Providers</dt>
                 <dd className="font-medium text-navy">{PROVIDER_LABEL[draft.providerPreference]}</dd>
               </div>
+              {pickedCodes.length > 0 && (
+                <div className="grid gap-1 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-4">
+                  <dt className="text-sm text-muted">Your picks</dt>
+                  <dd className="font-medium text-navy">
+                    {pickedCodes.join(", ")}
+                    <span className="block text-[13px] font-normal text-muted">MPI checks them with its own suggestions before anyone sees your brief.</span>
+                  </dd>
+                </div>
+              )}
               <div className="grid gap-1 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-4">
                 <dt className="text-sm text-muted">Proposals wanted</dt>
                 <dd className="font-medium text-navy">{draft.proposalsWanted === 3 ? "Up to 3" : draft.proposalsWanted}</dd>

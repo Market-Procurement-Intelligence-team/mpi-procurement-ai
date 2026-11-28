@@ -15,7 +15,16 @@ import { useMe } from "../../../app/session"
 import type { VoiceLanguage } from "../../../lib/voiceInput"
 import { readBrief } from "../../../services/data/ai"
 import { listCategories, type Category } from "../../../services/data/catalogue"
-import { freelancersOpen, listSkills, type Skill } from "../../../services/data/providers"
+import {
+  freelancersOpen,
+  listFreelancers,
+  listMyShortlist,
+  listRequestPicks,
+  listSkills,
+  setRequestPicks,
+  type FreelancerCard,
+  type Skill,
+} from "../../../services/data/providers"
 import { briefColumns, createRequest, getRequestDetail, replaceLines, sendRequest, updateRequest } from "../../../services/data/requests"
 import Button from "../../../ui/Button"
 import { Alert } from "../../../ui/form"
@@ -26,10 +35,12 @@ import {
   BRIEF_STEPS,
   briefErrors,
   clearBrief,
+  effectivePicks,
   emptyDeliverable,
   emptyServiceDraft,
   fromServiceRequest,
   loadBrief,
+  mergePicks,
   storeBrief,
   toBriefInput,
   type BriefStep,
@@ -49,6 +60,8 @@ export default function ServiceBriefPage() {
   const me = useMe()
   const [params] = useSearchParams()
   const draftId = params.get("draft")
+  // Picks sent from the shortlist screen (?picks=id,id).
+  const urlPicks = useRef((params.get("picks") ?? "").split(",").filter(Boolean))
   const initial = useRef(loadBrief())
   const [draft, setDraft] = useState<ServiceDraft>(initial.current?.draft ?? emptyServiceDraft())
   const [step, setStep] = useState<BriefStep>(initial.current?.step ?? 0)
@@ -59,6 +72,8 @@ export default function ServiceBriefPage() {
   const [categories, setCategories] = useState<Category[] | null>(null)
   const [skills, setSkills] = useState<Skill[]>([])
   const [freelancersOn, setFreelancersOn] = useState(false)
+  const [directory, setDirectory] = useState<FreelancerCard[]>([])
+  const [shortlist, setShortlist] = useState<string[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const [voiceLanguage, setVoiceLanguage] = useState<VoiceLanguage>("en")
   const [aiBusy, setAiBusy] = useState(false)
@@ -78,18 +93,38 @@ export default function ServiceBriefPage() {
         setLoadError(messageOf(err, "Couldn't load the kinds of service."))
       })
     listSkills().then(setSkills).catch(() => setSkills([]))
-    freelancersOpen().then(setFreelancersOn).catch(() => setFreelancersOn(false))
+    freelancersOpen()
+      .then((on) => {
+        setFreelancersOn(on)
+        if (!on) return
+        listFreelancers().then(setDirectory).catch(() => setDirectory([]))
+        listMyShortlist().then(setShortlist).catch(() => setShortlist([]))
+      })
+      .catch(() => setFreelancersOn(false))
   }, [])
+
+  // Picks from the shortlist for the brief already open in this tab (a new one,
+  // or the same draft): add them. A different draft gets them when it loads.
+  useEffect(() => {
+    if (!urlPicks.current.length || (draftId && draftId !== initial.current?.requestId)) return
+    setDraft((d) => ({ ...d, picks: mergePicks(d.picks, urlPicks.current), providerPreference: d.providerPreference === "business" ? "any" : d.providerPreference }))
+  }, [draftId])
 
   // "Continue" on a draft brief opens it here.
   useEffect(() => {
     if (!draftId || draftId === initial.current?.requestId) return
     let alive = true
-    getRequestDetail(draftId)
-      .then(({ request }) => {
+    Promise.all([getRequestDetail(draftId), listRequestPicks(draftId).catch(() => [] as string[])])
+      .then(([{ request }, saved]) => {
         if (!alive) return
         if (request.status !== "draft") return setLoadError("This brief has already been sent, so it can't be changed here.")
-        setDraft(fromServiceRequest(request))
+        const loaded = fromServiceRequest(request)
+        const picks = mergePicks(saved, urlPicks.current)
+        setDraft({
+          ...loaded,
+          picks,
+          providerPreference: urlPicks.current.length && loaded.providerPreference === "business" ? "any" : loaded.providerPreference,
+        })
         setRequestId(request.id)
         setStep(1)
         setReached(3)
@@ -178,6 +213,7 @@ export default function ServiceBriefPage() {
     setSaveError(null)
     try {
       const input = toBriefInput(draft)
+      const picks = effectivePicks(draft, freelancersOn)
       let id = requestId
       if (id) {
         await updateRequest(id, {
@@ -197,11 +233,18 @@ export default function ServiceBriefPage() {
           ...briefColumns(input.brief!),
         })
         await replaceLines(id, input.lines)
+        if (freelancersOn) await setRequestPicks(id, picks)
         if (send) await sendRequest(id)
       } else {
-        const created = await createRequest(me.organisation.id, me.userId, input, send)
+        // With picks, save as a draft first so the picks are there when MPI's AI matches the brief.
+        const withPicks = freelancersOn && picks.length > 0
+        const created = await createRequest(me.organisation.id, me.userId, input, send && !withPicks)
         id = created.id
         setRequestId(id)
+        if (withPicks) {
+          await setRequestPicks(id, picks)
+          if (send) await sendRequest(id)
+        }
       }
       if (send) {
         clearBrief()
@@ -309,8 +352,19 @@ export default function ServiceBriefPage() {
         />
       )}
       {step === 1 && <DeliverablesStep draft={draft} update={update} skills={categorySkills} errors={errors} />}
-      {step === 2 && <BudgetStep draft={draft} update={update} errors={errors} freelancersOn={freelancersOn} />}
-      {step === 3 && <ReviewBrief draft={draft} categories={categories} skills={skills} onEdit={go} update={update} />}
+      {step === 2 && (
+        <BudgetStep draft={draft} update={update} errors={errors} freelancersOn={freelancersOn} directory={directory} shortlist={shortlist} />
+      )}
+      {step === 3 && (
+        <ReviewBrief
+          draft={draft}
+          categories={categories}
+          skills={skills}
+          onEdit={go}
+          update={update}
+          pickedCodes={effectivePicks(draft, freelancersOn).map((id) => directory.find((c) => c.id === id)?.display_name ?? "A shortlisted freelancer")}
+        />
+      )}
 
       {/* Back / Save / Next, always in reach */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t-[1.5px] border-line bg-white/95 backdrop-blur">

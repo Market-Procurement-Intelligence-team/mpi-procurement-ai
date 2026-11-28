@@ -1759,6 +1759,42 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_shortlists: {
+        Row: {
+          buyer_org_id: string
+          provider_org_id: string
+          created_at: string
+        }
+        Insert: {
+          buyer_org_id: string
+          provider_org_id: string
+          created_at?: string
+        }
+        Update: {
+          buyer_org_id?: string
+          provider_org_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      request_picks: {
+        Row: {
+          request_id: string
+          provider_org_id: string
+          created_at: string
+        }
+        Insert: {
+          request_id: string
+          provider_org_id: string
+          created_at?: string
+        }
+        Update: {
+          request_id?: string
+          provider_org_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       provider_skills: {
         Row: {
           org_id: string
@@ -2316,6 +2352,10 @@ export type Database = {
       }
       set_freelancers_enabled: {
         Args: { p_on: boolean }
+        Returns: undefined
+      }
+      set_request_picks: {
+        Args: { p_request_id: string; p_org_ids: string[] }
         Returns: undefined
       }
       submit_provider_profile: {

@@ -278,6 +278,8 @@ export interface QueueSupplier {
   /** How full the supplier's production is, 0 to 100, if they told MPI. */
   capacityBookedPct: number | null
   isDemo: boolean
+  /** A one-person provider (freelancer) rather than a business. */
+  isFreelancer: boolean
 }
 
 export interface QueueMatch {
@@ -328,7 +330,7 @@ export async function listMatchQueue(): Promise<QueueRequest[]> {
   const categoryIds = [...new Set(requests.flatMap((r) => (r.category_id ? [r.category_id] : [])))]
 
   const [orgs, details, categories] = await Promise.all([
-    db.from("organisations").select("id, name, display_name, city, state, is_demo").in("id", orgIds).then(unwrap),
+    db.from("organisations").select("id, name, display_name, city, state, is_demo, provider_type").in("id", orgIds).then(unwrap),
     vendorIds.length
       ? db.from("vendor_details").select("org_id, certifications, capacity_utilisation_pct").in("org_id", vendorIds).then(unwrap)
       : Promise.resolve([]),
@@ -357,6 +359,7 @@ export async function listMatchQueue(): Promise<QueueRequest[]> {
             certifications: d?.certifications ?? [],
             capacityBookedPct: d?.capacity_utilisation_pct ?? null,
             isDemo: org?.is_demo ?? false,
+            isFreelancer: org?.provider_type === "individual",
           },
           mayBeLate: Boolean(
             request.needed_by && match.estimated_delivery_date && match.estimated_delivery_date > request.needed_by,

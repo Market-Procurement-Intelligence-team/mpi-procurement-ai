@@ -360,3 +360,49 @@ export async function getFreelancer(orgId: string): Promise<FreelancerDetail | n
     packages: unwrap(packages),
   }
 }
+
+// ---------------------------------------------------------------------------
+// Shortlist (startup) and picks for a brief
+// ---------------------------------------------------------------------------
+
+/** Most freelancers a startup can pick for one brief. The database enforces it too. */
+export const MAX_PICKS = 3
+
+/** Freelancers this startup has shortlisted, newest first (their org ids). */
+export async function listMyShortlist(): Promise<string[]> {
+  const rows = unwrap(
+    await db.from("provider_shortlists").select("provider_org_id").order("created_at", { ascending: false }),
+  )
+  return rows.map((r) => r.provider_org_id)
+}
+
+export async function addToShortlist(buyerOrgId: string, providerOrgId: string): Promise<void> {
+  check(await db.from("provider_shortlists").upsert(
+    { buyer_org_id: buyerOrgId, provider_org_id: providerOrgId },
+    { onConflict: "buyer_org_id,provider_org_id", ignoreDuplicates: true },
+  ))
+}
+
+export async function removeFromShortlist(buyerOrgId: string, providerOrgId: string): Promise<void> {
+  check(
+    await db.from("provider_shortlists").delete()
+      .eq("buyer_org_id", buyerOrgId).eq("provider_org_id", providerOrgId),
+  )
+}
+
+/** Freelancers the startup picked for a brief. */
+export async function listRequestPicks(requestId: string): Promise<string[]> {
+  const rows = unwrap(
+    await db.from("request_picks").select("provider_org_id").eq("request_id", requestId).order("created_at"),
+  )
+  return rows.map((r) => r.provider_org_id)
+}
+
+/**
+ * Sets the picked freelancers for a brief that is still a draft (up to 3).
+ * When the brief is sent, they reach MPI as "Picked by the startup", next to
+ * the AI's suggestions. MPI still approves every match.
+ */
+export async function setRequestPicks(requestId: string, providerOrgIds: string[]): Promise<void> {
+  check(await db.rpc("set_request_picks", { p_request_id: requestId, p_org_ids: providerOrgIds }))
+}

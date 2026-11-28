@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Package,
   ShieldCheck,
+  Users,
   UserRound,
   Wallet,
   type LucideIcon,
@@ -18,6 +19,8 @@ export interface MenuItem {
   short?: string
   to: string
   icon: LucideIcon
+  /** Shown only while MPI has freelancers switched on. */
+  needsFreelancers?: boolean
 }
 
 /**
@@ -39,6 +42,7 @@ export const MENUS: Record<Role, { area: string; title: string; items: MenuItem[
     items: [
       { label: "Dashboard", to: "", icon: LayoutDashboard },
       { label: "My requests", to: "requests", icon: FileText },
+      { label: "Providers", to: "providers", icon: Users, needsFreelancers: true },
       { label: "Orders", to: "orders", icon: Package },
       { label: "Schemes", to: "schemes", icon: Landmark },
       { label: "Profile", to: "profile", icon: UserRound },

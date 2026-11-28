@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react"
 import { Link, NavLink, Outlet, useLocation } from "react-router"
 import { ChevronDown, LogOut, Menu, UserRound, X } from "lucide-react"
 import { signOut } from "../services/data/auth"
+import { freelancersOpen } from "../services/data/providers"
 import MpiLogo from "../ui/brand/MpiLogo"
 import { FREELANCER_MENU, MENUS } from "./menus"
 import NotificationBell from "./NotificationBell"
@@ -25,7 +26,21 @@ export default function AppShell({ role }: { role: Role }) {
   const [accountOpen, setAccountOpen] = useState(false)
   const accountRef = useRef<HTMLDivElement>(null)
   const freelancer = role === "vendor" && state.status === "signedIn" && state.me.organisation.provider_type === "individual"
-  const menu = freelancer ? FREELANCER_MENU : MENUS[role]
+  const fullMenu = freelancer ? FREELANCER_MENU : MENUS[role]
+  // Items such as Providers appear only while freelancers are switched on.
+  const [freelancersOn, setFreelancersOn] = useState(false)
+  const needsCheck = fullMenu.items.some((item) => item.needsFreelancers)
+  useEffect(() => {
+    if (!needsCheck) return
+    let live = true
+    freelancersOpen()
+      .then((on) => live && setFreelancersOn(on))
+      .catch(() => live && setFreelancersOn(false))
+    return () => {
+      live = false
+    }
+  }, [needsCheck])
+  const menu = { ...fullMenu, items: fullMenu.items.filter((item) => !item.needsFreelancers || freelancersOn) }
 
   // Close the menus after moving to another page.
   useEffect(() => {

@@ -7,7 +7,8 @@
 --   approves -> order and its history -> a remote service request ->
 --   government scheme suggestions -> the suppliers' price guide -> money:
 --   the spec's worked examples, invoices, payments, payouts and returns.
---   Freelancers: sign-up, profile, MPI review and privacy.
+--   Freelancers: sign-up, profile, MPI review and privacy; service briefs;
+--   freelancer matching, shortlists and picks.
 -- It also checks that each person sees only what they should.
 --
 -- NOTHING IS SAVED. Everything runs inside one block that is cancelled at the
@@ -15,7 +16,7 @@
 -- result appears as an "error" in the SQL Editor: read the message, which
 -- starts with "MPI END-TO-END CHECK".
 --
--- Needs: all migrations up to 20261124120000 run, and the demo workspace
+-- Needs: all migrations up to 20261128120000 run, and the demo workspace
 -- (mpi-demostartup@, mpi-demosupplier1-3@, mpi-demoservice@example.com).
 -- Safe to run as often as you like, e.g. on the morning of a demo.
 -- ============================================================================
@@ -39,6 +40,7 @@ declare
   v_quote   uuid; v_quote2 uuid; v_offer uuid; v_counter uuid;
   v_po      uuid; v_po_number text;
   v_req2    uuid;
+  v_req3    uuid;
   v_num     numeric;
   v_int     integer;
   v_txt     text;
@@ -1015,6 +1017,97 @@ begin
   v_ok := has_column_privilege('authenticated', 'public.requests', 'deliverables', 'select')
           and not has_column_privilege('authenticated', 'public.requests', 'budget_max', 'select');
   v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Suppliers can read a brief''s deliverables but still not its budget');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- ==========================================================================
+  -- 11. Freelancer matching, shortlists and picks
+  -- ==========================================================================
+  v_total := v_total + 1;
+  select count(*), max(score), coalesce(string_agg(array_to_string(reasons, ' | '), ' | '), '')
+    into v_int, v_num, v_txt
+    from public.request_matches where request_id = v_req2 and vendor_org_id = o_fl and suggested_by = 'ai';
+  v_ok := v_int = 1 and v_num between 1 and 100 and v_txt like '%Package price fits%' and v_txt like '%Works in%';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'A service brief is matched with a live freelancer, scored ' || coalesce(v_num::text, '-') || ' out of 100');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  select coalesce(string_agg(array_to_string(reasons, ' '), ' '), '') into v_txt
+    from public.request_matches where request_id = v_req2;
+  v_ok := v_txt not like '%30,000%' and v_txt not like '%30000%' and v_txt not like '%15,000%' and v_txt not like '%15000%';
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Match reasons never show the startup''s budget');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  update public.provider_profiles set status = 'paused' where org_id = o_fl;
+  perform app.suggest_matches_for(v_req2);
+  select count(*) into v_int from public.request_matches where request_id = v_req2 and vendor_org_id = o_fl;
+  update public.provider_profiles set status = 'active' where org_id = o_fl;
+  v_ok := v_int = 0;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'A paused freelancer is left out of matching');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  -- The startup shortlists the freelancer, then picks them for a brief that
+  -- asks for businesses only (so only the pick can bring them in).
+  perform set_config('request.jwt.claim.sub', u_startup::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_startup, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  insert into public.provider_shortlists (buyer_org_id, provider_org_id) values (o_startup, o_fl);
+  insert into public.requests (org_id, title, category_id, source, status, kind, provider_preference,
+                               deliverables, needed_by, budget_min, budget_max)
+  values (o_startup, 'End-to-end check: app screens', v_it, 'ai_assisted', 'draft', 'service', 'business',
+          '[{"title": "10 app screens in Figma", "done_when": "We approve the designs"}]', current_date + 30, 10000, 20000)
+  returning id into v_req3;
+  perform public.set_request_picks(v_req3, array[o_fl]);
+  update public.requests set status = 'open' where id = v_req3;
+  select count(*) into v_int from public.request_matches where request_id = v_req3 and vendor_org_id = o_fl;
+  begin
+    perform public.set_request_picks(v_req3, '{}');
+    v_ok := false;
+  exception when others then
+    v_ok := sqlerrm like '%before the brief is sent%';
+  end;
+  perform set_config('role', v_me, true);
+
+  v_total := v_total + 1;
+  select count(*) into v_num from public.provider_shortlists where buyer_org_id = o_startup and provider_org_id = o_fl;
+  v_ok := v_ok and v_num = 1;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'A startup can shortlist a freelancer and pick them for a brief; picks are fixed once sent');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  select m.id, m.suggested_by || '/' || m.status::text into v_match, v_txt
+    from public.request_matches m where m.request_id = v_req3 and m.vendor_org_id = o_fl;
+  select count(*) into v_num from public.rfq_invitations where request_id = v_req3 and vendor_org_id = o_fl;
+  v_ok := v_int = 0 and v_txt = 'buyer/suggested' and v_num = 0;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'The startup''s pick waits for MPI: hidden from the startup and not invited yet (' || coalesce(v_txt, 'no match') || ')');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  perform set_config('request.jwt.claim.sub', u_s1::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_s1, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  begin
+    insert into public.provider_shortlists (buyer_org_id, provider_org_id) values (o_s1, o_fl);
+    v_ok := false;
+  exception when others then
+    v_ok := true;
+  end;
+  select count(*) into v_int from public.provider_shortlists;
+  select v_int + count(*) into v_int from public.request_picks;
+  v_ok := v_ok and v_int = 0;
+  perform set_config('role', v_me, true);
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'Suppliers cannot shortlist freelancers or see anyone''s shortlist or picks');
+  if v_ok then v_pass := v_pass + 1; end if;
+
+  v_total := v_total + 1;
+  perform set_config('request.jwt.claim.sub', u_admin::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', u_admin, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  perform public.review_match(v_match, true, null);
+  perform set_config('role', v_me, true);
+  select count(*) into v_num from public.rfq_invitations where request_id = v_req3 and vendor_org_id = o_fl;
+  v_ok := v_num = 1;
+  v_lines := v_lines || (case when v_ok then '✓ ' else '✗ ' end || 'MPI approves the picked freelancer and they are invited to the brief');
   if v_ok then v_pass := v_pass + 1; end if;
 
   -- ==========================================================================

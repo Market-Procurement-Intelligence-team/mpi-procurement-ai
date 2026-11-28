@@ -28,7 +28,9 @@ import {
   Send,
   Sparkles,
   Truck,
+  UserRound,
   X,
+  Bookmark,
   XCircle,
 } from "lucide-react"
 import {
@@ -181,12 +183,12 @@ function fitChecklist(q: QueueRequest, m: QueueMatch): Fit[] {
   const reasons = match.reasons.map((r) => r.toLowerCase())
 
   if (q.categoryName) {
-    const serves = reasons.some((r) => r.startsWith("supplies") || r.startsWith("makes"))
+    const serves = reasons.some((r) => r.startsWith("supplies") || r.startsWith("makes") || r.startsWith("works in"))
     fits.push(serves ? { state: "met", label: q.categoryName } : { state: "check", label: `${q.categoryName}: not listed` })
   }
 
   const has = new Set(supplier.certifications.map((c) => c.toLowerCase()))
-  for (const cert of q.request.required_certifications) {
+  for (const cert of supplier.isFreelancer ? [] : q.request.required_certifications) {
     fits.push(has.has(cert.toLowerCase()) ? { state: "met", label: cert } : { state: "missing", label: `${cert} missing` })
   }
 
@@ -194,6 +196,22 @@ function fitChecklist(q: QueueRequest, m: QueueMatch): Fit[] {
     if (mayBeLate) fits.push({ state: "missing", label: `May miss ${day(q.request.needed_by)}` })
     else if (match.estimated_delivery_date) fits.push({ state: "met", label: `By ${day(q.request.needed_by)}` })
     else fits.push({ state: "check", label: "Delivery date unknown" })
+  }
+
+  // Freelancers: skills, package price (never the budget itself) and free time.
+  if (supplier.isFreelancer) {
+    for (const r of match.reasons) {
+      const x = r.toLowerCase()
+      if (x.startsWith("none of the skills")) fits.push({ state: "missing", label: "No skills asked for" })
+      else if (/^has \d+ of \d+ skills/.test(x)) fits.push({ state: "check", label: r.replace(/^Has /, "") })
+      else if (x.startsWith("has ")) fits.push({ state: "met", label: r.replace(/^Has /, "") })
+      else if (x === "package price fits") fits.push({ state: "met", label: "Price fits budget" })
+      else if (x.startsWith("package price a little above")) fits.push({ state: "check", label: "Price a little above budget" })
+      else if (x.startsWith("package price above")) fits.push({ state: "missing", label: "Price above budget" })
+      else if (x.startsWith("no package")) fits.push({ state: "check", label: "No package for this" })
+      else if (x === "available now") fits.push({ state: "met", label: "Available now" })
+      else if (x.startsWith("limited time") || x.startsWith("busy")) fits.push({ state: "check", label: r })
+    }
   }
 
   if (supplier.capacityBookedPct !== null) {
@@ -210,12 +228,16 @@ function fitChecklist(q: QueueRequest, m: QueueMatch): Fit[] {
 function extraReasons(m: QueueMatch): string[] {
   return m.match.reasons.filter((r) => {
     const x = r.toLowerCase()
+    if (m.supplier.isFreelancer && /^(none of the skills|package price|no package|available now|limited time|busy)/.test(x)) return false
     return !(
       x.startsWith("supplies") ||
       x.startsWith("makes") ||
       x.startsWith("has iso") ||
       x.startsWith("has ") ||
       x.startsWith("can deliver") ||
+      x.startsWith("can finish") ||
+      x.startsWith("works in") ||
+      x.startsWith("does not list") ||
       x.startsWith("added by mpi")
     )
   })
@@ -282,6 +304,20 @@ function SupplierCard({ q, item, rank, slot, full, busy, focused, onApprove, onR
               </h3>
               {supplier.isDemo && <DemoTag />}
             </div>
+            {(supplier.isFreelancer || match.suggested_by === "buyer") && <p className="mt-0.5 flex flex-wrap items-center gap-1.5">
+              {supplier.isFreelancer && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-navy-tint px-2 py-px text-[12px] font-semibold text-navy">
+                  <UserRound size={12} aria-hidden="true" />
+                  Freelancer
+                </span>
+              )}
+              {match.suggested_by === "buyer" && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-orange/60 bg-orange-tint px-2 py-px text-[12px] font-semibold text-navy">
+                  <Bookmark size={12} aria-hidden="true" />
+                  Picked by the startup
+                </span>
+              )}
+            </p>}
             <p className="truncate text-[13px] text-muted">{supplier.code}</p>
           </div>
           {byHand ? (
@@ -305,12 +341,12 @@ function SupplierCard({ q, item, rank, slot, full, busy, focused, onApprove, onR
           {match.estimated_delivery_date && (
             <li className="inline-flex items-center gap-1.5">
               <Truck size={14} className="text-muted" aria-hidden="true" />
-              Delivers {day(match.estimated_delivery_date)}
+              {supplier.isFreelancer ? "Finishes" : "Delivers"} {day(match.estimated_delivery_date)}
             </li>
           )}
-          <li className="text-muted">
+          {!supplier.isFreelancer && <li className="text-muted">
             Certs: <span className="text-navy">{supplier.certifications.length ? supplier.certifications.join(", ") : "none listed"}</span>
-          </li>
+          </li>}
           {supplier.capacityBookedPct !== null && (
             <li className="text-muted">
               Capacity: <span className="text-navy">{supplier.capacityBookedPct}% booked</span>

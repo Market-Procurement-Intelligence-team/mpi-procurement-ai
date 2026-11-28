@@ -7,7 +7,7 @@
 
 import { useState, type ReactNode } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import { BadgeCheck, Bookmark, BriefcaseBusiness, CircleCheck, CircleX, Clock, FolderKanban, GraduationCap, Lock, MapPin, RefreshCw, Sparkles, Star } from "lucide-react"
+import { BadgeCheck, BriefcaseBusiness, CircleCheck, CircleX, Clock, FolderKanban, GraduationCap, Lock, MapPin, RefreshCw, Sparkles, Star } from "lucide-react"
 import type { MyProviderProfile } from "../../services/data/providers"
 import { rupees, SOFT_BG } from "../supplier/parts"
 import { AVAILABILITY, label, monthYear, SKILL_LEVELS, WORK_MODES } from "./useBuilder"
@@ -298,15 +298,7 @@ export default function PublicProfile({ f, actions, banner }: { f: PublicFreelan
             <div className="space-y-3">
               {f.packages.length ? (
                 f.packages.map((k) => (
-                  <PackageCard
-                    key={k.id}
-                    k={k}
-                    action={
-                      <span className="flex w-full items-center justify-center gap-2 rounded-md border-[1.5px] border-navy py-2 text-[14px] font-bold text-navy">
-                        <Bookmark size={15} aria-hidden="true" /> Request this package
-                      </span>
-                    }
-                  />
+                  <PackageCard key={k.id} k={k} />
                 ))
               ) : (
                 <Empty>No packages yet.</Empty>
